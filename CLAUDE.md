@@ -1,0 +1,51 @@
+# stack-graph — project root
+
+`stack-graph` is **the factory**: a general, process-agnostic system that models an
+agent operating environment as a graph of its `.claude` primitives (skills, agents,
+references, scripts, settings, hooks, MCP) and the workflows that traverse them, then
+instruments and improves them via a PR-gated loop. A product is what **runs inside** the
+factory — this repo is not the product, and stays general.
+
+## Status: scaffold (pre-spec)
+
+The handbook skeleton exists; the specifications are being authored. Treat every
+`handbook/content/<section>/README.md` as a stub that states the section's purpose and
+**parks the open questions it owns**. Do not assume a spec is settled until its section
+says so.
+
+## Handbook is canonical
+
+`handbook/content/` is the canonical reference for what stack-graph is and how it's
+built. **Read `handbook/content/index.json` at task start** — it lists every page with a
+`read-when` hint and `related[]` edges — then read the sections relevant to your task.
+
+| Section | Read when |
+|---|---|
+| `00-overview` | Orienting; how to navigate; how to author/maintain handbook pages |
+| `01-concepts` | The mental model — primitives, the graph, processes, the loop, generality |
+| `02-graph-spec` | The node/edge/inline model, cyclic semantics, the node schema |
+| `03-plugin-spec` | Packaging, the handbook→plugin build/vendor pipeline, install |
+| `04-harness-spec` | What a harness is; the additive local-overlay customisation model |
+| `05-maintenance-skill` | The `stack-graph-maintainer` skill (modelled on bc-corpus-creator) |
+| `06-analytics` | Instrumentation (preamble/hooks), conformance, the transcript baseline |
+| `07-decomposition` | Principles for decomposing a process into the graph |
+| `08-devops` | How stack-graph develops itself; PR discipline; the two loops |
+
+## Locked design decisions
+
+- **Factory / product split.** General here; product specifics live in the consuming
+  workspace's *harness*, never in this repo.
+- **Claude-primitive vocabulary**, not any product's terms. Nodes are real `.claude`
+  elements (the Claude Directory taxonomy).
+- **Canonical = real `.claude` files** (not gbrain). The graph is the authoring/review
+  lens; the plugin is **vendored from the handbook**.
+- **Graph is cyclic** (loops are first-class), not a DAG.
+- **Not everything is a node/edge** — MCP calls are typically inline in a node.
+- **Customisation = additive local overlay** (entry nodes + connecting edges); the
+  vendored graph is never mutated.
+
+## Keep it clean
+
+This repo is general and open-source-*able*. Keep product-specific references (paths,
+sprint codes, commercial detail) out of it — those belong in the consuming workspace's
+private notes, never here.

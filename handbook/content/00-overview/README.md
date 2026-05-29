@@ -1,0 +1,42 @@
+---
+title: stack-graph handbook
+type: index
+read-when: Orienting to stack-graph — what it is and how this handbook is organised.
+related: [concepts, graph-spec, devops]
+status: v0.0.0 — 2026-05-29
+---
+
+# stack-graph handbook
+
+stack-graph is **the factory**: a general, process-agnostic system that models an agent
+operating environment as a graph of its `.claude` primitives and the workflows that
+traverse them, then instruments and improves them through a PR-gated loop. A product is
+what *runs inside* the factory.
+
+**Status: scaffold.** This handbook currently holds section stubs with the open design
+questions parked where they'll be answered. The specifications are authored next.
+
+## How to navigate
+
+Read [`index.json`](../index.json) first — it lists every page with a `read-when` hint
+and `related[]` edges. Then read the sections relevant to your task.
+
+## Sections
+
+- **01-concepts** — the mental model: primitives, the graph, processes, the loop, generality.
+- **02-graph-spec** — node/edge/inline taxonomy, cyclic semantics, the node schema, storage.
+- **03-plugin-spec** — packaging, the handbook→plugin build/vendor pipeline, install.
+- **04-harness-spec** — what a harness is; the additive local-overlay customisation model.
+- **05-maintenance-skill** — the `stack-graph-maintainer` skill (modelled on bc-corpus-creator).
+- **06-analytics** — instrumentation (preamble/hooks), conformance, the transcript baseline.
+- **07-decomposition** — principles for decomposing a process into the graph.
+- **08-devops** — how stack-graph develops itself; PR discipline; the two loops.
+
+## First principles (locked)
+
+- Factory ≠ product; this repo stays general.
+- Nodes are real `.claude` primitives (Claude Directory taxonomy), not any product's terms.
+- Canonical = real `.claude` files; the graph is the authoring/review lens; the plugin is
+  vendored from the handbook.
+- The graph is cyclic. Not everything is a node/edge (MCP calls are usually inline).
+- Customisation is an additive local overlay; the vendored graph is never mutated.
