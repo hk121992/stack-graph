@@ -305,7 +305,7 @@ again). *Queues amendment:* `02-graph-spec` (granularity), `07-decomposition` (g
 
 **D35 — A product-dependent node crystallizes generative reasoning into reusable, co-located
 assets; it grows more deterministic the more it runs.** A node that depends on the specific
-product (`benchmark`, `health`, `canary`, `qa`, `design-review`, `security`, `explore`, …)
+product (`benchmark`, `health`, `canary`, `qa`, `design-review`, `security`, …)
 cannot be a fixed factory script — the factory does not know the product. It is an **agent**
 that, on early runs, reasons generatively to work out *this* product (how to benchmark it,
 what to health-check, what a canary verifies) and **crystallizes** that into reusable
@@ -333,8 +333,10 @@ improvement timescale beneath the PR-gated factory/harness loops. Rules:
   whose generative fraction never falls is not compounding — a loop signal feeding earns-keep.
 
 *Reframes:* the measurement/product-dependent nodes are **agents** (not scripts); their
-formerly-scattered harness assets (DESIGN.md, threat model, qa flows, explore's product
-map/learnings) are instances of one principle. *Queues:* a cross-cutting pattern in
+formerly-scattered harness assets (DESIGN.md, threat model, qa flows) are instances of one
+principle. *Note (D38):* `explore` is **not** a crystallizing node — its "asset" was product
+*knowledge*, which belongs in the substrate's homes (code-map / recall / canon), not a
+co-located manifest; explore consumes those homes and proposes durable findings back to them. *Queues:* a cross-cutting pattern in
 `graph-map.md`; notes in `04-harness-spec` (co-located product-tailored assets) and
 `06-analytics` (the node-level loop + measurability). *Status:* Accepted (concept; deep
 asset-management generalization deferred).

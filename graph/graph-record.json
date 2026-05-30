@@ -2,7 +2,7 @@
   "generated": "2026-05-30T00:00:00Z",
   "node_count": 6,
   "reference_count": 4,
-  "edge_count": 22,
+  "edge_count": 21,
   "nodes": {
     "review": {
       "primitive": "skill",
@@ -83,12 +83,8 @@
       "primitive": "agent",
       "mode": "autonomous",
       "title": "Explore (context-gathering agent)",
-      "status": "v0.1.0 — 2026-05-30",
-      "edges": {
-        "references": [
-          { "id": "product-map-manifest", "load": "on-demand", "external": true }
-        ]
-      }
+      "status": "v0.2.0 — 2026-05-30",
+      "edges": {}
     }
   },
   "references": {
@@ -134,7 +130,6 @@
     { "from": "lens-tests",         "to": "dev-sprint", "type": "composes-into", "stage": "plan" },
     { "from": "lens-maintainability", "to": "dev-sprint", "type": "composes-into", "stage": "review" },
     { "from": "lens-maintainability", "to": "dev-sprint", "type": "composes-into", "stage": "design" },
-    { "from": "lens-maintainability", "to": "dev-sprint", "type": "composes-into", "stage": "plan" },
-    { "from": "explore", "to": "product-map-manifest", "type": "references", "load": "on-demand", "external": true }
+    { "from": "lens-maintainability", "to": "dev-sprint", "type": "composes-into", "stage": "plan" }
   ]
 }

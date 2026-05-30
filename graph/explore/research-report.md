@@ -1,10 +1,10 @@
 ---
 title: Research report for explore
 type: research-report
-status: complete
+status: complete (crystallization-manifest section superseded by D38 — see banner)
 authored: 2026-05-30
 last_updated: 2026-05-30
-amended: []
+amended: [2026-05-30 D38-banner]
 sources_lifted: 7
 researcher_adequacy_note: |
   Lifted the five CE researcher agents (one per explore mode — repo / learnings /
@@ -24,6 +24,16 @@ researcher_adequacy_note: |
 ---
 
 # Research report for explore
+
+> **Superseded in part by D38 (2026-05-30).** This report is preserved as the point-in-time
+> build record. Its **crystallization-manifest** conclusion — the `external: true`
+> `product-map-manifest` reference (see the *Edges* table and *Open questions* below) — was
+> **superseded by D38**: explore is **not** a crystallizing node. Product *knowledge* lives in
+> the substrate's homes (code-map / gbrain recall / handbook+decisions canon), which explore
+> reads inline and proposes durable findings back to (recall via reconcile/debrief; canon via
+> the curator's raise) — there is no co-located manifest and no references edge. The shipped
+> `explore.md` (v0.2.0) reflects the substrate model; this report does not. See
+> `docs/knowledge-substrate.md` and decisions D38/D39.
 
 ## Identity
 

@@ -113,7 +113,7 @@ side of the context axis, not the isolated agent shape the lenses take.
 
 | id | primitive | goal | consumed by |
 |---|---|---|---|
-| `explore` | agent | read-only context gathering → distilled digest | align-context, design, plan, build |
+| `explore` | agent | read-only context gathering → distilled digest; **substrate consumer (D38)** — reads code-map / recall / canon, proposes durable findings back to their home (not a crystallizing node) | align-context, design, plan, build |
 | `spec-diff` | agent | build ↔ spec-touchpoint comparison | specify, review, reconcile |
 | `log-decision` | agent | two-layer write — conclusion → `docs/decisions.md`, reasoning → gbrain (D11/D31); a small **agent** (mechanical, fully prompt-describable, no live-thread benefit per the D24 axis); **not** a crystallization node | design, reconcile, debrief |
 | `measure-outcomes` | agent | compute per-node metrics vs earns-keep off the timeline (deterministic) | debrief |
@@ -147,7 +147,9 @@ Three shapes recur across the graph — author them once and reuse, rather than 
   generatively only about what is new or has drifted, so the **generative fraction declines per
   run**; new/changed assets are gated at `reconcile`. Instances: `benchmark` / `health` / `canary`
   (perf / quality / post-deploy assets), `qa` (test flows), `design-review` / `security`
-  (DESIGN.md / threat model), `explore` (product map + learnings).
+  (DESIGN.md / threat model). **`explore` is *not* here (D38)** — its "asset" was product
+  *knowledge*, which lives in the substrate homes (code-map / recall / canon), so explore
+  *consumes* the substrate rather than crystallizing a co-located manifest.
 
 The **visual-design thread** spans the arc: `design-consultation` → `design-shotgun` (design) →
 `design-implement` (build) → `design-review` (review), all sharing DESIGN.md (harness overlay),
