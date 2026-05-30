@@ -1,6 +1,6 @@
 ---
 title: Decision log
-status: v0.10.0 — 2026-05-30
+status: v0.11.0 — 2026-05-30
 ---
 
 # Decision log
@@ -375,6 +375,57 @@ invented "product-map manifest" (the crystallization manifest for `explore`) —
 these homes, not a bespoke manifest. *Detail + field survey:* `docs/knowledge-substrate.md`.
 *Queues amendment:* `06-analytics` (the partition), `06-analytics/recall-substrate` (gbrain scope),
 rework of `explore`. *Status:* Accepted.
+
+## Knowledge-canon maintenance — the curator
+
+**D40 — The handbook curator is a general graph cell (the canon-maintenance loop), not just
+factory tooling; raise/integrate is the authored-traceability write path (realises D38).**
+Reverse-engineered from the mature `bc-handbook-curator` (Be Civic) the bootstrap
+`sg-handbook-curator` was copied from.
+
+- **General, vendored — not bespoke per product.** The curator *pattern* — maintain the
+  knowledge canon by `raise → queue → integrate` — is a general capability shipped in the graph
+  and **vendored into a harness**, pointed at *that* product's handbook + repo (a harness-overlay
+  config: target repo, label, handbook root). The factory's own `sg-handbook-curator` (in
+  `tooling/`) is the factory **self-applying** the same pattern to its own handbook (dogfooding,
+  per [`08-devops`](../handbook/content/08-devops/README.md)); `bc-handbook-curator` is the
+  product instance. Three instances, one pattern.
+- **The cell.** Node **`handbook-curator`** (skill, collaborative; modes are body branches per
+  D34: `sweep` / `raise` / `integrate` / `refresh-index`) **invokes** agents `drift-detector`
+  (sweep+raise), `pr-author` (raise), `queue-checker` (raise dup-check + integrate list),
+  `consistency-checker` + `link-validator` (integrate); **references** `what-belongs`,
+  `pr-description-shape`, `bundling-rules`, `integrator-checklist`; bundles the `refresh-index`
+  script as a co-located operational asset. `drift-detector` + `pr-author` are the same shared
+  sub-nodes `specify`/`reconcile` already use (reuse layer).
+- **raise vs integrate = the two-session canon loop** — the canon analogue of
+  `reconcile`(open) → `land`(gate). **`raise`** is per-change, session-end, **forcing-rule
+  triggered** (a `triggers` hook), and produces a **labelled PR** — *the queue IS the set of open
+  labelled PRs* (no separate store; `queue-checker` materialises it on demand, and `raise` checks
+  it to refuse/redirect duplicates). **`integrate`** is operator-cadence in a **separate session**:
+  reads the queue, runs cross-PR **consistency + link** checks, surfaces decisions **synchronously
+  in the PR description** (never `AskUserQuestion` mid-mode), walks **batch merges**, calls
+  `refresh-index` after. Cyclic: integrate changes canon → future work reads canon → drift →
+  raise again.
+- **This is D38's write mechanism.** A node (e.g. `explore`) *proposes* a durable finding; the
+  proposal becomes a `raise` PR → queue → `integrate` → canon. The curator is **how proposals
+  reach the curated-canon home** — it closes explore's "propose to canon via the curator's raise."
+  Code-structure (code-map) and prose (recall) homes have their own writers; the curator owns the
+  **handbook/decisions** home.
+- **Two loops ride one cell.** Factory-loop `raise` targets `stack-graph`; harness-loop `raise`
+  targets the product repo (the two loops, [`08-devops`](../handbook/content/08-devops/README.md)).
+  Same node; the repo/label/handbook-root differ by overlay.
+- **Drift remediation (sg ⟵ bc).** The bootstrap copy under-specified the proven original:
+  **restore** `queue` mode + duplicate-detection in `raise` (+ the `queue-checker` haiku agent),
+  the `bundling-rules` reference, and **capture the `integrate` contract** (implementation stays
+  deferred, but the contract is recorded, not "later"). **Accept** the one deliberate divergence:
+  sg's `sweep` is a general drift scan (the factory handbook is smaller than a product's), where
+  bc's `sweep <kind>` is named-kind — keep sg's. `spec-amend`/`decision-doc` stay deferred
+  (`decision-doc` is product-specific; `spec-amend` folds into `raise` + the spec-touchpoints
+  discipline for now).
+
+*Queues amendment:* `docs/graph-map.md` (the curator cell + arc), a curator handbook page (or
+`05-maintenance` note) later, and the `sg-handbook-curator` tooling (the drift fix above).
+*Status:* Accepted.
 
 **D39 — Substrate tooling: deterministic code-map now, gbrain for recall, inferred-graph tools
 deferred.** (a) **Code-map → mature deterministic AST.** `explore`'s `repo` mode uses an

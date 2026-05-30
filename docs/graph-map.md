@@ -118,14 +118,46 @@ side of the context axis, not the isolated agent shape the lenses take.
 | `log-decision` | agent | two-layer write — conclusion → `docs/decisions.md`, reasoning → gbrain (D11/D31); a small **agent** (mechanical, fully prompt-describable, no live-thread benefit per the D24 axis); **not** a crystallization node | design, reconcile, debrief |
 | `measure-outcomes` | agent | compute per-node metrics vs earns-keep off the timeline (deterministic) | debrief |
 | `capture-learnings` | agent | curate durable learnings (no-`Skill` constraint) | debrief |
-| `pr-author` | agent | compose a PR description from settled edits | specify, reconcile |
-| `drift-detector` | agent | scan for amendment collisions / handbook drift | specify, curator |
+| `pr-author` | agent | compose a PR description from settled edits | specify, reconcile, handbook-curator |
+| `drift-detector` | agent | scan for amendment collisions / handbook drift | specify, handbook-curator |
+| `queue-checker` | agent (haiku) | list open canon PRs / duplicate-check by file overlap (one `gh` call, read-only) | handbook-curator (raise dup-check, integrate list) |
+| `consistency-checker` | agent | cross-PR consistency across the open canon queue (vocab / frontmatter / collisions) | handbook-curator (integrate) |
+| `link-validator` | agent | validate cross-references + `related[]` links across pages | handbook-curator (integrate) |
 | `setup-browser-cookies` | skill | import auth cookies (JIT precondition) | qa, design-review |
 | `design-consultation` | skill | create DESIGN.md from scratch | design-review (loads, prerequisite) |
 | `benchmark` | agent | measure perf (load, web-vitals, bundle) vs baseline; before/after + trend — **crystallizing (D35)**, builds product-specific perf assets | review (perf lens), land, optimise, debrief |
 | `health` | agent | composite code-quality score + trend (types/lint/tests/dead-code) — **crystallizing (D35)**, builds product-specific quality-check assets | review, debrief |
 
 `explore` modes (body branches of the one `explore` node, not separate nodes — D34): `repo` / `learnings` / `framework-docs` / `web` / `best-practices`.
+
+## Curator cell — knowledge-canon maintenance (D40)
+
+The canon-maintenance loop, modelled as a cell and **vendored** (a harness points it at its own
+handbook + repo). The factory self-applies the same pattern via `tooling/sg-handbook-curator`
+(dogfooding); `bc-handbook-curator` is the product instance it is reverse-engineered from.
+
+| id | primitive | goal | fleet / refs |
+|---|---|---|---|
+| `handbook-curator` | skill | maintain the curated-canon home; modes (body branches, D34): `sweep` / `raise` / `integrate` / `refresh-index` | invokes `drift-detector`, `pr-author`, `queue-checker`, `consistency-checker`, `link-validator`; references `what-belongs` / `pr-description-shape` / `bundling-rules` / `integrator-checklist`; bundles the `refresh-index` script (co-located operational asset) |
+
+**The arc (cyclic — the canon analogue of `reconcile`(open) → `land`(gate)):**
+
+- **`raise`** — per-change, **session-end, forcing-rule triggered** (a `triggers` hook). Checks
+  the queue (`queue-checker` dup-check → refuse/redirect duplicates), applies the `what-belongs`
+  gate + `bundling-rules`, authors edits, `pr-author` composes the body, opens a **labelled PR**.
+  The PR description *is* the proposal. *The queue IS the set of open labelled PRs* — no separate
+  store.
+- **`integrate`** — operator-cadence, **separate session**. `queue-checker` lists the queue;
+  `consistency-checker` + `link-validator` run cross-PR checks; decisions surface **synchronously
+  in the PR description** (never `AskUserQuestion` mid-mode); walk **batch merges**; call
+  `refresh-index` after. Cyclic: merged canon → future work reads it → drift → `raise` again.
+
+**D38 write-path.** This cell is *how a proposed durable finding reaches canon*: a node (e.g.
+`explore`) proposes → `raise` PR → queue → `integrate` → handbook/decisions. The curator owns the
+**curated-canon** home; code-map and recall homes have their own writers.
+
+**Two loops, one cell.** Factory-loop `raise` targets `stack-graph`; harness-loop `raise` targets
+the product repo — same node, repo/label/handbook-root differ by overlay (D40, [`08-devops`]).
 
 ## Cross-cutting patterns
 
