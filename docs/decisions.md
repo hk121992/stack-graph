@@ -1,6 +1,6 @@
 ---
 title: Decision log
-status: v0.8.0 — 2026-05-30
+status: v0.9.0 — 2026-05-30
 ---
 
 # Decision log
@@ -300,3 +300,57 @@ node-for-node. *Trade-off:* a mode that stays a body branch has no independent
 goal/instrumentation; to measure a mode on its own, split it into its own primitive (1:1
 again). *Queues amendment:* `02-graph-spec` (granularity), `07-decomposition` (granularity),
 `docs/graph-map.md` (resolves the modes-as-nodes open question). *Status:* Accepted.
+
+## Crystallization — nodes compound their own assets
+
+**D35 — A product-dependent node crystallizes generative reasoning into reusable, co-located
+assets; it grows more deterministic the more it runs.** A node that depends on the specific
+product (`benchmark`, `health`, `canary`, `qa`, `design-review`, `security`, `explore`, …)
+cannot be a fixed factory script — the factory does not know the product. It is an **agent**
+that, on early runs, reasons generatively to work out *this* product (how to benchmark it,
+what to health-check, what a canary verifies) and **crystallizes** that into reusable
+**assets** — product-specific scripts, configs, and reference checklists. Later runs **load the
+assets the node already built, reuse them deterministically, and reason generatively only about
+what is new or has drifted**, then update the assets. The generative fraction declines toward an
+asymptote (detect-drift + handle-the-new); the node gets cheaper, more consistent, and more
+reliable with use. This is the loop at the **node/run level** — a faster, local, automatic
+improvement timescale beneath the PR-gated factory/harness loops. Rules:
+- **Co-located, harness-local assets.** A node's assets live **in the node's own `.claude`
+  directory** (a skill/agent bundle holds bundled scripts + references — the native Claude
+  Directory shape), and they are **product-specific → harness-local**. The directory becomes
+  tailored to the exact product over time — expected and accepted; no general asset-management
+  layer is built at this stage.
+- **A stable manifest reference — the body never changes.** The node body carries a **stable
+  `references` edge to an asset manifest** recording *what scripts the node has* and *how to
+  operate on this product*. The body says "consult your asset manifest"; only the **manifest +
+  bundled assets grow**. (A vendored node is read-only, so the body + pointer are the stable
+  vendored part and the manifest + scripts are the harness-local grown part; exact
+  reconciliation of a vendored node carrying a harness-growing asset area is **deferred**.)
+- **Updates ride reconciliation.** New/changed assets are created and gated at the dev-sprint's
+  **`reconcile`** stage — the same gate as any other change. No separate trust mechanism; a
+  node's self-built assets are reconciled (reviewed, committed) exactly like the rest.
+- **Measurable.** Crystallization shows as a **declining generative fraction per run**; a node
+  whose generative fraction never falls is not compounding — a loop signal feeding earns-keep.
+
+*Reframes:* the measurement/product-dependent nodes are **agents** (not scripts); their
+formerly-scattered harness assets (DESIGN.md, threat model, qa flows, explore's product
+map/learnings) are instances of one principle. *Queues:* a cross-cutting pattern in
+`graph-map.md`; notes in `04-harness-spec` (co-located product-tailored assets) and
+`06-analytics` (the node-level loop + measurability). *Status:* Accepted (concept; deep
+asset-management generalization deferred).
+
+**D36 — The design-quality check is two skills, not a lens-agent.** Design review is delivered
+as two standalone **skills** — `plan-design-lens` (design/plan documents) and `design-review`
+(the live UI) — not as a member of the autonomous review lens family. Real design review needs
+the live main thread and a browser (visual judgment, interaction), which is the **skill** side
+of the context axis, not the isolated, prompt-describable **agent** shape the lenses take.
+*Reframes:* `graph-map.md`'s lens-family `lens-design` row — design quality is its own skill
+sub-arc; the lens family stays code-facing. *Status:* Accepted.
+
+**D37 — The instrumentation preamble is delivered as both an `@-import` reference and a hook
+(extends D20).** Node instrumentation uses **both** native mechanisms: a `triggers` **hook**
+fires on the enforceable native events (session/tool/subagent — guaranteed, outside model
+discretion), and an **`@-import` reference** (`load: import`) carries the in-body gate/outcome
+markers the hook cannot observe from outside the node. `import` alone is present-but-not-executed;
+a hook alone cannot see in-body points; together they cover enforced native events + in-body
+annotations. *Refines:* D20 under the D33 reference/hook split. *Status:* Accepted.

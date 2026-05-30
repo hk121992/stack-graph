@@ -1,6 +1,6 @@
 ---
 name: sg-graph-maintainer
-description: Dev-time tooling for authoring and maintaining nodes in the stack-graph factory. Four modes — new (greenfield node: gather source-material, write research-report, synthesise canonical), amend (update research-report first, then re-render canonical), validate (mechanical + judgment check of a node file against the 02-graph-spec schema), index (scan edge frontmatter across all node files, regenerate the global graph record). Reads as instructions to Claude inside a Claude Code session. Use when authoring or maintaining graph nodes in the authoring workspace at graph/<id>/. NOT a runtime skill shipped to product end-users.
+description: Dev-time tooling for authoring and maintaining nodes in the stack-graph factory. Six modes — new (greenfield node: research-report → synthesise canonical), family (derive N near-identical siblings from a template node, in parallel), reference (author a shared graph/_refs/ reference, kind: reference), amend (update research-report first, then re-render canonical), validate (schema + judgment check against the 02-graph-spec schema), index (scan edge frontmatter across all node files, regenerate the global graph record). Reads as instructions to Claude inside a Claude Code session. Use when authoring or maintaining graph nodes in the authoring workspace at graph/<id>/. NOT a runtime skill shipped to product end-users.
 ---
 
 # sg-graph-maintainer
@@ -391,7 +391,10 @@ when the graph record is stale.
    file — the graph lives in frontmatter, never in body tokens. Parse the typed arrays:
    `invokes`, `loads`, `composes-into`, `references`, `precedes`, `can-follow`, `overlay`.
    Build the directed edge list in memory; a `references` edge carries its `load`
-   (`import`/`on-demand`) into the record. Also enumerate `graph/_refs/*.md`
+   (`import`/`on-demand`) into the record, and a `composes-into` edge carries its
+   `stage` into the record (so a node that composes into the same arc at several
+   stages — e.g. a lens composing into `dev-sprint` at `review`, `design`, and
+   `plan` — emits three **distinct** edge rows, not identical duplicates). Also enumerate `graph/_refs/*.md`
    (`kind: reference` artefacts) so shared references appear in the record alongside nodes.
 3. **Check edge targets.** For every declared edge target, verify the target exists — a node
    file `graph/<id>/<id>.md`, or for a `references` edge a shared reference
@@ -409,11 +412,15 @@ when the graph record is stale.
      "edge_count": <int>,
      "nodes": { "<id>": { "primitive", "mode", "title", "status", "edges" } },
      "references": { "<id>": { "title", "status", "consumed_by": ["<id>", ...] } },
-     "edges": [{ "from", "to", "type", "load" }, ...]
+     "edges": [{ "from", "to", "type", "load", "stage" }, ...]
    }
    ```
 
-   `load` is present only on `references` edges (`import`/`on-demand`); omit it elsewhere.
+   `load` is present only on `references` edges (`import`/`on-demand`); `stage` is
+   present only on `composes-into` edges (the stage of the arc the node composes into);
+   omit each elsewhere. A `composes-into` edge row **must** carry its `stage` so that a
+   node composing into one arc at multiple stages yields distinct rows rather than silent
+   duplicates.
 
 5. **Note the per-directory scoped view.** Announce: "The scoped view (runtime
    preamble) is generated at runtime by the harness from the vendored graph and the

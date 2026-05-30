@@ -7,8 +7,10 @@ status: working draft — 2026-05-30
 
 The consolidated whole-picture view: every node with its type, goal, and edges — the single
 artefact we author from. Detail and prior art live in [`graph-design.md`](graph-design.md);
-decisions in [`decisions.md`](decisions.md). This is the capstone of the design phase; the
-**handbook resync (D22–D30)** and node authoring follow.
+decisions in [`decisions.md`](decisions.md). This is the authoring reference, current to the
+decision log — the model is **native references (D33) + 1:1 nodes (D34) + crystallization
+(D35)**. Authoring has begun: the `review` lens-panel is built (see
+[`build-log-review.md`](build-log-review.md)).
 
 ## Legend
 
@@ -47,7 +49,7 @@ front (align→design→specify→plan) and close (reconcile→debrief) run in t
 | `specify` | skill | C | design → canonical spec amendment + touchpoints | pr-author, drift-detector (spec-layout only; else null) |
 | `plan` | skill | C | staged, dependency-annotated plan; agent-per-workstream; teaches planning principles | explore, lens-family (plan-review, sequential); modes: compose/deepen/re-plan |
 | `build` | skill | C→A | planned change implemented to spec, checkpointed (long autonomous span) | debug, explore, worktree, per-unit workers; modes: inline/serial/parallel |
-| `review` | skill | C | independent verification before landing; findings triaged | lens-family (diff, parallel), qa, design-review, security; modes: interactive/autofix/report-only/headless |
+| `review` | skill | C | independent verification before landing; findings triaged | lens-family (diff, parallel) via the `lens-dispatch` reference — conditional lenses incl. qa/runtime, performance, and the security dimension are dispatched through it, not separately direct-invoked; modes: interactive/autofix/report-only/headless |
 | `reconcile` | skill | C | spec ?= reality; owns reconcile→build loop + gate to land | spec-diff, log-decision, harness spec-amend; modes: draft/adjudicate/enact |
 | `land` | skill | C+gate | verified change to prod, confirmed healthy | ship → deploy → canary |
 | `debrief` | skill | C | measure outcomes, capture learnings, amend/route, seed next | measure-outcomes, capture-learnings, log-decision |
@@ -63,7 +65,7 @@ not a file.
 | `investigate-probe` | agent | read-only hypothesis probe (×N parallel) | debug | |
 | `code-review` | skill→agents | static diff correctness/safety review | review; standalone | back-ends (codex/mistral) pluggable; modes ×4 |
 | `qa` | skill | live behavioural browser testing + fix-loop | review; standalone | uses browse; `qa-only` = report-only mode |
-| `security` | agent | security judgment, diff to whole-surface | review, plan, standalone/periodic | **one persona-agent, mode-surfaced**: `lens-security` (review diff) and a plan-lens (plan doc) are the *same* persona with `target:`; `daily`/`comprehensive` are standalone audit modes. Not a separate node per home |
+| `security` | agent | security judgment, diff to whole-surface | review, plan, standalone/periodic | **one persona-agent, mode-surfaced** across **three homes** (lens / plan-lens / daily / comprehensive): `lens-security` (review diff) and a plan-lens (plan doc) are the *same* persona with `target:`; `daily`/`comprehensive` are standalone whole-surface audit modes. Not a separate node per home |
 | `design-review` | skill | visual QA on the live app + fix-loop | review; standalone | uses browse; shares ux-principles |
 | `plan-design-lens` | skill | plan-stage design completeness + mockups | design, plan | the design lens's doc home |
 | `design-shotgun` | skill | generate visual variants, comparison board, collect feedback | design (UI work) | uses `$D` + browse; the *generate* half of the shotgun pattern |
@@ -71,7 +73,7 @@ not a file.
 | `optimise` | skill | generate impl variants → benchmark each → select winner | build (perf-critical); standalone | the generate-measure-select shape; composes worktree + benchmark |
 | `ship` | skill | tests→coverage→version→commit→PR (ends at PR) | land; standalone | |
 | `deploy` | skill | merge → deploy → wait | land | modes: staging-first/prod-direct/staging-only |
-| `canary` | agent/skill | post-deploy health on live prod | land; standalone | uses browse; modes: quick/full |
+| `canary` | agent | post-deploy health on live prod | land; standalone | **crystallizing (D35)** — builds product-specific post-deploy canary assets, can't be a fixed factory script; uses browse; modes: quick/full |
 | `scrape` | skill | read-only data extraction | standalone (peripheral) | uses browse |
 
 ## Lens family (shared; D27)
@@ -82,6 +84,11 @@ one **agent node per lens** (`target`-parameterised: doc | diff). Consumed by `d
 `plan` (plan-review, sequential), `review` (diff, parallel). Product-specific lenses attach as
 **harness overlays**.
 
+**Lens-consumer invariant.** Every lens-consuming stage (review, design, plan) holds the
+finding-contract references (`findings-schema` / `severity-scale` / `confidence-anchors`,
+`load: import`) + the `lens-dispatch` reference (`load: on-demand`), and passes the contract into
+each lens's spawn prompt — identical to the built `review`.
+
 | id | primitive | activation | hunts |
 |---|---|---|---|
 | `lens-dispatch` | ref (D33) | depended on by the consuming stage (`references`) | fan-out → dedup → corroborate → confidence-gate → severity-route |
@@ -91,10 +98,16 @@ one **agent node per lens** (`target`-parameterised: doc | diff). Consumed by `d
 | `lens-maintainability` | agent | always-on | complexity, coupling, dead code |
 | `lens-adversarial` | agent | gated (risk/size) | assumption violations, abuse cases |
 | `lens-performance` | agent | conditional | DB/loops/IO/async |
-| `lens-design` | agent | conditional (UI) | = `plan-design-lens` (doc) / design-review (diff) |
 | `lens-dx` | agent | conditional (dev-facing) | API/CLI/docs friction |
 | `lens-runtime` | agent | conditional | error handling, retries, migrations |
 | `lens-external` | agent | conditional/opt-in | cross-model (codex/mistral) second opinion |
+
+The lens family is **code-facing**: always-on (correctness, security, tests, maintainability) +
+**five** gated/conditional **code** lenses (adversarial, performance, dx, runtime, external)
+after `lens-design` is removed. **Design quality is not a lens (D36)** —
+it is delivered by two standalone **skills** in the sub-arc table (`design-review` for the live UI;
+`plan-design-lens` for plan/design docs), which need the live main thread + a browser, the skill
+side of the context axis, not the isolated agent shape the lenses take.
 
 ## Shared sub-nodes (the reuse layer)
 
@@ -102,21 +115,21 @@ one **agent node per lens** (`target`-parameterised: doc | diff). Consumed by `d
 |---|---|---|---|
 | `explore` | agent | read-only context gathering → distilled digest | align-context, design, plan, build |
 | `spec-diff` | agent | build ↔ spec-touchpoint comparison | specify, review, reconcile |
-| `log-decision` | agent/writer | write a curated entry to the decisions store | design, reconcile, debrief |
+| `log-decision` | agent | two-layer write — conclusion → `docs/decisions.md`, reasoning → gbrain (D11/D31); a small **agent** (mechanical, fully prompt-describable, no live-thread benefit per the D24 axis); **not** a crystallization node | design, reconcile, debrief |
 | `measure-outcomes` | agent | compute per-node metrics vs earns-keep off the timeline (deterministic) | debrief |
 | `capture-learnings` | agent | curate durable learnings (no-`Skill` constraint) | debrief |
 | `pr-author` | agent | compose a PR description from settled edits | specify, reconcile |
 | `drift-detector` | agent | scan for amendment collisions / handbook drift | specify, curator |
 | `setup-browser-cookies` | skill | import auth cookies (JIT precondition) | qa, design-review |
 | `design-consultation` | skill | create DESIGN.md from scratch | design-review (loads, prerequisite) |
-| `benchmark` | agent/script | measure perf (load, web-vitals, bundle) vs baseline; before/after + trend | review (perf lens), land, optimise, debrief |
-| `health` | agent/script | composite code-quality score + trend (types/lint/tests/dead-code) | review, debrief |
+| `benchmark` | agent | measure perf (load, web-vitals, bundle) vs baseline; before/after + trend — **crystallizing (D35)**, builds product-specific perf assets | review (perf lens), land, optimise, debrief |
+| `health` | agent | composite code-quality score + trend (types/lint/tests/dead-code) — **crystallizing (D35)**, builds product-specific quality-check assets | review, debrief |
 
 `explore` modes (body branches of the one `explore` node, not separate nodes — D34): `repo` / `learnings` / `framework-docs` / `web` / `best-practices`.
 
 ## Cross-cutting patterns
 
-Two shapes recur across the graph — author them once and reuse, rather than as one-offs:
+Three shapes recur across the graph — author them once and reuse, rather than as one-offs:
 
 - **Generate → evaluate → select (shotgun / tournament).** Fan out N candidates, evaluate in
   parallel, pick/synthesise the winner. Instances: `design-shotgun` (generator: visual variants;
@@ -127,6 +140,14 @@ Two shapes recur across the graph — author them once and reuse, rather than as
   stored baseline, emit a trend point — *measurement, not judgment*. Instances: `benchmark` (perf),
   `canary` (post-deploy health), `health` (code quality). All are browse/tool-driven, feed the
   relevant lens + `debrief`'s trends, and are deterministic in shape.
+- **Crystallization (compounding assets) (D35).** A product-dependent node is an **agent** that
+  crystallizes generative reasoning into reusable, co-located, **harness-local assets** (scripts /
+  configs / checklists) behind a **stable `references` edge to an asset manifest** — so the node
+  **body never changes**; later runs load and reuse the assets deterministically and reason
+  generatively only about what is new or has drifted, so the **generative fraction declines per
+  run**; new/changed assets are gated at `reconcile`. Instances: `benchmark` / `health` / `canary`
+  (perf / quality / post-deploy assets), `qa` (test flows), `design-review` / `security`
+  (DESIGN.md / threat model), `explore` (product map + learnings).
 
 The **visual-design thread** spans the arc: `design-consultation` → `design-shotgun` (design) →
 `design-implement` (build) → `design-review` (review), all sharing DESIGN.md (harness overlay),
@@ -153,16 +174,18 @@ primitive (D33).
 | `findings-schema` / `severity-scale` / `confidence-anchors` | ref (import) | the lens/review finding contract |
 | `instrumentation-preamble` | ref (import) | event emitter single-sourced into every node (D20) |
 | `lens-dispatch` / `merge-triage` | ref (on-demand) | the shared fan-out + aggregation machinery |
-| _others_ | ref | gbrain-load, outcome-gate, decision-classifier, cross-model-challenge, iron-law, causal-chain-gate, escalation-3-strike, structured-report, scope-lock, checkpoint-commit, test-discipline, base-ref, qa-methodology, git-branch-setup, spec-touchpoints-table, reviewer-attachment, pr-description-shape, design-doc-template, scope-detection |
+| _others_ | ref (provisional) | gbrain-load, outcome-gate, decision-classifier, cross-model-challenge, iron-law, causal-chain-gate, escalation-3-strike, structured-report, scope-lock, checkpoint-commit, test-discipline, base-ref, qa-methodology, git-branch-setup, spec-touchpoints-table, reviewer-attachment, pr-description-shape, design-doc-template, scope-detection. **Note:** these ids are **unclassified** — several read like **rules** (`iron-law`, `test-discipline`) rather than references. Each gets its 07 routing (reference vs rule vs inline) when authored; do **not** pre-commit them all to `ref`. |
 
 ## Edges at a glance
 
 - **Process (backbone, may cycle):** the 8 `precedes` edges align-context→…→debrief; loops
   `review→build`, `reconcile→build`, `plan→build` (re-plan), `land→reconcile` (revert),
   `debrief→align-context` (seed next sprint).
-- **invokes:** stage → sub-arc (build→debug, review→{code-review,qa,security,design-review},
-  land→{ship,deploy,canary}); stage → shared sub-node (→explore, →lens-dispatch, →spec-diff, etc.);
-  debug→investigate-probe; qa/design-review→setup-browser-cookies (JIT).
+- **invokes:** stage → sub-arc (build→debug, land→{ship,deploy,canary}); `review` runs the lens
+  family via the `lens-dispatch` **reference** (the dispatch logic `invokes` each lens — including
+  the conditional qa/runtime, performance, and security-dimension lenses — one-way), it does not
+  direct-invoke `qa`/`security`/`design-review` as sub-arcs; stage → shared sub-node (→explore,
+  →spec-diff, etc.); debug→investigate-probe; qa/design-review→setup-browser-cookies (JIT).
 - **composes-into:** every stage → `dev-sprint` (with `stage:`). Lenses do **not** compose-into
   the dispatch reference — the dispatch logic `invokes` each lens (one-way), and the lenses
   `composes-into` the arc they serve (via their consuming stage). No structural cycle (D4).
@@ -174,9 +197,13 @@ primitive (D33).
 
 ## Counts & what's left to decide
 
-**~9 backbone stages + ~14 sub-arcs + ~10 lens agents + ~11 shared sub-nodes + a reference catalog**
-≈ 33 authored nodes, plus the non-node tools/references (`lens-dispatch`, `worktree-isolation`,
-`browse`, the shared `graph/_refs/` references).
+Recounted from this map's own tables: **9 backbone stages + 14 sub-arcs + 9 lens agents** (the
+ten lens-family rows minus `lens-dispatch`, which is a **reference**, not a node, and minus
+`lens-design`, removed per D36) **+ 11 shared sub-nodes = 43 authored nodes** — plus the non-node
+tools/references (`lens-dispatch`, `worktree-isolation`, `browse`, the shared `graph/_refs/`
+references). (The earlier "≈33 / ~35" figures were loose under-counts; 43 is the table count.
+Note `lens-security` is the same shared persona as the `security` sub-arc node, and the two design
+**skills** appear only in the sub-arc table — so 43 counts table rows, not distinct personas.)
 
 Structural questions to settle at the handbook resync / first authoring (rolled up from the wave
 open-Qs):
@@ -188,8 +215,10 @@ open-Qs):
 2. **Modes-as-nodes rendering:** *Resolved (D34)* — one node ⟷ one primitive; a node's modes
    are branches in its one body, never separate nodes. A mode becomes its own primitive only
    if it earns its own measurable goal (then it is 1:1 like any node).
-3. **Two-homes nodes** (security, design): *Resolved for security* — one persona-agent, mode-
-   surfaced via `target:` (not sibling nodes). Confirm the same shape for `design` when authored.
+3. **Multi-home nodes** (security, design): *Resolved for security* — one persona-agent across
+   **three homes** (lens / plan-lens / daily / comprehensive), mode-surfaced via `target:` and
+   scope/gate (not sibling nodes). Design quality is **two skills** (`design-review` live UI /
+   `plan-design-lens` plan-doc), not a lens — D36; see the Lens-family invariant.
 4. **Native primitives to ride:** `isolation:'worktree'` + `.worktreeinclude`; confirm stability vs
    the script fallback.
 5. **Harness overlay boundary:** product lenses, DESIGN.md, deploy/spec-layout/threat-model config all

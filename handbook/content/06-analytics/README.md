@@ -80,6 +80,23 @@ decide amendments; land them PR-gated ([`devops`](../08-devops/README.md)); re-m
 Findings feed the next traversal. The loop runs in two scopes — a factory loop and a
 harness loop — defined in [`devops`](../08-devops/README.md).
 
+## Crystallization — the node-level loop
+
+A product-dependent node does not only get improved by the PR loop above — it **improves
+itself as it runs**. On early runs it reasons generatively to work out the specific product;
+it **crystallizes** that into reusable **assets** (product-specific scripts, configs,
+checklists) co-located in the node's own directory and kept harness-local
+([`harness-spec`](../04-harness-spec/README.md)). Later runs load those assets, reuse them
+deterministically, and reason only about what is new or has drifted — so the **generative
+fraction declines** with use and the node grows cheaper and more consistent. The body never
+changes: it carries a stable `references` edge to an asset **manifest** (what the node has, how
+to operate on this product); only the manifest and assets grow. New assets are gated at
+`reconcile`, like any other change. This is the loop one level down and on a faster clock — the
+PR loops improve a node's *definition*; crystallization improves its *effectiveness within a
+harness*, automatically. It is **measurable**: a falling generative fraction per run is the node
+compounding; a fraction that never falls means the node is not building reusable assets — itself
+an earns-keep signal.
+
 ## Decisions are two-layer
 
 A curated **decisions store** (authoritative conclusions — for stack-graph itself,

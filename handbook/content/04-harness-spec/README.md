@@ -51,6 +51,19 @@ files. Updates to the vendored graph arrive through native plugin-update
 ([`plugin-spec`](../03-plugin-spec/README.md)) and never collide with overlays, because
 overlays only add and the vendored ids are namespaced apart.
 
+## Crystallized assets
+
+A product-dependent node accumulates product-specific **assets** as it runs — scripts, configs,
+reference checklists ([`analytics`](../06-analytics/README.md)). These are **harness-local and
+co-located** with the node, in the node's own directory (the native skill/agent bundle). The
+node body stays general and unchanged: it carries a stable `references` edge to an asset
+**manifest** that records what the node has and how to operate on this product, and only the
+manifest and assets grow. The directory becomes tailored to the exact product over time — that
+is expected; no general asset-management layer is built at this stage. New or changed assets are
+gated at `reconcile`, like any other change. (A vendored node is read-only, so the stable body +
+manifest pointer are the vendored part while the manifest and assets are the harness-local grown
+part; the exact mechanism for a vendored node carrying a harness-growing asset area is deferred.)
+
 ## Namespacing
 
 Vendored nodes carry the `stack-graph:` prefix; local nodes are harness-prefixed (e.g.
