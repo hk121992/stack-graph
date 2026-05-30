@@ -60,5 +60,80 @@ supplies the actual source.
 
 ## Part B — research report
 
-_To be filled from the background research agent: prior art (ADOPT/ADAPT/REJECT), the product-arc
-sketch (stages + goals + edges + roadmap artefact + analytics opening), and open questions._
+### Prior art
+
+- **CE — the closest model (ADOPT the spine).** `ce-strategy` maintains **`STRATEGY.md`** — a
+  short, durable, repo-root anchor (Target problem / approach / who-it's-for / key metrics /
+  tracks / milestones / not-working-on), grounded in **Rumelt's kernel** (diagnosis → guiding
+  policy → coherent action) + JTBD; principles "anchor not plan", "short is a feature", "durable
+  across runs". `ce-product-pulse` = outcome measurement seeded from the strategy's metrics
+  (read-only, single page) — the analytics-opening model. `ce-ideate → ce-brainstorm → ce-plan`
+  is an explicit discovery chain; downstream skills already read `STRATEGY.md` as grounding.
+  **ADAPT** the chain into product-arc *nodes* terminating at a **triage-into-sprint** handoff
+  (the sprint owns planning). CE's only gap: no roadmap-as-artefact, no formal loop-back.
+- **gstack — strong lenses, no arc (ADAPT the parts).** `office-hours` startup-mode (six forcing
+  questions) → the **idea-triage interview**; `plan-ceo-review` (CEO lens, scope modes) → a
+  **lens edge** the strategy/roadmap nodes invoke. The AskUserQuestion decision-brief format →
+  ADOPT wholesale. Operator's read confirmed: these are feature-time lenses, not a product arc.
+- **OSS / Anthropic (ADOPT structure, REJECT backlog).** Anthropic's `skills` repo has no PM
+  skill. `deanpeters/Product-Manager-Skills` (product-strategy-session / discovery / roadmap-
+  planning workflows) and `product-on-purpose/pm-skills` (Triple Diamond with a Measure→Iterate
+  loop, a `pm-critic` adversarial sub-agent, PM↔eng contracts) confirm the named-arc granularity
+  and the closing loop — but are **backlog/PRD-heavy** (RICE quarters, story-mapping). Take the
+  structure + the loop; **reject the backlog gravity** (it re-creates the drift we're avoiding).
+- **Frameworks (the transferable canon).** ADOPT **Cagan/SVPG** vision→strategy→*problems* ("give
+  teams problems, not feature roadmaps") as the governing philosophy; **Rumelt** kernel (strategy
+  doc shape); **JTBD** (persona/value); **North Star + inputs** (metrics / analytics opening).
+  ADAPT **Torres' Opportunity-Solution Tree** as the tree shape of the arc (outcome→opportunities
+  →solutions→experiments), adapting the cadence to AI pace. REJECT RICE/backlog for the core.
+
+### The product arc — sketch
+
+A second cyclic arc, upstream of and bidirectionally coupled to the dev-sprint. Front
+(triage/discovery/strategy) = collaborative skills; analytics intake = autonomous agent; review =
+a lens edge.
+
+| # | Node | Primitive | Goal | Source |
+|---|---|---|---|---|
+| 0 | `product-analytics-intake` | agent | pull outcome signal into a digest that *opens* triage — connection point only | `ce-product-pulse`; North Star; 06-analytics event log |
+| 1 | `idea-triage` ("the PM") | skill | pressure-test an idea/signal → kill / park / promote | `office-hours` six questions; `ce-ideate` |
+| 2 | `discovery` | skill | promoted idea → validated **opportunities** (problems worth solving), not solutions | Torres OST; CE discovery; `ce-brainstorm` |
+| 3 | `strategy` | skill (durable) | maintain vision + guiding policy + **key questions to answer over time** | `ce-strategy` + Rumelt + Cagan |
+| 4 | `roadmap` | skill (durable) | maintain the **third top-level artefact**: outcomes/problems as sequenced bets, not a backlog | Cagan "problems not features"; OST; CE "Tracks" |
+| 5 | `triage-into-sprint` | skill→edge | select the next bet, frame as a problem-to-solve, hand to `align-context` | `ce-plan` handoff (framing, not a PRD) |
+| (lens) | `product-review` | lens edge | adversarial / CEO-scope review of strategy/roadmap | `plan-ceo-review`; `pm-critic` |
+
+**The roadmap artefact (third top-level, alongside handbook + graph).** General structure;
+product content is harness. Modelled on `STRATEGY.md` (durable, short, anti-fluff) but outcome/
+problem-shaped: **Vision · Guiding policy · Who/the job (JTBD) · North Star + inputs · Open
+questions · Bets in flight/sequenced · Decided/not-doing.** Frontmatter-shaped where it overlaps
+the graph (bets carry edges into the sprint); its own top-level store because it is durable
+*product memory*, not a traversal.
+
+**The analytics opening (connection point only).** A typed `product-signal` inlet into
+`idea-triage` (a digest of outcome metrics — what users love/abandon, North Star movement) that a
+harness supplies via its own analytics; plus an instrumentation **contract** — the roadmap's
+North Star/inputs declare *what* to measure, the harness wires *how* (mirrors `ce-product-pulse`'s
+metric-source config). Read-only, locality-respecting (06-analytics).
+
+**Feed + loop-back edges.** Feed: `triage-into-sprint --precedes→ dev-sprint:align-context`
+(payload = a framed problem, not a spec); `strategy`/`roadmap` are also `references`-grounding for
+`align-context`. Loop-back: `dev-sprint:debrief --precedes→ product:product-learning` → updates
+`strategy` (guiding policy / open questions) and `roadmap` (resolve a bet, re-sequence). Two-loop
+(08-devops): product-arc *content* improvements = harness loop; product-arc *machinery*
+improvements = factory loop.
+
+### Open questions for the operator (parked until we design this arc)
+
+1. **Roadmap = one `ROADMAP.md` anchor (simple, CE-proven) or a `roadmap/` tree of outcome→bet
+   files with graph frontmatter (richer, graph-integrated, more upkeep)?**
+2. **`strategy` + `roadmap`: two nodes or two sections of one artefact?** (rec: two nodes, one
+   artefact.)
+3. **`idea-triage`: thin kill/park/promote gate + separate `discovery` node, or triage absorbs
+   lightweight discovery?** (rec: thin gate + separate discovery.)
+4. **Backlog: zero-tolerance in the core, or ship one *optional harness module* (RICE/story-map)
+   for products that want it?**
+5. **Loop-back cadence: every sprint debrief, or only bets tagged as answering a roadmap open
+   question?** (responsiveness vs roadmap churn.)
+6. **Own dev-time maintainer (`sg-roadmap-steward`) or maintained in-arc by the strategy/roadmap
+   nodes themselves?** (rec: in-arc, no separate dev tool — the roadmap is product memory.)
