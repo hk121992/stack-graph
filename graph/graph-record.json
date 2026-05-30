@@ -1,0 +1,121 @@
+{
+  "generated": "2026-05-30T00:00:00Z",
+  "node_count": 5,
+  "reference_count": 4,
+  "edge_count": 21,
+  "nodes": {
+    "review": {
+      "primitive": "skill",
+      "mode": "collaborative",
+      "title": "Review",
+      "status": "v0.1.0 — 2026-05-30",
+      "edges": {
+        "invokes": ["lens-correctness", "lens-security", "lens-tests", "lens-maintainability"],
+        "composes-into": [{ "id": "dev-sprint", "stage": "review" }],
+        "references": [
+          { "id": "lens-dispatch", "load": "on-demand" },
+          { "id": "findings-schema", "load": "import" },
+          { "id": "severity-scale", "load": "import" },
+          { "id": "confidence-anchors", "load": "import" }
+        ]
+      }
+    },
+    "lens-correctness": {
+      "primitive": "agent",
+      "mode": "autonomous",
+      "title": "Correctness lens",
+      "status": "v0.1.0 — 2026-05-30",
+      "edges": {
+        "composes-into": [
+          { "id": "dev-sprint", "stage": "review" },
+          { "id": "dev-sprint", "stage": "design" },
+          { "id": "dev-sprint", "stage": "plan" }
+        ]
+      }
+    },
+    "lens-security": {
+      "primitive": "agent",
+      "mode": "autonomous",
+      "title": "Security lens",
+      "status": "v0.1.0 — 2026-05-30",
+      "edges": {
+        "composes-into": [
+          { "id": "dev-sprint", "stage": "review" },
+          { "id": "dev-sprint", "stage": "design" },
+          { "id": "dev-sprint", "stage": "plan" }
+        ]
+      }
+    },
+    "lens-tests": {
+      "primitive": "agent",
+      "mode": "autonomous",
+      "title": "Tests lens",
+      "status": "v0.1.0 — 2026-05-30",
+      "edges": {
+        "composes-into": [
+          { "id": "dev-sprint", "stage": "review" },
+          { "id": "dev-sprint", "stage": "design" },
+          { "id": "dev-sprint", "stage": "plan" }
+        ]
+      }
+    },
+    "lens-maintainability": {
+      "primitive": "agent",
+      "mode": "autonomous",
+      "title": "Maintainability lens",
+      "status": "v0.1.0 — 2026-05-30",
+      "edges": {
+        "composes-into": [
+          { "id": "dev-sprint", "stage": "review" },
+          { "id": "dev-sprint", "stage": "design" },
+          { "id": "dev-sprint", "stage": "plan" }
+        ]
+      }
+    }
+  },
+  "references": {
+    "findings-schema": {
+      "title": "Finding contract — schema",
+      "status": "v0.1.0 — 2026-05-30",
+      "consumed_by": ["review"]
+    },
+    "severity-scale": {
+      "title": "Finding contract — severity scale",
+      "status": "v0.1.0 — 2026-05-30",
+      "consumed_by": ["review"]
+    },
+    "confidence-anchors": {
+      "title": "Finding contract — confidence anchors",
+      "status": "v0.1.0 — 2026-05-30",
+      "consumed_by": ["review"]
+    },
+    "lens-dispatch": {
+      "title": "Lens dispatch — fan-out, merge, triage, route",
+      "status": "v0.1.0 — 2026-05-30",
+      "consumed_by": ["review"]
+    }
+  },
+  "edges": [
+    { "from": "review", "to": "lens-correctness", "type": "invokes" },
+    { "from": "review", "to": "lens-security", "type": "invokes" },
+    { "from": "review", "to": "lens-tests", "type": "invokes" },
+    { "from": "review", "to": "lens-maintainability", "type": "invokes" },
+    { "from": "review", "to": "dev-sprint", "type": "composes-into" },
+    { "from": "review", "to": "lens-dispatch", "type": "references", "load": "on-demand" },
+    { "from": "review", "to": "findings-schema", "type": "references", "load": "import" },
+    { "from": "review", "to": "severity-scale", "type": "references", "load": "import" },
+    { "from": "review", "to": "confidence-anchors", "type": "references", "load": "import" },
+    { "from": "lens-correctness", "to": "dev-sprint", "type": "composes-into" },
+    { "from": "lens-correctness", "to": "dev-sprint", "type": "composes-into" },
+    { "from": "lens-correctness", "to": "dev-sprint", "type": "composes-into" },
+    { "from": "lens-security", "to": "dev-sprint", "type": "composes-into" },
+    { "from": "lens-security", "to": "dev-sprint", "type": "composes-into" },
+    { "from": "lens-security", "to": "dev-sprint", "type": "composes-into" },
+    { "from": "lens-tests", "to": "dev-sprint", "type": "composes-into" },
+    { "from": "lens-tests", "to": "dev-sprint", "type": "composes-into" },
+    { "from": "lens-tests", "to": "dev-sprint", "type": "composes-into" },
+    { "from": "lens-maintainability", "to": "dev-sprint", "type": "composes-into" },
+    { "from": "lens-maintainability", "to": "dev-sprint", "type": "composes-into" },
+    { "from": "lens-maintainability", "to": "dev-sprint", "type": "composes-into" }
+  ]
+}

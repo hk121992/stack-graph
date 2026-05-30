@@ -24,9 +24,11 @@ vocabulary. A node *is* a primitive.
 
 Storage is canonical `.claude`-compatible files. **The graph is a derived lens over those
 files, not a separate store** — the same file serves the renderer (the authoring/review
-view) and the plugin-builder (the vendored output). The authoring view is
-granularity-flexible (a skill, a mode, or a step may each be a node); it renders into a
-flat, ordinary-looking `.claude` directory where every artefact is graph-shaped (see
+view) and the plugin-builder (the vendored output). A node maps **1:1 to one rendered
+primitive** (D34): one node ⟷ one skill / agent / script file. A node's **modes** are
+branches in its body, never separate nodes; reuse is a right-sized primitive or a
+**reference**, each itself 1:1. The "two views" are two readings of the *same file* (graph
+frontmatter + native primitive), not a difference in node count (see
 [graph-spec](../02-graph-spec/)).
 
 ## Node, edge, inline

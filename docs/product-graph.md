@@ -110,6 +110,15 @@ questions · Bets in flight/sequenced · Decided/not-doing.** Frontmatter-shaped
 the graph (bets carry edges into the sprint); its own top-level store because it is durable
 *product memory*, not a traversal.
 
+**Consider — Value Proposition Canvas + hypothesis/evidence.** The artefact (and the
+`discovery`/`strategy` nodes) should consider a **Value Proposition Canvas** (customer
+jobs/pains/gains ↔ product fit) and model **hypothesis → evidence accumulation** off Be Civic's
+business-model-discovery project (`bc-bmd`: Business Model Canvas, VPC, hypotheses, findings →
+`bmd.becivic.be`) and the OSS PM systems. Treat BMC/VPC as **harness-supplied structure** the
+strategy/discovery nodes populate; the *mechanism* — hypotheses build up, evidence accrues, the
+open questions get answered over time — is the general, factory part. (Be Civic's BMD is itself
+immature — adapt the shape, not the maturity.)
+
 **The analytics opening (connection point only).** A typed `product-signal` inlet into
 `idea-triage` (a digest of outcome metrics — what users love/abandon, North Star movement) that a
 harness supplies via its own analytics; plus an instrumentation **contract** — the roadmap's

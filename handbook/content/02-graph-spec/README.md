@@ -34,19 +34,23 @@ This follows the discriminator: only things that own control flow earn a node. E
 surfaces (a headless browser, a worktree) own no control flow — they are inline tools or
 native primitives, not nodes.
 
-## Granularity — two views of one graph
+## Granularity — one node, one primitive
 
-The **authoring view is granularity-flexible**: a skill, one of its **modes**, a sub-arc,
-or a step may each be a node, carrying its own goal and edges, primitive-agnostic. It
-**renders** into a flat, ordinary-looking `.claude` directory where **one node per
-primitive** holds — one skill is one `SKILL.md`, and a node's modes render as branches in
-its body or as sibling files.
+A graph node maps **1:1 to a single rendered primitive** (D34): one node ⟷ one skill /
+agent / script file. There is **no node-count divergence** between the authoring view and the
+rendered directory — the graph does not model sub-parts as nodes that collapse at build.
 
-Decide *what is a node* by the [decomposition](../07-decomposition/) rule (reuse / cohesion
-/ just-in-time); decide *how it renders* at build time. "Modes-as-nodes" is therefore
-allowed in the authoring view and collapses or expands at the render. (This supersedes the
-earlier "one node per primitive, modes always inline" framing — that describes only the
-rendered view.)
+- **Modes** (e.g. a review skill's `interactive`/`headless`) are conditional **branches in a
+  node's body**, never separate nodes.
+- **Reuse and sizing** come from extracting a right-sized primitive (a smaller skill/agent) or
+  a **reference** (the References section above) — each itself a 1:1 artefact — not from an
+  authoring-only node. Decide *what becomes its own primitive* by the
+  [decomposition](../07-decomposition/) rule (reuse / cohesion / just-in-time) and by
+  letting **goals draw the boundary**: a sub-part that earns its own measurable goal becomes
+  its own primitive (still 1:1); one that does not stays a body branch.
+
+The only "two views" is that the single node *file* is read two ways — as graph frontmatter
+(the lens and the index) and as a native `.claude` primitive (the build) — described next.
 
 ## Edges
 
@@ -57,7 +61,7 @@ All edges are **directed** (`from → to`) and typed:
 | `loads` | node → node / reference | structural | no |
 | `invokes` | node → node (agent / script / command) | structural | no |
 | `composes-into` | node → arc (or parent node) | structural | no |
-| `references` | node → referenced artefact | structural | no |
+| `references` | node → reference / artefact (carries `load: import \| on-demand`) | structural | no |
 | `triggers` | event → node | binding | no |
 | `precedes` | node → node | **process** | **yes** |
 | `can-follow` | node → node | **process** | **yes** |
@@ -83,6 +87,43 @@ Small references, **MCP calls, and execution surfaces** live inline in a node bo
 nodes or edges — they have no control flow of their own. Precedent: the Be Civic corpus
 inline tags (`<Skill>`, `<Ref>`, `<VV>`). An edge appears only when the thing invoked is
 itself node-like (a script with logic → an `invokes` edge).
+
+## References — shared content
+
+Shared content that several primitives need — the finding contract (`findings-schema`,
+`severity-scale`, `confidence-anchors`), the instrumentation preamble, `lens-dispatch`,
+common protocols — is a **reference**: a native single-source artefact, **not** an injected
+block (D33). stack-graph has **no build-time injection primitive**; everything is a native
+`.claude` artefact, keeping the canonical store literally native.
+
+A reference is its own file at `graph/_refs/<id>.md` — frontmatter `kind: reference`
+(+ `id`, `title`, `description`, `status`) over the body. It is **not a node**: it owns no
+control flow, declares no `goals` and no process edges. A node depends on it via a
+`references` edge carrying a **load dial**:
+
+| `load:` | runtime behaviour | use for |
+|---|---|---|
+| `import` | native **`@-import`** — spliced into the host at *load* time, guaranteed-present, not skippable | short, must-always-be-present invariants (e.g. the preamble) |
+| `on-demand` | the host *points at* it; the agent **reads it at the step of need** | larger or conditional material; keeps context lean, reads as its own doc |
+
+```yaml
+references:
+  - { id: lens-dispatch,   load: on-demand }
+  - { id: findings-schema, load: import }
+```
+
+The `load` dial is the native equivalent of "always present vs consulted when needed" —
+`import` is load-time `@-import` (the host holds a pointer, the build single-sources the
+file); `on-demand` is a backtick path / "follow `<id>`" the agent reads. The **build**
+single-sources each reference into its consumers (places/symlinks the one canonical file and
+resolves the pointer) — DRY + freshness with native output, no `{{token}}` splice
+([plugin-spec](../03-plugin-spec/README.md)).
+
+Shared content destined for a spawned **agent** (e.g. a lens's finding contract) is passed by
+the orchestrator into the agent's **spawn prompt**, not imported by the agent — the orchestrator
+holds the reference and fills it into the subagent's prompt at dispatch (the CE pattern).
+Behaviour that must be *enforced* rather than merely present is a **hook** (a `triggers` edge),
+not a reference.
 
 ## The node file
 
@@ -120,8 +161,8 @@ goals:
 status: v0.1.0 — 2026-05-30
 ---
 
-# the imperative body: the skill/agent instructions,
-# with resolver placeholders ({{...}}) the builder expands (see 03-plugin-spec)
+# the imperative body: the skill/agent instructions; shared content via `references`
+# edges (load: import | on-demand), single-sourced by the build (see 03-plugin-spec)
 ```
 
 `primitive:` names the `.claude` element this node builds into — using the Claude

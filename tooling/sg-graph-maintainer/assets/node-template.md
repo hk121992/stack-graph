@@ -14,8 +14,8 @@ determinism: generative            # deterministic | generative
 edges:
   invokes:       []   # [{ id: target-node-id }]
   loads:         []   # [{ id: target-node-id }]
-  references:    []   # [{ id: reference-artefact-id }]
-  composes-into: []   # [{ id: workflow-id, stage: stage-name }]
+  references:    []   # [{ id: reference-id, load: import }]  # load: import | on-demand (D33)
+  composes-into: []   # [{ id: arc-id, stage: stage-name }]
   can-follow:    []   # [{ id: target-node-id }]
   precedes:      []   # [{ id: target-node-id }]
   # overlay:     []   # uncomment only for harness-local overlay nodes
@@ -30,8 +30,10 @@ status: v0.1.0 — {{YYYY-MM-DD}}
 # {{Node title}}
 
 {{Imperative body: the skill or agent instructions. Use H2/H3 for phases or sections.
-Use numbered lists for sequenced steps. Embed {{resolver-placeholder}} where the
-build should expand a value at vendor time. Voice is imperative throughout.}}
+Use numbered lists for sequenced steps. For shared content several primitives need, depend
+on a reference (`graph/_refs/<id>.md`) via a `references` edge with `load: import | on-demand`
+rather than inlining a copy — the build single-sources it in (D33); do not use any `{{token}}`
+injection. Voice is imperative throughout.}}
 
 ## When to invoke
 

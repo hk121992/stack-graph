@@ -28,10 +28,12 @@ net-new instrumentation this spec defines: purpose-built events bound to the gra
 A node knows its own `id` (frontmatter, per [`graph-spec`](../02-graph-spec/README.md)).
 Two emitters cover the cases:
 
-- **Instrumentation preamble** — a deterministic resolver block the builder injects into
-  every node body (see [`plugin-spec`](../03-plugin-spec/README.md)). On entry it records a
-  `node-enter`; on exit a `node-exit` carrying the outcome and which gates were hit. This
-  is the in-node, deterministic emitter.
+- **Instrumentation preamble** — a shared **reference** (`graph/_refs/`, D33) every node
+  depends on with `load: import`, so the build single-sources it into each node via a native
+  `@-import` — guaranteed-present, not skippable (see
+  [`plugin-spec`](../03-plugin-spec/README.md)). On entry it records a `node-enter`; on exit a
+  `node-exit` carrying the outcome and which gates were hit. This is the in-node, deterministic
+  emitter; behaviour that must be **enforced** rather than merely present is a hook (below).
 - **Hooks** — a hook is a `triggers` edge from a native event to a node; the handler
   records the event. Hooks capture what the preamble cannot observe from inside a node
   (subagent completion, session stop).

@@ -59,14 +59,14 @@ This constraint is enforced by validate mode. Violations are hard failures.
 
 All edges are directed (`from → to`). Structural and composition edges are acyclic.
 Process edges (`precedes`, `can-follow`) are the only edges that may cycle —
-that is exactly how a workflow loops.
+that is exactly how an arc loops.
 
 | edge type | from → to | class | may cycle? |
 |-----------|-----------|-------|-----------|
 | `invokes` | node → node (agent / script / command) | structural | no |
 | `loads` | node → node / reference | structural | no |
-| `composes-into` | node → workflow or parent node | structural | no |
-| `references` | node → referenced artefact | structural | no |
+| `composes-into` | node → arc or parent node | structural | no |
+| `references` | node → reference (`graph/_refs/<id>.md`) or node; carries `load: import \| on-demand` (D33) | structural | no |
 | `triggers` | event → node | binding | no |
 | `precedes` | node → node | process | yes |
 | `can-follow` | node → node | process | yes |
@@ -105,6 +105,8 @@ Files are canonical. The graph is a derived lens, not a separate store. The
 source of truth. Edit node files, then re-run `index`.
 
 Builder projection: the build strips `mode:`, `determinism:`, `edges:`, `goals:` from
-the frontmatter and expands `{{resolver-placeholder}}` in the body to produce a clean
-native `.claude` file. The graph keys are ignored by Claude at runtime; they are purely
-for the graph machinery.
+the frontmatter and single-sources any shared **reference** the node depends on
+(`references` edge → `graph/_refs/<id>.md`) into the consumer — `load: import` becomes a
+native `@-import`, `load: on-demand` a pointer the agent reads at the step of need (D33).
+There is no `{{token}}` injection. The graph keys are ignored by Claude at runtime; they are
+purely for the graph machinery.

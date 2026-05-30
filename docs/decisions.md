@@ -1,6 +1,6 @@
 ---
 title: Decision log
-status: v0.5.0 — 2026-05-30
+status: v0.8.0 — 2026-05-30
 ---
 
 # Decision log
@@ -138,7 +138,11 @@ edges and goals live in its frontmatter). Not two graphs and not a second store:
 one graph. *Why:* honours modes-as-nodes, "rendering doesn't matter," and deferring the
 primitive choice, while keeping "the graph is a derived lens over the files." *Refines:* the
 graph-spec granularity resolution (Q1 — "one node per primitive" describes the rendered view,
-not the authoring view). *Queues amendment:* `02-graph-spec`. *Status:* Accepted.
+not the authoring view). *Queues amendment:* `02-graph-spec`. *Status:* Accepted — **but the
+granularity-flexible / modes-as-nodes aspect is superseded by [D34](#one-node-one-primitive)**
+(node ⟷ primitive is 1:1; modes are body branches). The surviving sense of "two views" is two
+readings of one *file* (graph frontmatter + native primitive), not a finer-grained authoring
+node set.
 
 **D23 — Decomposition = Be Civic's granularity rule, adapted.** Decompose a unit into its own
 node when it is **reused** (≥2 consumers), **self-contained and cohesive** (its own branching),
@@ -232,3 +236,67 @@ customers love. **Product analytics is an *opening*** — a connection point tha
 deferred and likely harness-specific. *Why:* gstack/CE have strong product *parts* (office-hours,
 CEO-lens, ce-strategy) but are feature-based, not a long-term product arc; stack-graph designs the arc.
 *Design + prior art:* `docs/product-graph.md`. *Status:* Accepted (direction); design ongoing.
+
+## Shared content — references, not injection
+
+**D33 — Shared content is a native reference with a load dial; there is no injected-block
+primitive.** stack-graph models reusable shared content (the finding contract —
+`findings-schema`, `severity-scale`, `confidence-anchors`; the instrumentation preamble;
+`lens-dispatch`; common protocols) with **native Claude primitives only**. A **reference** is
+a single-source artefact (`graph/_refs/<id>.md`, frontmatter `kind: reference`; no
+`goals`/process edges) that one or more nodes depend on via a `references` edge carrying a
+**load dial**:
+- `load: import` — native **`@-import`**: spliced into the host at *load* time,
+  guaranteed-present and not skippable. For short, must-always-be-present invariants.
+- `load: on-demand` — the host *points at* the reference and the agent **reads it at the step
+  of need**. For larger or conditional material; keeps context lean and reads as its own doc.
+
+The **build single-sources** each reference into its consumers (places/symlinks the one
+canonical file and resolves the pointer) — DRY + freshness with **native output**, no
+`{{token}}` splice. Shared content destined for a spawned **agent** is passed by the
+orchestrator into the agent's **spawn prompt** (CE's pattern), not imported by the agent.
+Behaviour that must be *enforced* (not merely present) is a **hook**, not text.
+
+**Supersedes** this session's first-pass injected-"block" framing: `block` / `{{placeholder}}`
+/ `uses-block` / render-by-injection are **removed**. `@-import` gives the identical runtime
+result natively *and* single-sourced (the host holds a pointer, not duplicated bytes), and
+on-demand references keep context lean — so build-time injection has **no runtime niche**.
+This was confirmed empirically across **CE** (pure-native: skills + agents + `@-import`/
+on-demand references + spawn-prompt substitution; no injection), **ECC** (pure-native; 249
+skills / 63 agents; language reviewers are *agents*; shared depth via "see skill: X"
+name-pointers; injection-free, though it hand-duplicates a baseline 63× and pays drift),
+**gstack** (the lone injector — its `{{TOKEN}}` resolver is a third-party invention justified
+only by authoring-side freshness/git-blame, *not* runtime need), and the **Claude Code docs**
+(no native build-include; cross-skill sharing is `@-import`/symlink or on-demand reference;
+subagents isolate and return summaries; enforcement is hooks).
+
+*Why:* keeps "canonical = real `.claude` files" literally true (the block was the one
+non-native primitive); single-source via the build kills the CE/ECC duplication-drift failure
+mode; on-demand references resolve the body/block seam. *Queues amendment:* `02-graph-spec`
+(references `load` dial; remove the Blocks section + `uses-block` edge), `03-plugin-spec`
+(build single-sources references; remove resolver-splice/render-by-injection), `05-maintenance-skill`
+(`block` mode → `reference` mode; `index`/`validate` over references not placeholders).
+*Surfaced by:* the skill-vs-reference-vs-injection investigation (`docs/build-log-review.md`;
+reference projects CE/ECC/gstack; the Claude Code docs). *Status:* Accepted (supersedes the
+intra-session injection draft).
+
+## One node, one primitive
+
+**D34 — A graph node renders to exactly one primitive; no modes-as-nodes.** A node maps
+**1:1** to a single rendered `.claude` primitive — one node ⟷ one skill / agent / script
+file. **Modes** are conditional branches *within* a node's body, never separate nodes.
+**Reuse and sizing** are achieved by extracting a right-sized primitive (a smaller
+skill/agent) or a **reference** (D33) — each itself 1:1 — never by an authoring view that
+models sub-parts as nodes and collapses them at render. **Supersedes** the modes-as-nodes /
+granularity-flexible-authoring-view aspect of D22: there is **no node-count divergence**
+between the authoring view and the rendered directory. The only "two views" that remains is
+that a single node *file* is read two ways — as graph frontmatter (the lens + index) and as a
+native primitive (the build) — not as many nodes collapsing into one file. *Why:* falls out of
+the native-reference pivot (D33) — once shared content is a native reference and sizing is
+native, a node that isn't a real file buys nothing; and "let goals draw the boundary" already
+says a sub-part that earns its own measurable goal should be its own primitive (still 1:1).
+Simpler model, no collapse machinery, and "canonical = real `.claude` files" holds
+node-for-node. *Trade-off:* a mode that stays a body branch has no independent
+goal/instrumentation; to measure a mode on its own, split it into its own primitive (1:1
+again). *Queues amendment:* `02-graph-spec` (granularity), `07-decomposition` (granularity),
+`docs/graph-map.md` (resolves the modes-as-nodes open question). *Status:* Accepted.

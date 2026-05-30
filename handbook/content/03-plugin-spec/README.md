@@ -17,8 +17,9 @@ The build does two things node files cannot do for themselves:
 
 - **Bake disk-loadable primitives.** Claude Code loads skills and agents from disk; the
   files must be present in the packaged plugin.
-- **Expand resolvers.** Node bodies carry `{{...}}` placeholders that Claude does not
-  expand; the build expands them.
+- **Single-source references.** Shared content lives in one `graph/_refs/` file; the build
+  places it into each consumer (copy/symlink) and resolves the host's `@-import` or
+  on-demand pointer, so one source serves all consumers (no content is spliced as tokens).
 
 The graph frontmatter keys need no handling at load time — Claude ignores them — so the
 build strips them for cleanliness rather than necessity (see the pipeline below).
@@ -44,9 +45,11 @@ Vendored nodes are namespaced by the plugin name — a built skill invokes as
 
 Each node file `graph/<id>/<id>.md` projects through four deterministic stages:
 
-1. **Resolve.** Expand every `{{...}}` placeholder by injecting the shared blocks — the
-   instrumentation preamble ([`analytics`](../06-analytics/README.md)), schemas, and any
-   common boilerplate. Resolvers are pure functions of the node; no per-build state.
+1. **Place references.** For each `references` edge, copy/symlink the canonical
+   `graph/_refs/<id>.md` into the consumer's bundle and ensure the host's pointer resolves —
+   an `@-import` for `load: import` (spliced at load), or a backtick path for `load: on-demand`
+   (read at the step). One source serves all consumers; pure function of the inputs, no
+   per-build state.
 2. **Strip.** Remove the graph-only frontmatter keys (`edges`, `mode`, `determinism`,
    `goals`, `status`), leaving only native `.claude` fields.
 3. **Place.** Write the result into the plugin tree by `primitive:` — `skill` →
@@ -61,19 +64,29 @@ unchanged source is byte-identical, and the build flags any committed output tha
 from what its source would now produce. Built output cannot silently diverge from the node
 files.
 
-## Resolvers — define once, vendor everywhere
+## References — single-sourced, not spliced
 
-The shared blocks every node needs — the instrumentation preamble
-([`analytics`](../06-analytics/README.md)), schemas (findings, severity), and common
-protocols — are authored **once** as named **resolvers** and referenced from a node body by
-a `{{PLACEHOLDER}}` token; the shared text is never inlined per node. The Resolve stage
-expands every token in one pass, so a block authored once propagates to all consumers, and a
-change to a resolver re-renders every node that references it. Execution surfaces follow the
-same pattern — e.g. `{{browser.exec}}` resolves to the harness's concrete browser, keeping
-the node tool-agnostic. The freshness gate (idempotency test + `--dry-run` diff) fails CI if
-any committed built file differs from what its source would now produce. Mechanism mirrors
-gstack's `gen-skill-docs` resolver build (the define-once source is a resolver function; the
-consumer is a `.tmpl` with `{{...}}` tokens; one command expands all).
+The shared content several primitives need — the finding contract (`findings-schema`,
+`severity-scale`, `confidence-anchors`), the instrumentation preamble, `lens-dispatch`,
+common protocols — is authored **once** as a `graph/_refs/<id>.md` **reference**
+([`graph-spec`](../02-graph-spec/README.md)) and depended on via a `references` edge with a
+`load` dial. The build **single-sources** it: the canonical file is placed (copy or symlink)
+into every consumer's bundle and the host's pointer resolves to it — a native `@-import`
+(`load: import`, guaranteed-present at load) or a backtick path the agent reads
+(`load: on-demand`).
+
+A reference is **emitted as its own native file**, never spliced as `{{token}}` text into a
+host body (D33 supersedes the earlier injected-block model). This keeps the canonical store
+native and lets each host primitive read on its own. A change to the one source re-propagates
+to every consumer; the freshness gate (idempotency test + `--dry-run` diff) fails CI if any
+committed built file differs from what its source would now produce — so the duplication-drift
+that bites hand-copied shared content (CE's diverged schema, ECC's baseline duplicated 63×)
+cannot happen here. Content destined for a spawned **agent** is filled into the agent's
+**spawn prompt** by its orchestrator, not imported by the agent.
+
+Execution-surface parameterisation — keeping a node tool-agnostic about, e.g., the harness's
+concrete browser — is a separate harness-overlay concern
+([`harness-spec`](../04-harness-spec/README.md)), not a content reference.
 
 ## Frontmatter mapping
 

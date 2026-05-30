@@ -14,10 +14,12 @@ decisions in [`decisions.md`](decisions.md). This is the capstone of the design 
 
 **Primitive:** `skill` (loads into current context — operator-in-loop) · `agent` (isolated
 context, returns a summary) · `script` (deterministic executable) · `inline` (tool/MCP call in a
-body, not a node) · `ref` (referenced artefact) · `block` (define-once resolver, D25).
+body, not a node) · `ref` (a single-source shared **reference**, `graph/_refs/<id>.md`,
+`kind: reference`, depended on via a `references` edge with `load: import | on-demand`, D33).
 **Collab:** C = collaborative · A = autonomous · — = n/a.
 **Edges:** `precedes`/`can-follow` (process, may cycle) · `invokes`/`loads`/`composes-into`/
-`references` (structural) · `overlay` (harness). Modes-as-nodes (D22) are listed under their parent.
+`references` (structural, with `load: import \| on-demand`) · `overlay` (harness). Modes are
+body branches of a node, not nodes (D34) — one node ⟷ one primitive.
 
 ## The arc (backbone + loops)
 
@@ -61,7 +63,7 @@ not a file.
 | `investigate-probe` | agent | read-only hypothesis probe (×N parallel) | debug | |
 | `code-review` | skill→agents | static diff correctness/safety review | review; standalone | back-ends (codex/mistral) pluggable; modes ×4 |
 | `qa` | skill | live behavioural browser testing + fix-loop | review; standalone | uses browse; `qa-only` = report-only mode |
-| `security` | agent/skill | security judgment, diff to whole-surface | review, plan, standalone/periodic | modes: lens / plan-lens / daily / comprehensive; one persona |
+| `security` | agent | security judgment, diff to whole-surface | review, plan, standalone/periodic | **one persona-agent, mode-surfaced**: `lens-security` (review diff) and a plan-lens (plan doc) are the *same* persona with `target:`; `daily`/`comprehensive` are standalone audit modes. Not a separate node per home |
 | `design-review` | skill | visual QA on the live app + fix-loop | review; standalone | uses browse; shares ux-principles |
 | `plan-design-lens` | skill | plan-stage design completeness + mockups | design, plan | the design lens's doc home |
 | `design-shotgun` | skill | generate visual variants, comparison board, collect feedback | design (UI work) | uses `$D` + browse; the *generate* half of the shotgun pattern |
@@ -74,13 +76,15 @@ not a file.
 
 ## Lens family (shared; D27)
 
-One **dispatch** node + one **agent node per lens** (`target`-parameterised: doc | diff). Consumed
-by `design` (doc), `plan` (plan-review, sequential), `review` (diff, parallel). Product-specific
-lenses attach as **harness overlays**.
+One **dispatch reference** (the fan-out/merge procedure, a `graph/_refs/` reference each
+consuming stage depends on via a `references` edge — not a standalone node; see Non-nodes) +
+one **agent node per lens** (`target`-parameterised: doc | diff). Consumed by `design` (doc),
+`plan` (plan-review, sequential), `review` (diff, parallel). Product-specific lenses attach as
+**harness overlays**.
 
 | id | primitive | activation | hunts |
 |---|---|---|---|
-| `lens-dispatch` | skill | always (in consuming stage) | fan-out → dedup → corroborate → confidence-gate → severity-route |
+| `lens-dispatch` | ref (D33) | depended on by the consuming stage (`references`) | fan-out → dedup → corroborate → confidence-gate → severity-route |
 | `lens-correctness` | agent | always-on | logic, edge cases, state, swallowed errors |
 | `lens-security` | agent | always-on (lower gate) | injection, authz, secrets (= `security` lens mode / shared persona) |
 | `lens-tests` | agent | always-on | coverage gaps, weak assertions |
@@ -97,7 +101,6 @@ lenses attach as **harness overlays**.
 | id | primitive | goal | consumed by |
 |---|---|---|---|
 | `explore` | agent | read-only context gathering → distilled digest | align-context, design, plan, build |
-| `worktree-isolation` | inline/script | isolated checkout for a unit of work | build, review, reconcile (native `isolation:'worktree'` + `.worktreeinclude`; script fallback) |
 | `spec-diff` | agent | build ↔ spec-touchpoint comparison | specify, review, reconcile |
 | `log-decision` | agent/writer | write a curated entry to the decisions store | design, reconcile, debrief |
 | `measure-outcomes` | agent | compute per-node metrics vs earns-keep off the timeline (deterministic) | debrief |
@@ -109,7 +112,7 @@ lenses attach as **harness overlays**.
 | `benchmark` | agent/script | measure perf (load, web-vitals, bundle) vs baseline; before/after + trend | review (perf lens), land, optimise, debrief |
 | `health` | agent/script | composite code-quality score + trend (types/lint/tests/dead-code) | review, debrief |
 
-`explore` modes (modes-as-nodes): `repo` / `learnings` / `framework-docs` / `web` / `best-practices`.
+`explore` modes (body branches of the one `explore` node, not separate nodes — D34): `repo` / `learnings` / `framework-docs` / `web` / `best-practices`.
 
 ## Cross-cutting patterns
 
@@ -129,21 +132,28 @@ The **visual-design thread** spans the arc: `design-consultation` → `design-sh
 `design-implement` (build) → `design-review` (review), all sharing DESIGN.md (harness overlay),
 the `ux-principles` ref, and the browse + `$D` tools.
 
-## Non-nodes — tools, references, blocks
+## Non-nodes — tools and references
+
+Shared content is a **reference** (`graph/_refs/<id>.md`, `kind: reference`), depended on via
+a `references` edge with a `load` dial — `import` (native `@-import`, guaranteed-present) for
+short invariants, `on-demand` (a pointer read at the step of need) for larger or conditional
+material. The build single-sources each into its consumers; there is no injected-block
+primitive (D33).
 
 | id | kind | note |
 |---|---|---|
-| `browse` | inline tool / ext binary | headless browser behind `{{browser.exec}}`; tool-agnostic (gstack `$B` / Chrome MCP / `agent-browser`) |
+| `browse` | inline tool / ext binary | headless browser behind a `browser.exec` pointer; tool-agnostic (gstack `$B` / Chrome MCP / `agent-browser`) |
+| `worktree-isolation` | inline / script | isolated checkout for a unit of work; native `isolation:'worktree'` + `.worktreeinclude`, script fallback. Consumed inline by build, review, reconcile — an execution surface, not a node |
 | `gbrain` | inline MCP | recall substrate (the two-layer decisions store's recall half) |
 | `.worktreeinclude` | ref | committed list of files to copy into worktrees (D30) |
 | `DESIGN.md` | ref (harness) | product design system; harness overlay |
 | `decisions-store` | ref | `docs/decisions.md` — curated conclusions (D11) |
-| `ux-principles` | ref/block | factored shared UX doctrine (design-review + plan-design-lens) |
-| `IU-schema` | block | Implementation-Unit field contract (plan ↔ build) |
-| `findings-schema` / `severity-scale` / `confidence-anchors` | block | the lens/review finding contract |
-| `instrumentation-preamble` | block | build-injected event emitter (D20) |
-| `lens-dispatch` / `merge-triage` | block | the shared fan-out + aggregation machinery |
-| _others_ | block | gbrain-load, outcome-gate, decision-classifier, cross-model-challenge, iron-law, causal-chain-gate, escalation-3-strike, structured-report, scope-lock, checkpoint-commit, test-discipline, base-ref, qa-methodology, git-branch-setup, spec-touchpoints-table, reviewer-attachment, pr-description-shape, design-doc-template, scope-detection |
+| `ux-principles` | ref (on-demand) | factored shared UX doctrine (design-review + plan-design-lens) |
+| `IU-schema` | ref (import) | Implementation-Unit field contract (plan ↔ build) |
+| `findings-schema` / `severity-scale` / `confidence-anchors` | ref (import) | the lens/review finding contract |
+| `instrumentation-preamble` | ref (import) | event emitter single-sourced into every node (D20) |
+| `lens-dispatch` / `merge-triage` | ref (on-demand) | the shared fan-out + aggregation machinery |
+| _others_ | ref | gbrain-load, outcome-gate, decision-classifier, cross-model-challenge, iron-law, causal-chain-gate, escalation-3-strike, structured-report, scope-lock, checkpoint-commit, test-discipline, base-ref, qa-methodology, git-branch-setup, spec-touchpoints-table, reviewer-attachment, pr-description-shape, design-doc-template, scope-detection |
 
 ## Edges at a glance
 
@@ -153,28 +163,36 @@ the `ux-principles` ref, and the browse + `$D` tools.
 - **invokes:** stage → sub-arc (build→debug, review→{code-review,qa,security,design-review},
   land→{ship,deploy,canary}); stage → shared sub-node (→explore, →lens-dispatch, →spec-diff, etc.);
   debug→investigate-probe; qa/design-review→setup-browser-cookies (JIT).
-- **composes-into:** every stage → `dev-sprint` (with `stage:`); each lens → `lens-dispatch`.
-- **loads / references:** nodes → blocks + refs (browser.exec, DESIGN.md, decisions-store,
-  ux-principles, IU-schema, findings-schema, .worktreeinclude).
+- **composes-into:** every stage → `dev-sprint` (with `stage:`). Lenses do **not** compose-into
+  the dispatch reference — the dispatch logic `invokes` each lens (one-way), and the lenses
+  `composes-into` the arc they serve (via their consuming stage). No structural cycle (D4).
+- **references (`load: import | on-demand`):** nodes → shared refs (browser.exec, DESIGN.md,
+  decisions-store, ux-principles, IU-schema, findings-schema, instrumentation-preamble,
+  lens-dispatch, .worktreeinclude). The build single-sources each into its consumers (D33).
 - **overlay (harness):** product-specific lenses, DESIGN.md, deploy-config, spec-layout-config,
   threat-model + secret-store → attach additively; vendored graph never mutated.
 
 ## Counts & what's left to decide
 
-**~9 backbone stages + ~14 sub-arcs + ~11 lenses + ~12 shared sub-nodes + a block/ref catalog**
-≈ 35 authored nodes, plus the non-node tools/refs/blocks.
+**~9 backbone stages + ~14 sub-arcs + ~10 lens agents + ~11 shared sub-nodes + a reference catalog**
+≈ 33 authored nodes, plus the non-node tools/references (`lens-dispatch`, `worktree-isolation`,
+`browse`, the shared `graph/_refs/` references).
 
 Structural questions to settle at the handbook resync / first authoring (rolled up from the wave
 open-Qs):
 
-1. **Lens family:** collapse doc/diff into one parameterised lens per dimension (recommended);
-   one dispatch node vs fan-out+merge split.
-2. **Modes-as-nodes rendering:** how `explore`/`security`/`plan`/`build` modes render to `.claude`
-   (separate files per mode vs one file + mode-arg) — needs the `02-graph-spec` projection rule.
-3. **Two-homes nodes** (security, design): one node with a doc-mode + a diff-mode, or sibling nodes —
-   confirm per node.
+1. **Lens family:** collapse doc/diff into one parameterised lens per dimension (recommended).
+   *Resolved:* `lens-dispatch` is a **reference** (`graph/_refs/`) the consuming stage depends on
+   via a `references` edge, not a node; the dispatch logic `invokes` the lens agents (one-way, no
+   cycle).
+2. **Modes-as-nodes rendering:** *Resolved (D34)* — one node ⟷ one primitive; a node's modes
+   are branches in its one body, never separate nodes. A mode becomes its own primitive only
+   if it earns its own measurable goal (then it is 1:1 like any node).
+3. **Two-homes nodes** (security, design): *Resolved for security* — one persona-agent, mode-
+   surfaced via `target:` (not sibling nodes). Confirm the same shape for `design` when authored.
 4. **Native primitives to ride:** `isolation:'worktree'` + `.worktreeinclude`; confirm stability vs
    the script fallback.
 5. **Harness overlay boundary:** product lenses, DESIGN.md, deploy/spec-layout/threat-model config all
    land in the harness — confirm the factory stays general.
-6. **`browse`/`worktree` as non-nodes:** confirm execution surfaces stay inline tools/resolvers, not nodes.
+6. **`browse`/`worktree` as non-nodes:** *Resolved* — both are inline execution surfaces, listed
+   under Non-nodes, never authored as graph nodes.

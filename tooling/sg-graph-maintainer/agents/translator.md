@@ -57,7 +57,7 @@ status:                         # v0.1.0 — YYYY-MM-DD
 
 # <title>
 
-<imperative body: the skill/agent instructions with {{resolver}} placeholders>
+<imperative body: the skill/agent instructions>
 ```
 
 You also return a structured summary:
@@ -142,9 +142,12 @@ summary:
    distinct phases or sections. Use numbered lists for sequenced steps. Use bullet
    lists for non-ordered items.
 
-   Embed `{{resolver-placeholder}}` syntax where the build should expand a value at
-   vendor time (e.g., `{{graph.node-id.title}}` to pull another node's title). Do
-   not hardcode values that should be resolved by the builder.
+   For shared content several primitives need (a schema, the instrumentation preamble, a
+   shared protocol), do **not** inline a copy and do **not** use any `{{token}}` injection.
+   Author it once as a **reference** (`graph/_refs/<id>.md`, `kind: reference`) and depend on
+   it via a `references` edge carrying `load: import | on-demand`; the build single-sources the
+   one file into this node at vendor time (D33). Shared content destined for a spawned agent is
+   passed by the orchestrator into the agent's spawn prompt, not imported by the agent.
 
 8. **Enforce the primitive↔mode constraint.** Before writing, confirm:
    - `primitive: skill` → `mode: collaborative`

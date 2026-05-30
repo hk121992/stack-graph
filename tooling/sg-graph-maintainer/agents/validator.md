@@ -37,10 +37,16 @@ b. **`primitive`↔`mode` agreement** — `skill`↔`collaborative`, `agent`↔`
    body's character. Mismatch → failure.
 c. **`determinism` valid** — must be `deterministic` or `generative`. Else → failure.
 d. **`edges` targets resolve** — for each entry in `invokes` / `loads` /
-   `references` / `precedes` / `can-follow` / `overlay`, confirm a
+   `precedes` / `can-follow` / `overlay`, confirm a
    `graph/<target>/<target>.md` exists. Skip entries marked `external: true`.
-   Skip `composes-into` — its target is a **workflow** id, not a node file
-   ([`01-concepts`](../../../handbook/content/01-concepts/README.md)). Unresolved → failure.
+   Skip `composes-into` — its target is an **arc** (a traversal derived from edges), not a
+   node file ([`01-concepts`](../../../handbook/content/01-concepts/README.md)). The
+   `references` edge is checked separately in d2. Unresolved → failure.
+d2. **`references` edge targets resolve (D33)** — for each entry in the `references` edge
+   array, confirm the target resolves: a shared reference at `graph/_refs/<target>.md`
+   (`kind: reference`) or, where the reference is itself a node, `graph/<target>/<target>.md`.
+   Unresolved → failure. If an entry carries `load:`, its value must be `import` or
+   `on-demand`; any other value → failure.
 e. **`goals` well-formed** — at least one goal, each populated with `outcome`,
    `metric`, and `earns-keep`. Empty array or a goal missing any of the three → failure.
 f. **Body non-empty** — more than one line of imperative prose below the frontmatter.
