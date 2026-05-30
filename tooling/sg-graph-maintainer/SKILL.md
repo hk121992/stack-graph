@@ -25,7 +25,7 @@ The authoring workspace layout this skill creates and maintains:
 
 ```
 graph/<id>/
-  source-material/          # verbatim lifted source (existing skills, agents, docs) + _provenance.json
+  source-material/          # verbatim lifted source + _provenance.json — LOCAL-ONLY working dir (gitignored in the factory; provenance is preserved in the research-report's Source inventory)
   research-report.md        # durable curation record
   <id>.md                   # the node file: graph frontmatter + imperative body (the canonical)
 ```
