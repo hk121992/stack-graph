@@ -17,8 +17,10 @@ researcher_adequacy_note: |
   sibling), and the three shared family/contract sources (CE's findings-schema.json,
   persona-catalog.md, subagent-template.md). Edges were determined from docs/graph-map.md
   and the family decision: the only structural edge is composes-into the dev-sprint arc at
-  review/design/plan (identical to every lens); the finding contract is injected as a
-  {{findings-schema}}-style resolver BLOCK, not a references edge; there is deliberately no
+  review/design/plan (identical to every lens); the finding contract (findings-schema /
+  severity-scale / confidence-anchors) is a kind: reference artefact in graph/_refs/ that
+  the dispatching stage passes into the lens via its spawn prompt — the lens declares NO
+  contract edge of its own; there is deliberately no
   edge to lens-dispatch (a back-edge would be an illegal structural cycle, D4). Confidence
   in primitive: agent / mode: autonomous / determinism: generative is HIGH — every source
   models the lens as fanned-out-to in isolated context, returning structured findings
@@ -42,7 +44,7 @@ researcher_adequacy_note: |
 **Candidate title:** Security lens
 
 **Scope:** One dimension of stack-graph's shared review lens-family (D27). An autonomous
-agent the review orchestrator (the `lens-dispatch` block) fans out to in an isolated
+agent the review orchestrator (following the `lens-dispatch` reference) fans out to in an isolated
 context; it reads a target and returns structured findings, never conversing with the
 operator. It hunts **exploitable security vulnerabilities** by thinking like an attacker —
 "how would I break this?" — then traces whether the code stops the attack: injection
@@ -55,7 +57,7 @@ boundary, and missing input validation at trust boundaries. It is **`target`-par
 sink in the changed code) or `target = doc` (the design/plan stage — inventory the attack
 surface, find auth/authz/secrets decisions the proposed design omits, before any code
 exists). It is **one** family member; it does **not** own family orchestration, fan-out,
-dedup, or severity-routing (those live in the `lens-dispatch` block and `merge-triage`). It
+dedup, or severity-routing (those live in the `lens-dispatch` reference the dispatching stage follows). It
 explicitly does **not** own logic/behavioural correctness (→ `lens-correctness`), test
 coverage (→ `lens-tests`), maintainability/complexity (→ `lens-maintainability`), or
 performance (→ `lens-performance`); where checks straddle (e.g. SQL-string-interpolation,
@@ -109,7 +111,9 @@ corroborate → confidence-gate → severity-route) is deterministic, but that l
 **Input:** A spawn bundle from the consuming stage's dispatch block: the `target`
 (`diff` or `doc`) and its contents, scope-rules (what is in/out of the change; base-ref
 markers; untracked-scope notes), an optional intent/requirements summary, and the
-injected finding contract (schema + severity scale + confidence anchors). Read-only tools
+finding contract (schema + severity scale + confidence anchors) — references the
+dispatching stage passes in via the spawn prompt, not authored or imported by the lens.
+Read-only tools
 (Read, Grep, Glob, git/gh inspection); it may read code/context **outside** the target to
 confirm a finding (e.g. trace untrusted input back to its entry point, or follow a
 user-controlled value forward to a dangerous sink, or check whether a guard exists in
@@ -134,8 +138,8 @@ section but keep the same schema.)
 | `source-material/ce-security-lens-reviewer.md` | keep (partial) | Source for the `target: doc` mode — attack-surface inventory, auth/authz gaps where the actor is unnamed, data-exposure, third-party trust boundaries, secrets strategy, plan-level top-3-exploit threat model. Its requirements-vs-plan granularity split maps onto design-vs-plan consumers. The collaborative document-review scaffolding around it is dropped. |
 | `source-material/gstack-review-checklist-security-excerpt.md` | keep (partial) | Source for concrete diff-target checks: SQL string interpolation, the LLM-output trust-boundary block (unvalidated LLM values persisted, SSRF on LLM-generated URLs, stored prompt injection), XSS (unsafe HTML render on user-controlled data), shell injection (shell=True + interpolation, os.system, eval/exec on LLM code), CI/CD hardcoded-secrets. Correctness-only checklist items (enum completeness, TOCTOU-as-correctness, time-window, type-coercion, column-name safety) are **edge-only** (owned by `lens-correctness`) and were not lifted. |
 | `source-material/ce-persona-catalog.md` | keep (framing) | The lens-family framing + sibling boundaries. NOTE the divergence: CE makes security CONDITIONAL; stack-graph makes it ALWAYS-ON with a lower gate (recorded as a judgment call). Not absorbed as body text — it is family context. |
-| `source-material/ce-findings-schema.json` | edge-only (block) | The shared finding contract. Injected as a `{{findings-schema}}`-style resolver BLOCK, NOT absorbed and NOT a `references` edge. |
-| `source-material/ce-subagent-template.md` | edge-only (block) | The dispatch/spawn contract + confidence-anchor rubric (incl. the P0-at-50 exception security relies on). Owned by `lens-dispatch` (a block); the lens body references the anchors via the same block injection, not as its own content. |
+| `source-material/ce-findings-schema.json` | reference (spawn-passed) | The shared finding contract. A `kind: reference` artefact in `graph/_refs/`, passed into the lens via its spawn prompt by the dispatching stage; NOT absorbed and NOT an edge the lens declares. |
+| `source-material/ce-subagent-template.md` | reference (spawn-passed) | The dispatch/spawn contract + confidence-anchor rubric (incl. the P0-at-50 exception security relies on). The confidence anchors are a `kind: reference` (`graph/_refs/confidence-anchors.md`) the dispatching stage passes into the lens's spawn prompt; the lens does not author or import them. |
 
 ## Keep / Drop
 
@@ -182,20 +186,21 @@ section but keep the same schema.)
   one-section-at-a-time scaffolding around `ce-security-lens-reviewer`) — that is the
   `plan`/`design`/`review` skills, not the autonomous lens.
 
-**Edge only (separate node / block):**
-- The finding contract (schema, severity scale, confidence anchors) → a build-time
-  **block** injected via a resolver placeholder, not a node and not a `references` edge.
+**Reference / not absorbed:**
+- The finding contract (schema, severity scale, confidence anchors) → a `kind: reference`
+  artefact in `graph/_refs/`, passed into the lens by the dispatching stage's spawn
+  prompt; the lens declares no edge to it.
 - The sibling lenses (`lens-correctness`, `lens-tests`, `lens-maintainability`, etc.) →
   they are peers in the family, not things this node points at; the boundary between them
   is documented (don't double-flag), but there is no edge between siblings.
 
 ## Overlaps and seams
 
-- **Upstream seam (dispatch → lens):** the `lens-dispatch` block (in the consuming
-  stage's body) **invokes** this lens, one-way, passing the target + scope + contract.
-  This lens declares **no** back-edge to dispatch — a back-edge would be a structural
-  cycle (D4). (Dispatch is a block, not a node, so even an `invokes` from the lens would
-  be unresolvable.)
+- **Upstream seam (dispatch → lens):** the consuming stage, following the `lens-dispatch`
+  reference, **spawns** this lens one-way, passing the target + scope + contract into its
+  spawn prompt. This lens declares **no** back-edge to dispatch — a back-edge would be a
+  structural cycle (D4). (`lens-dispatch` is a reference the host follows, not a node the
+  lens edges to.)
 - **Downstream seam (lens → merge):** the lens returns findings to `merge-triage`
   (dedup/corroborate/gate/route), which is the dispatch machinery, not a node this lens
   edges to. The lens's only job is to emit conformant findings.
@@ -223,8 +228,8 @@ goal (escaped-vuln rate; survived true positives), and is reused by ≥2 consume
 design, plan) — all three granularity signals (reuse, cohesion, just-in-time) point to
 "own node." The diff-vs-doc split is **not** a node split: per D27 and the graph-map
 decision, collapse the diff-reviewer / plan-lens-reviewer duplication into **one
-parameterised lens** with a `target` mode in the body (modes-as-nodes in the authoring
-view; renders as one agent file with a target branch). It is a **leaf** in the structural
+parameterised lens** with a `target` mode in the body (D34 — one node, one primitive;
+`target` is a body branch of the single lens node, never a separate node). It is a **leaf** in the structural
 skeleton: fanned-out-to, returns a summary, edges minimal.
 
 ## Edges
@@ -236,17 +241,15 @@ skeleton: fanned-out-to, returns a summary, edges minimal.
 | composes-into | `dev-sprint` (stage: plan) | Additional consumer: plan-review fans out to this lens over the plan doc (`target: doc`, sequential surfacing). |
 
 **Deliberately NO other edges:**
-- **No edge to `lens-dispatch`.** Dispatch is a block that `invokes` the lens one-way;
-  the lens must not point back (structural cycle, D4; and the target is a block, not a
-  resolvable node file).
+- **No edge to `lens-dispatch`.** The dispatching stage follows the `lens-dispatch`
+  reference to spawn the lens one-way; the lens must not point back (structural cycle, D4).
 - **No `references` edge for the finding contract.** `findings-schema` / `severity-scale`
-  / `confidence-anchors` are **blocks** injected via a `{{findings-schema}}`-style
-  resolver placeholder in the body. The `index` records these as `uses-block` edges from
-  the placeholder tokens — the author does not hand-write them, and they are not
-  `references` edges (whose targets the validator resolves to node files). This is a
+  / `confidence-anchors` are `kind: reference` artefacts in `graph/_refs/`; the lens does
+  **not** depend on them. The dispatching stage owns the `references` edges (with
+  `load: import`) and passes the contract into the lens's spawn prompt. This is a
   deliberate modelling choice (see Open questions).
 - **No `invokes` / `loads`.** The lens calls no other node and loads no other node into
-  its context (it reads target + injected contract; everything else is inline read-only
+  its context (it reads the target + the spawn-passed contract; everything else is inline read-only
   tool use / MCP-style inspection).
 - **No `precedes` / `can-follow`.** It is a fanned-out-to leaf; it has no process
   position of its own. The process flow (review↔build correction loop) lives on the
@@ -263,9 +266,9 @@ code for security" was explicitly rephrased to the outcome "exploitable vulnerab
 caught before the change lands").
 
 **Edge targets resolvable:** `dev-sprint` is the arc (composes-into targets an arc, which
-the maintainer does not resolve to a file — per 02-graph-spec). No edge targets a block or
-a missing node. The finding contract is intentionally a body placeholder (recorded as a
-`uses-block` edge by the index), not a hand-authored edge.
+the maintainer does not resolve to a file — per 02-graph-spec). No edge targets a missing
+node. The finding contract is intentionally spawn-passed by the dispatching stage, not an
+edge this lens declares.
 
 ## Open questions
 
@@ -278,14 +281,14 @@ a missing node. The finding contract is intentionally a body placeholder (record
   encode the lower gate in the body's calibration section (security 50s file at P0 so they
   survive the gate), and note the always-on activation, without re-litigating the
   family-level dispatch decision (which lives in `lens-dispatch`, not here).
-- **Finding contract as block, not edge (deliberate).** The shared `findings-schema` /
-  `severity-scale` / `confidence-anchors` enter the body via a `{{findings-schema}}`-style
-  resolver placeholder, NOT a `references` edge — because the validator resolves
-  `references` targets to node files and these are build-time blocks (the index records
-  them as `uses-block`). Flagged so the translator writes the placeholder in the body and
-  does not invent an edge. (Carried from the modelling guidance.)
-- **Target parameterisation in the body.** `target ∈ {diff, doc}` is a body mode (one
-  agent file with a branch), not separate nodes. The doc mode also shifts ordering
+- **Finding contract = reference, spawn-passed (RESOLVED).** The shared `findings-schema` /
+  `severity-scale` / `confidence-anchors` are `kind: reference` artefacts in `graph/_refs/`
+  (D33). The lens declares **no** edge to them: the dispatching stage holds the `references`
+  edges (`load: import`) and passes the contract into the lens's spawn prompt (CE's pattern).
+  Resolved to the reference/spawn model — the translator must not write a `{{placeholder}}`
+  in the body nor a `references`/`uses-block` edge on the lens.
+- **Target parameterisation in the body.** `target ∈ {diff, doc}` is a body branch of the
+  single lens node (D34 — one node, one primitive), not separate nodes. The doc mode also shifts ordering
   (design/plan surface findings sequentially while a human edits the doc) — but that
   ordering is set by the consuming stage's dispatch, not by the lens. Translator: model
   `target` as a parameter the lens reads, keep the hunt identical, only the

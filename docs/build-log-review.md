@@ -145,7 +145,8 @@ framing — the per-node `research-report.md` files describe the old block/`{{pl
 model (D33), and `docs/graph-design.md` still describes **modes-as-nodes** (D34). The rework
 touched the canon — node/reference files, the handbook specs (`01`/`02`/`03`/`05`/`07`),
 `decisions.md` (D33 rewritten, D34 added, D22 annotated), `graph-map.md`, and the maintainer
-tooling — but not these large internal research inputs. Resync them on the next `amend`/cleanup
-pass; the canonical surface is correct, only the records lag.
+tooling — but not these large internal research inputs. **Resolved 2026-05-30** — the five
+`research-report.md` records and `docs/graph-design.md` were resynced to the references + 1:1
+model (superseded framing replaced, substance preserved, the historical supersession noted).
 </content>
 </invoke>

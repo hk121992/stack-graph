@@ -18,8 +18,10 @@ researcher_adequacy_note: |
   docs/graph-map.md and the explicit modelling guidance, identical to the sibling
   lens-correctness: the only structural edge is composes-into the dev-sprint arc at the
   review stage (with design/plan as additional consumers via their own stages); the
-  finding contract is injected as a {{findings-schema}}-style resolver BLOCK, not a
-  references edge; there is deliberately no edge to lens-dispatch (dispatch invokes the
+  finding contract (findings-schema / severity-scale / confidence-anchors) is a
+  kind: reference artefact in graph/_refs/ that the dispatching stage passes into the
+  lens via its spawn prompt — the lens declares NO contract edge of its own; there is
+  deliberately no edge to lens-dispatch (dispatch invokes the
   lens one-way — a back-edge would be an illegal structural cycle, D4). Confidence in
   primitive: agent / mode: autonomous / determinism: generative is HIGH — the testing
   reviewer is modelled identically to the correctness reviewer (fanned-out-to in isolated
@@ -44,7 +46,7 @@ researcher_adequacy_note: |
 **Candidate title:** Tests lens
 
 **Scope:** One dimension of stack-graph's shared review lens-family (D27). An autonomous
-agent the review orchestrator (the `lens-dispatch` block) fans out to in an isolated
+agent the review orchestrator (following the `lens-dispatch` reference) fans out to in an isolated
 context; it reads a target and returns structured findings, never conversing with the
 operator. It hunts **test quality and coverage**: missing coverage for changed behaviour,
 weak or missing assertions (tests that run but assert nothing meaningful), untested
@@ -56,7 +58,7 @@ each changed branch and behaviour is exercised by a meaningful assertion) or `ta
 doc` (the design/plan stage — hunt the testability of the proposed design and the test
 scenarios it implies, before any code or tests exist). It is **one** family member; it
 does **not** own family orchestration, fan-out, dedup, or severity-routing (those live in
-the `lens-dispatch` block and `merge-triage`). It explicitly does **not** own
+the `lens-dispatch` reference the dispatching stage follows). It explicitly does **not** own
 logic-correctness (a wrong branch → `lens-correctness`; this lens flags "no test covers
 this branch", not "this branch is wrong"), security (→ `lens-security`), performance
 (→ `lens-performance`), or the maintainability of test-code structure (→
@@ -112,7 +114,9 @@ in `merge-triage`/`lens-dispatch`, not in this node.
 **Input:** A spawn bundle from the consuming stage's dispatch block: the `target`
 (`diff` or `doc`) and its contents, scope-rules (what is in/out of the change; base-ref
 markers; untracked-scope notes), an optional intent/requirements summary, and the
-injected finding contract (schema + severity scale + confidence anchors). Read-only tools
+finding contract (schema + severity scale + confidence anchors) — references the
+dispatching stage passes in via the spawn prompt, not authored or imported by the lens.
+Read-only tools
 (Read, Grep, Glob, git/gh inspection); it may read code/context **outside** the target to
 confirm a finding (e.g. follow a changed function to the test file that should cover it,
 or trace whether an integration test exercises a user flow the diff touches).
@@ -138,8 +142,8 @@ findings reframe "file:line" to the doc location / section but keep the same sch
 | `source-material/gstack-review-checklist.md` | keep (partial) | Source for the test-gap diff-target items: the Test-Gaps specialist category, the Completeness-Gaps coverage line (missing negative-path / edge-case tests that mirror happy-path structure — "lake not ocean"), and the test suppressions ("this assertion could be tighter" when it already covers the behaviour; "test exercises multiple guards simultaneously" is fine; eval-threshold changes are tuned empirically; anything already addressed in the diff). The SQL/race/enum/logic items are **out of scope** (owned by `lens-correctness`/`lens-security`). |
 | `source-material/gstack-plan-eng-review-test-excerpt.md` | keep (partial) | Source for the `target: doc` mode — the trace-every-codepath coverage audit, the user-flow/interaction/error-state/boundary coverage map, the test-quality scoring rubric (★★★ edge cases AND error paths / ★★ happy path only / ★ smoke test), the E2E-vs-unit-vs-eval decision matrix, and the mandatory regression rule. Curated excerpt; the rest of the 93KB skill is operator-collaborative scaffolding, dropped. |
 | `source-material/ce-persona-catalog.md` | keep (framing) | The always-on family framing + sibling boundaries; informs activation and the don't-double-flag discipline (logic to correctness, perf to performance, test-code structure to maintainability). Not absorbed as body text — it is family context. |
-| `source-material/ce-findings-schema.json` | edge-only (block) | The shared finding contract. Injected as a `{{findings-schema}}`-style resolver BLOCK, NOT absorbed and NOT a `references` edge. |
-| `source-material/ce-subagent-template.md` | edge-only (block) | The dispatch/spawn contract + confidence-anchor rubric. Owned by `lens-dispatch` (a block); the lens body references the anchors via the same block injection, not as its own content. |
+| `source-material/ce-findings-schema.json` | reference (spawn-passed) | The shared finding contract. A `kind: reference` artefact in `graph/_refs/`, passed into the lens via its spawn prompt by the dispatching stage; NOT absorbed and NOT an edge the lens declares. |
+| `source-material/ce-subagent-template.md` | reference (spawn-passed) | The dispatch/spawn contract + confidence-anchor rubric. The confidence anchors are a `kind: reference` (`graph/_refs/confidence-anchors.md`) the dispatching stage passes into the lens's spawn prompt; the lens does not author or import them. |
 
 ## Keep / Drop
 
@@ -184,9 +188,10 @@ findings reframe "file:line" to the doc location / section but keep the same sch
   autonomous lens. (The lens borrows the trace-every-branch *judgment*, not the
   interactive ASCII-diagram artefact.)
 
-**Edge only (separate node / block):**
-- The finding contract (schema, severity scale, confidence anchors) → a build-time
-  **block** injected via a resolver placeholder, not a node and not a `references` edge.
+**Reference / not absorbed:**
+- The finding contract (schema, severity scale, confidence anchors) → a `kind: reference`
+  artefact in `graph/_refs/`, passed into the lens by the dispatching stage's spawn
+  prompt; the lens declares no edge to it.
 - The sibling lenses (`lens-correctness`, `lens-security`, `lens-maintainability`,
   `lens-performance`) → they are peers in the family, not things this node points at; the
   boundary between them is documented (don't double-flag), but there is no edge between
@@ -194,11 +199,11 @@ findings reframe "file:line" to the doc location / section but keep the same sch
 
 ## Overlaps and seams
 
-- **Upstream seam (dispatch → lens):** the `lens-dispatch` block (in the consuming
-  stage's body) **invokes** this lens, one-way, passing the target + scope + contract.
-  This lens declares **no** back-edge to dispatch — a back-edge would be a structural
-  cycle (D4). (Dispatch is a block, not a node, so even an `invokes` from the lens would
-  be unresolvable.)
+- **Upstream seam (dispatch → lens):** the consuming stage, following the `lens-dispatch`
+  reference, **spawns** this lens one-way, passing the target + scope + contract into its
+  spawn prompt. This lens declares **no** back-edge to dispatch — a back-edge would be a
+  structural cycle (D4). (`lens-dispatch` is a reference the host follows, not a node the
+  lens edges to.)
 - **Downstream seam (lens → merge):** the lens returns findings to `merge-triage`
   (dedup/corroborate/gate/route), which is the dispatch machinery, not a node this lens
   edges to. The lens's only job is to emit conformant findings — with coverage gaps
@@ -228,8 +233,8 @@ branching (the coverage hunt and its calibration), has a distinct measurable goa
 consumers (review, design, plan) — all three granularity signals (reuse, cohesion,
 just-in-time) point to "own node." The diff-vs-doc split is **not** a node split: per D27
 and the graph-map decision, collapse CE's doc/diff duplication into **one parameterised
-lens** with a `target` mode in the body (modes-as-nodes in the authoring view; renders as
-one agent file with a target branch). It is a **leaf** in the structural skeleton:
+lens** with a `target` mode in the body (D34 — one node, one primitive; `target` is a body
+branch of the single lens node, never a separate node). It is a **leaf** in the structural skeleton:
 fanned-out-to, returns a summary, edges minimal.
 
 ## Edges
@@ -241,16 +246,15 @@ fanned-out-to, returns a summary, edges minimal.
 | composes-into | `dev-sprint` (stage: plan) | Additional consumer: plan-review fans out to this lens over the plan doc (`target: doc`, sequential surfacing). |
 
 **Deliberately NO other edges:**
-- **No edge to `lens-dispatch`.** Dispatch is a block that `invokes` the lens one-way;
-  the lens must not point back (structural cycle, D4; and the target is a block, not a
-  resolvable node file).
+- **No edge to `lens-dispatch`.** The dispatching stage follows the `lens-dispatch`
+  reference to spawn the lens one-way; the lens must not point back (structural cycle, D4).
 - **No `references` edge for the finding contract.** `findings-schema` / `severity-scale`
-  / `confidence-anchors` are **blocks** injected via a `{{findings-schema}}`-style
-  resolver placeholder in the body. Declaring a `references` edge to a block would fail
-  validation (the validator resolves `references` targets to node files). This is a
+  / `confidence-anchors` are `kind: reference` artefacts in `graph/_refs/`; the lens does
+  **not** depend on them. The dispatching stage owns the `references` edges (with
+  `load: import`) and passes the contract into the lens's spawn prompt. This is a
   deliberate modelling choice (see Open questions).
 - **No `invokes` / `loads`.** The lens calls no other node and loads no other node into
-  its context (it reads target + injected contract; everything else is inline read-only
+  its context (it reads the target + the spawn-passed contract; everything else is inline read-only
   tool use / MCP-style inspection).
 - **No `precedes` / `can-follow`.** It is a fanned-out-to leaf; it has no process
   position of its own. The process flow (review↔build correction loop) lives on the
@@ -267,17 +271,18 @@ activities ("reviews tests for coverage" was explicitly rephrased to the outcome
 behaviour lands with adequate coverage").
 
 **Edge targets resolvable:** `dev-sprint` is the arc (composes-into targets an arc, which
-the maintainer does not resolve to a file — per 02-graph-spec). No edge targets a block
-or a missing node. The finding contract is intentionally a body placeholder, not an edge.
+the maintainer does not resolve to a file — per 02-graph-spec). No edge targets a missing
+node. The finding contract is intentionally spawn-passed by the dispatching stage, not an
+edge this lens declares.
 
 ## Open questions
 
-- **Finding contract as block, not edge (deliberate).** The shared `findings-schema` /
-  `severity-scale` / `confidence-anchors` enter the body via a `{{findings-schema}}`-style
-  resolver placeholder, NOT a `references` edge — because the validator resolves
-  `references` targets to node files and these are build-time blocks. Flagged so the
-  translator writes the placeholder in the body and does not invent an edge. (Carried from
-  the modelling guidance.)
+- **Finding contract = reference, spawn-passed (RESOLVED).** The shared `findings-schema` /
+  `severity-scale` / `confidence-anchors` are `kind: reference` artefacts in `graph/_refs/`
+  (D33). The lens declares **no** edge to them: the dispatching stage holds the `references`
+  edges (`load: import`) and passes the contract into the lens's spawn prompt (CE's pattern).
+  Resolved to the reference/spawn model — the translator must not write a `{{placeholder}}`
+  in the body nor a `references`/`uses-block` edge on the lens.
 - **Output skews to `testing_gaps[]`, not P0/P1.** Unlike correctness (whose output is
   mostly primary findings), much of this lens's honest output is coverage gaps that belong
   in the top-level `testing_gaps[]` soft bucket — a changed branch with no test is rarely a
@@ -285,8 +290,8 @@ or a missing node. The finding contract is intentionally a body placeholder, not
   and a false-confidence assertion that masks a defect a real scenario will hit (those are
   primary findings). Translator: instruct the body to route coverage gaps to
   `testing_gaps[]` and reserve P0/P1 findings for the escalation cases.
-- **Target parameterisation in the body.** `target ∈ {diff, doc}` is a body mode (one
-  agent file with a branch), not separate nodes. For `diff` the hunt is "is each changed
+- **Target parameterisation in the body.** `target ∈ {diff, doc}` is a body branch of the
+  single lens node (D34 — one node, one primitive), not separate nodes. For `diff` the hunt is "is each changed
   branch/behaviour exercised by a meaningful assertion." For `doc` the hunt shifts to "is
   the proposed design testable, and what test scenarios does it imply" (no tests exist yet).
   Keep the hunt's spirit identical; only the location-vocabulary (file:line vs doc-section)

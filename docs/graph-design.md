@@ -11,10 +11,19 @@ authored. A **design doc** (`docs/`), not canonical: locked decisions land in
 [handbook](../handbook/content/). Each Part-B section **seeds** that element's eventual
 `graph/<id>/research-report.md` when we author it.
 
-Binding decisions: **D22** (one graph, granularity-flexible authoring view, modes-as-nodes),
-**D23** (decompose on reuse / cohesion / just-in-time; inline if trivial; flatten deep),
-**D24** (skill = current context, agent = isolated context returning a summary; they compose),
-**D25** (shared blocks = define-once resolvers), goals as **outcome / metric / earns-keep**.
+Binding decisions: **D22** (one graph, two readings of one file — superseded in its
+granularity aspect by **D34**), **D23** (decompose on reuse / cohesion / just-in-time; inline
+if trivial; flatten deep), **D24** (skill = current context, agent = isolated context returning
+a summary; they compose), **D33** (shared content = native **references** with a `load` dial,
+not injected blocks), **D34** (one node ⟷ one primitive; modes are body branches),
+goals as **outcome / metric / earns-keep**.
+
+> **Resync note (2026-05-30).** This record was authored under an earlier framing that has
+> since been superseded on two axes: shared content was modelled as **injected blocks /
+> resolvers / `{{placeholders}}`** (now **native references** per D33), and a primitive could be
+> modelled as **several collapsing nodes** ("modes-as-nodes" per the original D22; now **1:1
+> nodes**, modes as body branches, per D34). The text below has been updated to the current
+> model; the substantive design (stages, seams, lens family, sub-arc inventory) is unchanged.
 
 ---
 
@@ -54,19 +63,19 @@ D23 predicted:
 |---|---|---|
 | **explore / gather-context / research** | align-context, design, plan, build | agent (isolated, read-only) |
 | **lens family** (correctness, security, tests, maintainability, perf, adversarial, design, DX…) | design (doc), **plan (plan-review, sequential)**, review (diff) | agent per lens |
-| **browse** (headless-browser tool) | qa, design-review, canary, benchmark, scrape | **inline tool / ext binary — NOT a node** (`{{browser.exec}}` resolver) |
+| **browse** (headless-browser tool) | qa, design-review, canary, benchmark, scrape | **inline tool / ext binary — NOT a node**; the binary path is a harness detail resolved by overlay (an env-setup `reference`), not invented vocabulary |
 | **worktree-isolation** | build, review, reconcile | **native `isolation:worktree` (inline) + `.worktreeinclude`**; script fallback |
 | **debug.investigate-probe** (read-only hypothesis probe) | debug (×N parallel) | agent |
 | **spec-diff** (build ↔ spec touchpoint) | specify, review, reconcile | agent/check |
 | **log-decision** (→ two-layer decisions store) | design, reconcile, debrief | shared writer |
 | **measure-outcomes / capture-learnings** | debrief (review?) | agent |
 | **pr-author / drift-detector** | specify, reconcile (curator family) | agent |
-| **IU-schema** (Implementation-Unit field contract) | plan (writer) ↔ build (reader) | shared block |
+| **IU-schema** (Implementation-Unit field contract) | plan (writer) ↔ build (reader) | shared **reference** |
 
 A lens appears in **two homes** — a plan-stage lens (on the design doc) and a review-stage child
 (on the diff). Security and design each appear twice. That is a **define-once / reuse** case
-(D25 shared node), not duplication. **Product-specific lenses** (a stack's own reviewers) are
-**harness overlays**, not factory nodes.
+(D33 single-source reference / D27 shared lens node), not duplication. **Product-specific lenses**
+(a stack's own reviewers) are **harness overlays**, not factory nodes.
 
 ### Sub-arc inventory (refined by wave 1)
 
@@ -84,15 +93,21 @@ A lens appears in **two homes** — a plan-stage lens (on the design doc) and a 
 **code-review vs qa = two arcs** (confirmed): different tools (diff vs live browser),
 opposite verify semantics (re-diff vs re-click). Siblings under `review`, parallelizable.
 
-### Shared-asset / resolver catalog (D25 — refined)
+### Shared-reference catalog (D33 — single-sourced, not injected)
 
-Recurring define-once blocks the nodes consume: `instrumentation-preamble` (D20),
-`gbrain-load`, `outcome-gate` (the AskUserQuestion decision-brief shape — every gating node),
-`decision-classifier` (mechanical/taste/challenge), `lens-dispatch` / `subagent-review-template`,
-`findings-schema` + `severity-scale` (P0–P3) + `confidence-anchors`, `merge-triage`
-(dedup→corroborate→gate→partition), `cross-model-challenge`, `iron-law`, `causal-chain-gate`,
-`escalation-3-strike`, `structured-report`, `scope-lock` / `blast-radius`, `checkpoint-commit`,
-`test-discipline`, `base-ref` / `merge-base`, `qa-methodology`, `git-branch-setup`.
+Recurring shared content the nodes consume as **native references** (`kind: reference` artefacts
+under `graph/_refs/`, depended on via a `references` edge with a `load: import | on-demand`
+dial; single-sourced into consumers by the build — **no `{{token}}` splice**):
+`instrumentation-preamble` (D20; `load: import` — must always be present), `gbrain-load`,
+`outcome-gate` (the AskUserQuestion decision-brief shape — every gating node),
+`decision-classifier` (mechanical/taste/challenge), `lens-dispatch` / `subagent-review-template`
+(`load: on-demand` — the panel procedure the host follows), `findings-schema` + `severity-scale`
+(P0–P3) + `confidence-anchors`, `merge-triage` (dedup→corroborate→gate→partition; `on-demand`),
+`cross-model-challenge`, `iron-law`, `causal-chain-gate`, `escalation-3-strike`,
+`structured-report`, `scope-lock` / `blast-radius`, `checkpoint-commit`, `test-discipline`,
+`base-ref` / `merge-base`, `qa-methodology`, `git-branch-setup`. Content destined for a spawned
+**agent** (a lens's finding contract) is passed by the orchestrator in the **spawn prompt**, not
+imported by the agent.
 
 ### Ways-of-working conventions (confirmed)
 
@@ -142,7 +157,8 @@ plan, build) — learn-as-we-go, then refine.
   (scope-tiered ceremony, one-question-per-turn). Conflict: CE splits the funnel into 3 skills,
   gstack collapses to one — **recommend one stage with ceremony modes**.
 - **Decomposition.** One node + **extract `gather-context`** (reused by design/specify, JIT).
-  Ceremony tiers (lightweight/standard/deep) + spec overlay = **modes in one node**.
+  Ceremony tiers (lightweight/standard/deep) + spec overlay = **body branches in one node**
+  (modes are branches, not nodes — D34).
 - **Primitive.** Skill (live thread), invoking `gather-context` agents.
 - **Contract.** In: free-form request + repo + recall. Out: intent-and-constraints statement
   (goal, constraints, scope boundary, parked questions, spec touchpoints) + operator-confirmed gate.
@@ -174,19 +190,21 @@ plan, build) — learn-as-we-go, then refine.
   pre-build *and* post-build; cohesive distinct goals; JIT-activated) + D24 (parallel, isolated).
   **One nuance:** the **CEO/strategy lens runs first** (it changes scope), then design/eng/DX
   fan out in parallel — a hybrid of gstack-ordering + CE-fanout. CEO scope postures
-  (EXPANSION/SELECTIVE/HOLD/REDUCTION) stay **modes inside the strategy lens**.
-- **Primitive.** `design` orchestrator = skill; lenses = agents (parallel, conditional); classifier
-  = shared block.
+  (EXPANSION/SELECTIVE/HOLD/REDUCTION) stay **body branches inside the strategy lens** (modes are
+  branches, not nodes — D34).
+- **Primitive.** `design` orchestrator = skill; lenses = agents (parallel, conditional);
+  classifier = shared **reference** (`decision-classifier`, depended on via a `references` edge).
 - **Contract.** In: aligned frame + repo context + scope signals. Out: design doc (shape, chosen
   approach + rejected alternatives, resolved decisions, parked questions, lens findings,
   `## Spec touchpoints`) + restore point + auto-decision audit log.
 - **Edges.** precedes `specify`; `can-follow` align (and review/reconcile→design for shape-level
-  rethink); invokes research-context agents + lens agents; composes the lens nodes + cross-model
-  block.
+  rethink); invokes research-context agents + lens agents; composes the lens nodes + the
+  cross-model-challenge reference.
 - **Shared assets.** decision-classifier, outcome-gate, lens-dispatch, cross-model-challenge,
   design-doc-template, scope-detection.
 - **Open Qs.** (1) strategy-lens-first hybrid vs all-parallel vs all-sequential. (2) CEO postures
-  modes vs nodes. (3) premise-challenge home (align vs design). (4) who emits the amendment
+  as body branches vs graduating one to its own 1:1 primitive (recommend branches — D34).
+  (3) premise-challenge home (align vs design). (4) who emits the amendment
   proposal (design touchpoints vs specify). (5) outside-voice default-on vs gated. (6) per-lens
   model routing.
 
@@ -206,7 +224,8 @@ plan, build) — learn-as-we-go, then refine.
   ADAPT CE researcher agents as JIT explore.
 - **Decomposition.** Parent `build` + extract `debug` (3/3 D23 triggers), `explore`,
   `worktree-isolation`; `parallel-dispatch` inline-now / extract-on-second-consumer; per-unit loop
-  inline. Execution strategy = modes (`build:inline|serial|parallel`).
+  inline. Execution strategy = **body branches** (`build:inline|serial|parallel` — branches, not
+  collapsing nodes, D34).
 - **Primitive.** `build` = skill (owns git/tasks/gates); fan-out children = agents;
   `worktree-isolation` = deterministic script.
 - **Contract.** In: approved plan + branch state + optional resume context. Out: green tree on a
@@ -217,8 +236,9 @@ plan, build) — learn-as-we-go, then refine.
 - **Shared assets.** git-branch-setup, checkpoint-commit, test-discipline, parallel-safety-check,
   plan-reading.
 - **Open Qs.** (1) `debug` build-owned vs top-level sibling (recommend sibling). (2) parallel-
-  dispatch inline vs extracted. (3) execution-strategy modes-as-nodes vs internal table.
-  (4) executor as node parameter? (5) where simplify-as-you-go lives (light in-loop + heavier in
+  dispatch inline vs extracted. (3) execution-strategy as body branches vs an internal table
+  (both stay one node — D34; not separate nodes). (4) executor as node parameter? (5) where
+  simplify-as-you-go lives (light in-loop + heavier in
   review). (6) breakpoint granularity (phase gates vs per-unit).
 
 ### review
@@ -306,8 +326,9 @@ plan, build) — learn-as-we-go, then refine.
 - **Decomposition.** Orchestrator node + **each reviewer persona its own node** (reused — security
   shared with `cso`; self-contained; JIT). External back-ends are nodes too. **code-review vs qa =
   two arcs.**
-- **Primitive.** skill orchestrator → agent personas. Modes-as-nodes: interactive / autofix /
-  report-only / headless. Scope-detect + merge + safe_auto routing deterministic.
+- **Primitive.** skill orchestrator → agent personas. Modes (body branches, not nodes — D34):
+  interactive / autofix / report-only / headless. Scope-detect + merge + safe_auto routing
+  deterministic.
 - **Contract.** In: diff base + changed files + intent + optional `plan:` + mode. Out: ranked
   findings (severity, autofix-class, owner, confidence, pre-existing, suggested-fix) + pass/fail +
   report-only/headless envelope. Artefacts: run-id dir.
@@ -375,8 +396,9 @@ a review child: a reuse case, not a collapse.
   `bc-handbook-curator spec-amend` mode (the enacting skill, de-Handbook-specific); ADAPT gstack
   (no specify stage — model the discipline as a conditional node + a path-gated `rules/*.md`
   fragment); REJECT CE (no spec substrate). Confirms `specify` is **not universal**.
-- **Decomposition.** One node branching on spec-layout presence; touchpoints-table = shared block;
-  pr-author / drift-detector = reused agent sub-nodes (from the curator family). Don't fold into design.
+- **Decomposition.** One node branching on spec-layout presence; touchpoints-table = shared
+  **reference**; pr-author / drift-detector = reused agent sub-nodes (from the curator family).
+  Don't fold into design.
 - **Primitive.** Collaborative skill (amendment wording is judgment + operator sign-off) over a
   deterministic mechanical floor (touchpoints present, §-citation format, structural-only, no-direct-push).
 - **Contract.** In: approved design doc + named spec sections + spec-layout config (harness). Out:
@@ -416,7 +438,8 @@ a review child: a reuse case, not a collapse.
 - **Edges.** follows `specify`; precedes `build` (plan-approval gate on this edge); `review→build`
   and `reconcile→build` may bounce through `plan` (`re-plan`); composes lens family + research family.
 - **Shared assets.** lens family (D27), research/explore family, worktree sub-node (build lowers onto
-  it), IU-schema block, external-review gate (Codex/Mistral inline).
+  it), IU-schema **reference** (the Implementation-Unit field contract, single-sourced
+  plan-writer ↔ build-reader), external-review gate (Codex/Mistral inline).
 - **Open Qs.** (1) **subgraph-manifest fidelity** — implicit (i) / explicit-playbook-ready (ii) /
   hybrid (iii). **Recommend (iii)**: explicit batch+breakpoint structure, implicit agent selection,
   shaped so playbook-lowering is a later mechanical lift (don't depend on research-preview workflows
@@ -536,11 +559,15 @@ a review child: a reuse case, not a collapse.
 
 ### lens-family (the highest-reuse subgraph)
 
-- **Structure.** **N lens nodes (one per dimension, `target`-parameterised) + 1 shared
-  dispatch/merge/triage node + inline shared assets** (findings-schema, severity-scale,
-  confidence-anchors). Each lens = agent (isolated, returns structured findings); dispatch = skill in
-  the consuming stage. **Collapse CE's doc/diff duplication into one parameterised lens per dimension**
-  (`target ∈ {doc, diff}`, `document_type`, `origin`).
+- **Structure.** **N lens nodes (one per dimension, `target`-parameterised) + shared
+  references** — `lens-dispatch` / `merge-triage` (the panel+aggregation procedure the host
+  follows, `load: on-demand`) and the finding contract (`findings-schema`, `severity-scale`,
+  `confidence-anchors`, `load: import`). Each lens = agent (isolated, returns structured
+  findings) and receives the finding contract via the **spawn prompt**; the consuming stage's
+  orchestrator skill holds the `references` edges. `target` is a body branch within the one
+  lens node (`target ∈ {doc, diff}`, `document_type`, `origin`) — **one node ⟷ one primitive**
+  (D34); the doc/diff duplication CE carried collapses into that single parameterised lens, not
+  into sibling nodes.
 - **Core (always-on):** correctness, security (lower gate, P0@50 survives), tests, maintainability,
   adversarial. **Conditional:** performance, design, DX, runtime. Selection = orchestrator judgment.
 - **Target & ordering** are per-consumer, set by the stage not the lens: **review (diff) = parallel
@@ -553,16 +580,19 @@ a review child: a reuse case, not a collapse.
   sequential doc-surfacing + `review`/`cso` hunt-lists; REJECT one-mega-reviewer.
 - **Harness overlay.** A product adds a lens = a new lens-node + an edge registering it in the
   dispatch catalog; vendored family never mutated. (CE `ce-agent-native-reviewer` = the template.)
-- **Open Qs.** collapse doc/diff files (recommend yes); dispatch one node vs fan-out+merge split;
-  per-lens confidence-gate overrides (recommend yes — security's P0 floor); cross-stage corroboration
+- **Open Qs.** collapse doc/diff into one parameterised lens (recommend yes — body branch, not
+  sibling nodes); dispatch one orchestrator reference vs a fan-out+merge split; per-lens
+  confidence-gate overrides (recommend yes — security's P0 floor); cross-stage corroboration
   (ties to D30 `agent-memory`).
 
 ### explore / research
 
-- **Decomposition.** **ONE node, modes-as-nodes** — `repo` / `learnings` / `framework-docs` / `web` /
-  `best-practices`. Shared contract (scoped-in, read-only, isolated, distilled-digest-out, token-capped);
-  methodologies diverge per mode (JIT-loaded). Agent (isolated, returns digest — the Anthropic Explore
-  pattern: return the conclusion, not file dumps).
+- **Decomposition.** **ONE node, modes = body branches** (D34) — `repo` / `learnings` /
+  `framework-docs` / `web` / `best-practices`. Shared contract (scoped-in, read-only, isolated,
+  distilled-digest-out, token-capped); methodologies diverge per branch (JIT-loaded). Agent
+  (isolated, returns digest — the Anthropic Explore pattern: return the conclusion, not file
+  dumps). If a mode genuinely earns its own measurable goal it can graduate to its own 1:1
+  primitive (still one node ⟷ one primitive), but it is **not** modelled as a collapsing node.
 - **Consumers.** align-context (`repo`,`learnings`), design (`web`,`best-practices`,`learnings`), plan
   (`repo`,`framework-docs`,`web`,`learnings` — parallel fan-out), build (`repo`,`framework-docs` JIT).
 - **Inline tools, not siblings.** `browse`/`scrape` (web mode), `gbrain query` (learnings), Context7
@@ -570,17 +600,22 @@ a review child: a reuse case, not a collapse.
 - **Prior art.** ADOPT CE researcher agents (repo/learnings/framework-docs/web/best-practices) + the
   web agent's research-value header + token-budget cap + untrusted-input handling; ADAPT learnings →
   gbrain substrate.
-- **Open Qs.** modes as separate agent files vs one agent + mode-arg (recommend separate files for JIT
-  + per-mode metrics); who writes findings back (read-only → reconcile/debrief persist); gbrain vs
-  decisions-store precedence; parallel fan-out token cap.
+- **Open Qs.** modes as body branches vs graduating a mode to its own 1:1 primitive — recommend
+  branches by default (one `explore` node), and split a mode into its own primitive only when it
+  earns a distinct measurable goal / per-mode metrics (D34); who writes findings back (read-only
+  → reconcile/debrief persist); gbrain vs decisions-store precedence; parallel fan-out token cap.
 
 ### security (three homes)
 
-- **Decomposition.** **ONE shared security node, modes-as-nodes** — `lens` (diff), `plan-lens` (doc),
-  `daily` (whole-surface, 8/10 gate), `comprehensive` (whole-surface, 2/10). The lens and audit are the
-  **same engine at different scope + gate** (gstack `cso`'s own `--diff × scope` matrix proves it). The
-  **security persona is authored once** as a shared lens-family agent-node; the lens consumes it, the
-  audit spawns it as its parallel verifier. (Three homes — wave-1 under-counted by missing plan-lens.)
+- **Decomposition.** **ONE shared security node, modes = body branches** (D34) — `lens` (diff),
+  `plan-lens` (doc), `daily` (whole-surface, 8/10 gate), `comprehensive` (whole-surface, 2/10).
+  The lens and audit are the **same engine at different scope + gate** (gstack `cso`'s own
+  `--diff × scope` matrix proves it), so they are branches of one primitive, not collapsing
+  sibling nodes. The **security persona is authored once** as a shared lens-family agent-node;
+  the lens consumes it, the audit spawns it as its parallel verifier. (Three homes — wave-1
+  under-counted by missing plan-lens.) If a scope/gate (e.g. the whole-surface `comprehensive`
+  audit) earns its own measurable goal, it could graduate to its own 1:1 primitive — still one
+  node ⟷ one primitive, never a collapsing-node set.
 - **Prior art.** ADAPT gstack `cso` (phase model, two-mode gate, FP catalog, parallel verifier, trend
   schema — strip gstack boilerplate); ADAPT CE `ce-security-reviewer` (diff lens) + ADOPT
   `ce-security-lens-reviewer` (plan lens); REJECT `ce-security-sentinel` (subsumed).
@@ -590,7 +625,8 @@ a review child: a reuse case, not a collapse.
 - **Primitive.** lens/plan-lens = agent; audit = skill (interactive) spawning verifier agents.
 - **Open Qs.** reconcile CE vs cso findings schema to one; lens always-on vs conditional-trigger
   (recommend default-on, downgrade path); who owns the periodic schedule (arc, not security);
-  plan-lens as mode vs distinct node; self-referential skill supply-chain scan.
+  plan-lens as a body branch vs graduating it to its own 1:1 primitive (recommend branch unless
+  it earns a distinct goal — D34); self-referential skill supply-chain scan.
 
 ### design-review (two nodes)
 
@@ -600,8 +636,9 @@ a review child: a reuse case, not a collapse.
   inputs/outputs/goals → D23 split. Both collaborative skills, generative.
 - **vs qa.** Runtime twin of qa — **shares the `browse` primitive + fix-verify loop structure**, differs
   in the *lens* (visual/AI-slop vs behavioural). qa-methodology is qa-specific, not shared.
-- **Shared block.** The ~500-line UX-principles body (Three Laws, Goodwill Reservoir, AI-Slop blacklist)
-  is duplicated across both gstack skills → factor into a **`ux-principles` reference node**. `$D`
+- **Shared reference.** The ~500-line UX-principles body (Three Laws, Goodwill Reservoir, AI-Slop
+  blacklist) is duplicated across both gstack skills → factor into a **`ux-principles` reference**
+  (`kind: reference`; depended on via a `references` edge, `load: on-demand` given its size). `$D`
   designer binary = inline subprocess. DESIGN.md = harness overlay.
 - **Prior art.** ADOPT gstack `design-review` + `plan-design-review`; ADOPT `design-consultation` as a
   `loads` prerequisite (creates DESIGN.md); `design-shotgun` = sibling exploration node.
@@ -614,15 +651,17 @@ a review child: a reuse case, not a collapse.
   branching; it's the execution surface, consumers own the judgment. The binary is an **external tool**
   (referenced asset / env-setup), never a `.claude` primitive node.
 - **Tool-agnostic.** Concrete backend (gstack `$B` ~100ms/0-tokens default; CE `agent-browser`; Chrome
-  MCP for auth-bound/interactive) is **harness detail** behind a `{{browser.exec}}` resolver. The
-  `{{browser.setup}}` (binary-resolve + CDP-mode check) is a **define-once resolver snippet** (D25),
-  emitted inline.
+  MCP for auth-bound/interactive) is **harness detail** resolved by the overlay — the binary path is
+  an env-setup `reference` a harness supplies, not invented vocabulary. The setup step
+  (binary-resolve + CDP-mode check) is **define-once shared content** — a `reference` (`load:
+  on-demand`) the consumers point at, or an inline snippet in the body — single-sourced by the
+  build, **not** a `{{token}}` splice (D33).
 - **`setup-browser-cookies` IS a node** (interactive, own goal) — a JIT auth precondition consumers
   `invokes` only when not in CDP mode and the URL is auth-gated.
 - **Consumers.** qa, design-review, canary, benchmark, scrape (all inline `$B` calls).
-- **Open Qs.** `{{browser.setup}}` resolver vs inline-dup; auth as node vs a `requires-auth` edge type;
-  alternate backends as `references` resolved by overlay; codified browser-skills earn nodes? (recommend
-  `invokes`-edge scripts).
+- **Open Qs.** browser-setup as a shared `reference` vs inline-dup; auth as node vs a `requires-auth`
+  edge type; alternate backends as `references` resolved by overlay; codified browser-skills earn
+  nodes? (recommend `invokes`-edge scripts).
 
 ### worktree-isolation (ride the native primitive)
 
@@ -635,8 +674,8 @@ a review child: a reuse case, not a collapse.
   (ADOPT shell logic), `experiment-worktree.sh` shared-file copy, gstack `lib/worktree.ts` prune-stale.
 - **Note.** Read-only reviewers don't need isolation (only committing agents do).
 - **Open Qs.** is native `isolation:worktree` + `.worktreeinclude` stable (drives default-vs-fallback);
-  is branch-aware trust needed for agents; script as node vs `{{WORKTREE_SCRIPT}}` resolver asset;
-  reconcile parallel?
+  is branch-aware trust needed for agents; the fallback as a `script` node (`invokes`) vs a shared
+  `reference` the body points at; reconcile parallel?
 
 ### plan — refinement (principles over manifest)
 
