@@ -3,7 +3,6 @@ title: Graph specification
 type: spec
 read-when: Defining or implementing the node/edge model, the node schema, or storage.
 related: [concepts, decomposition, plugin-spec]
-status: v0.1.0 — 2026-05-30
 ---
 
 # Graph specification
@@ -64,7 +63,7 @@ from an event to the node it fires.
 Structural, binding, and composition edges (`loads`, `invokes`, `composes-into`,
 `references`, `triggers`, `overlay`) are **acyclic** — a load/invoke cycle is a defect.
 The **process edges `precedes` / `can-follow` are the only ones that may cycle**, and that
-is exactly how a workflow loops: the dev sprint closes with `debrief --can-follow→ intake`,
+is exactly how a workflow loops: the dev sprint closes by looping `debrief --can-follow→ align-context`,
 and the review↔build correction is a `can-follow` loop. This resolves Q2: keep the
 structural skeleton a DAG; put every loop on a process edge.
 

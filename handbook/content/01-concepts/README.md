@@ -3,7 +3,6 @@ title: Concepts
 type: reference
 read-when: You need the shared mental model before reading any spec.
 related: [graph-spec, decomposition, harness-spec, overview]
-status: v0.1.0 — 2026-05-30
 ---
 
 # Concepts

@@ -3,7 +3,6 @@ title: stack-graph handbook
 type: index
 read-when: Orienting to stack-graph — what it is and how this handbook is organised.
 related: [concepts, graph-spec, devops]
-status: v0.0.0 — 2026-05-29
 ---
 
 # stack-graph handbook
@@ -13,8 +12,9 @@ operating environment as a graph of its `.claude` primitives and the workflows t
 traverse them, then instruments and improves them through a PR-gated loop. A product is
 what *runs inside* the factory.
 
-**Status: scaffold.** This handbook currently holds section stubs with the open design
-questions parked where they'll be answered. The specifications are authored next.
+The model is specified; node authoring is the next phase. The *why* behind each decision
+lives in [`docs/`](../../../docs/) — the handbook states the resolved model, not its
+derivation ([`01-authoring`](01-authoring.md)).
 
 ## How to navigate
 

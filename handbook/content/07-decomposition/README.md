@@ -3,7 +3,6 @@ title: Decomposition principles
 type: reference
 read-when: Deciding how to break a workflow into nodes, edges, and inline elements.
 related: [graph-spec, maintenance-skill, concepts]
-status: v0.1.0 — 2026-05-30
 ---
 
 # Decomposition principles

@@ -1,6 +1,6 @@
 ---
 title: Design history
-status: v0.1.0 — 2026-05-30
+status: v0.2.0 — 2026-05-30
 ---
 
 # Design history
@@ -92,3 +92,30 @@ Before authoring any graph content, the **dev tooling** is stood up: a **maintai
 authors and maintains nodes, and a **curator** that maintains the handbook. They are kept
 separate from the vendored output and marked with an `sg-` prefix, so dev-time tooling is
 never confused with shipped, namespaced nodes.
+
+## Completing the specs
+
+With the conceptual core settled, the five remaining stub sections were authored. The pass
+turned on a **discipline correction**: the handbook is the surface every agent reads
+constantly, so it carries only the *resolved* model — no decision trails, no "open questions"
+sections, no per-page `status:` line. The *why* and the alternatives weighed live in these
+`docs/`. This matched stack-graph to the Be Civic authoring discipline and pulled the
+authoring guide (`00-overview/01-authoring.md`) up from a stub to the canonical reference the
+curator points at. (Node files still version themselves with `status:` — a node is a
+different surface from a handbook page.)
+
+Two customisation/observability questions were resolved by their **outcome**, not their
+mechanism. Overlay power: **extend-only** — a harness may add nodes and edges into the
+vendored graph but never shadow or re-route a vendored node, so the vendored graph behaves
+identically everywhere and there is nothing to resolve. Analytics scope: **local-only** —
+events never leave the workspace; the factory stays blind to a consumer's usage by
+construction, and cross-workspace learning flows only as curated factory-loop PRs.
+
+The mechanisms then followed from the locked decisions. The **build** is four deterministic
+stages — resolve, strip, place, index — idempotency-gated so packaged output cannot drift
+from the node files. **Instrumentation** is a build-injected preamble plus hooks, emitting
+id-bound events to a local log; conformance is the observed traversal checked against a
+workflow's process edges. **DevOps** fixed the `<kind>/<slug>` branch-and-label model and the
+two-loop contribution path, which is itself the exit condition for the bootstrap-direct
+interim. The **maintenance-skill** spec documented the contract the already-built
+`sg-graph-maintainer` answers to, rather than inventing a second one.

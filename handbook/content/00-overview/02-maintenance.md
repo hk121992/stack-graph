@@ -3,19 +3,45 @@ title: Maintenance — the forcing rule
 type: procedure
 read-when: You hit drift, ambiguity, or a missing page while working in stack-graph.
 related: [overview, devops]
-status: v0.0.0 — 2026-05-29
 ---
 
 # Maintenance — the forcing rule
 
-**Status: scaffold — to be authored.** This page will define the discipline (adapted
-from the Be Civic handbook's `00-overview/02-maintenance.md`): when an agent encounters
-contradictory content, stale terminology, broken cross-references, or a missing canonical
-page, it **raises a PR** rather than silently continuing.
+When working in stack-graph you will hit handbook drift — a contradiction, stale
+terminology, a broken cross-reference, or a missing canonical page. **Raise it; never
+silently continue past it.** Silent continuation is how a canonical reference rots.
 
-## To be written
+## Drift triggers
 
-- The drift triggers that force a PR.
-- PR description shape + the label convention.
-- The two loops (see [devops](../08-devops/README.md)): factory PRs vs. consuming-harness PRs.
-- The end-of-task sweep.
+Any of these forces an action before the task moves on:
+
+| Trigger | Action |
+|---|---|
+| Two pages contradict | Raise a PR; its description names the contradiction and proposes the resolution. |
+| Stale or banned vocabulary in a page body | Replace the term; PR `chore(handbook): vocab sweep <term>`. |
+| Cross-reference to a moved/renamed page | One-line fix; PR `chore(handbook): fix cross-ref`. |
+| Missing page, and the canonical answer **is** settled | Author it with full frontmatter; PR `docs(handbook): add <section>/<page>`. |
+| Missing page, and the answer is **not** settled | No handbook PR — raise the question in a `docs/` design doc or to the operator. |
+| `index.json` out of sync with frontmatter | `/sg-handbook-curator refresh-index`. |
+
+The discriminator on a missing page is whether the answer is resolved. The handbook never
+carries a TBD stub — unresolved questions live in `docs/` or a PR description, never in a
+page body (see [`01-authoring`](01-authoring.md)).
+
+## How a change lands
+
+Handbook changes land via a **labelled PR**, raised with `/sg-handbook-curator raise`,
+not direct push. The PR description **is** the amendment proposal — there is no separate
+proposal file. Branch, label, and review conventions are in [`devops`](../08-devops/README.md).
+
+Bootstrap exception: until [`devops`](../08-devops/README.md) finalises the branch/label
+model, spec and tooling changes may land by direct commit to `main`; the curator is
+exercised on handbook content first.
+
+## The end-of-task sweep
+
+Before closing a task that touched stack-graph, scan for drift you introduced or passed:
+a reference you followed that was wrong, a term you had to translate, a page you needed
+but could not find. Each hit is a trigger above. If you discovered a page late, its
+`read-when:` failed to surface it — fix the `read-when:` in the same change. Discovering a
+page late is itself drift.
