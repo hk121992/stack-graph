@@ -2,7 +2,7 @@
 title: Analytics & instrumentation
 type: spec
 read-when: Specifying or implementing how usage, outcomes, and arc-conformance are measured.
-related: [graph-spec, devops, concepts, plugin-spec, harness-spec]
+related: [graph-spec, devops, concepts, plugin-spec, harness-spec, analytics/recall-substrate]
 ---
 
 # Analytics & instrumentation
@@ -84,6 +84,8 @@ A curated **decisions store** (authoritative conclusions — for stack-graph its
 [`docs/decisions.md`](../../../docs/decisions.md)) sits over a **gbrain recall substrate**
 (the surrounding transcripts and reasoning). Curation and recall are different jobs; both
 are kept. Analytics feeds the recall substrate; the store records what the loop concludes.
+The gbrain integration — config, reads/writes, and upstream compatibility — is specified in
+[`recall-substrate`](01-recall-substrate.md).
 
 ## Locality
 

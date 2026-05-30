@@ -1,6 +1,6 @@
 ---
 title: Decision log
-status: v0.4.0 — 2026-05-30
+status: v0.5.0 — 2026-05-30
 ---
 
 # Decision log
@@ -205,3 +205,30 @@ fragments — a `references` endpoint), **`workflows/*.js`** (native; see D29), 
 (per-agent state — a `references` endpoint); and **`commands/` is now legacy**, folded into the
 skills mechanism (a command is an `invokes`-edge alias or a skill). *Queues amendment:*
 `02-graph-spec`, `01-concepts`. *Status:* Accepted.
+
+## Recall substrate & the product arc
+
+**D31 — GBrain is the recall substrate; integrate as a consumer, stay compatible with upstream.**
+stack-graph uses gbrain as the **recall** half of the two-layer decisions store (D11): the curated
+conclusion lands in `docs/decisions.md`; the surrounding reasoning/transcript goes to gbrain. Rules:
+**optional + capability-gated** (no gbrain → fall back to `docs/decisions.md` + Grep); a **per-workspace
+gbrain *source*** (not a separate brain), registered via the standard `.gbrain-source` convention;
+**reads via MCP** (`mcp__gbrain__query --source …`) at the `explore` learnings mode; **two-layer
+writes** at `log-decision`/`reconcile`/`debrief` (conclusion→`docs/decisions.md` always; reasoning→gbrain
+if present); **never ingest node files** (canonical `.claude` files are searched with Grep). **Locality
+by construction** (D17): each workspace queries only its own source; the factory never sees a consumer's
+recall. **Compatibility:** depend on the upstream gbrain source — do **not** fork or vendor it; configure
+via its standard chain; pin to the installed CLI surface (0.27.0: `query`/`ask`/`put`/`sync`) and degrade
+gracefully, so upstream updates can be relied on. *Spec:* `06-analytics/recall-substrate`. *Status:* Accepted.
+
+**D32 — Product management is a separate arc, feeding and looping the dev-sprint.** Product
+discovery/strategy is modelled as its **own factory arc** (a separate tree), upstream of and looping with
+the dev-sprint: an **idea-triage** entry (a product-manager shape) → product strategy → roadmap → feeds
+the sprint's `align-context`; the sprint's `debrief` loops learnings/outcomes back into product. It adds
+a **third top-level artefact — the product roadmap** — alongside the handbook and the graph (general
+structure; product-specific content is harness). Emphasis is **strategy over backlog** (backlogs fit
+poorly with fast AI dev): a clear long-term concept, the key questions to answer, building a product
+customers love. **Product analytics is an *opening*** — a connection point that feeds idea-triage —
+deferred and likely harness-specific. *Why:* gstack/CE have strong product *parts* (office-hours,
+CEO-lens, ce-strategy) but are feature-based, not a long-term product arc; stack-graph designs the arc.
+*Design + prior art:* `docs/product-graph.md`. *Status:* Accepted (direction); design ongoing.

@@ -1,5 +1,6 @@
 [
-  { "slug": "analytics", "title": "Analytics & instrumentation", "type": "spec", "read-when": "Specifying or implementing how usage, outcomes, and arc-conformance are measured.", "related": ["graph-spec", "devops", "concepts", "plugin-spec", "harness-spec"] },
+  { "slug": "analytics", "title": "Analytics & instrumentation", "type": "spec", "read-when": "Specifying or implementing how usage, outcomes, and arc-conformance are measured.", "related": ["graph-spec", "devops", "concepts", "plugin-spec", "harness-spec", "analytics/recall-substrate"] },
+  { "slug": "analytics/recall-substrate", "title": "Recall substrate (gbrain)", "type": "spec", "read-when": "Specifying or implementing the gbrain recall integration — config, reads/writes, compatibility.", "related": ["analytics", "concepts"] },
   { "slug": "concepts", "title": "Concepts", "type": "reference", "read-when": "You need the shared mental model before reading any spec.", "related": ["graph-spec", "decomposition", "harness-spec", "overview"] },
   { "slug": "decomposition", "title": "Decomposition principles", "type": "reference", "read-when": "Deciding how to break an arc into nodes, edges, and inline elements.", "related": ["graph-spec", "maintenance-skill", "concepts"] },
   { "slug": "devops", "title": "DevOps — how stack-graph develops itself", "type": "procedure", "read-when": "Working on stack-graph itself — branching, PRs, or the improvement loops.", "related": ["overview", "overview/maintenance", "analytics", "maintenance-skill"] },
