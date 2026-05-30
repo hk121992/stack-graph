@@ -28,7 +28,7 @@ net-new instrumentation this spec defines: purpose-built events bound to the gra
 A node knows its own `id` (frontmatter, per [`graph-spec`](../02-graph-spec/README.md)).
 Two emitters cover the cases:
 
-- **Instrumentation preamble** — a shared **reference** (`graph/_refs/`, D33) every node
+- **Instrumentation preamble** — a shared **reference** (`graph/_refs/`) every node
   depends on with `load: import`, so the build single-sources it into each node via a native
   `@-import` — guaranteed-present, not skippable (see
   [`plugin-spec`](../03-plugin-spec/README.md)). On entry it records a `node-enter`; on exit a

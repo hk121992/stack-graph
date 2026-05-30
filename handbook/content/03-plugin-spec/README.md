@@ -26,7 +26,7 @@ build strips them for cleanliness rather than necessity (see the pipeline below)
 
 ## Packaging
 
-The plugin mirrors the Be Civic plugin shape:
+The plugin has the standard Claude Code plugin shape:
 
 | Path | Holds |
 |---|---|
@@ -76,12 +76,11 @@ into every consumer's bundle and the host's pointer resolves to it — a native 
 (`load: on-demand`).
 
 A reference is **emitted as its own native file**, never spliced as `{{token}}` text into a
-host body (D33 supersedes the earlier injected-block model). This keeps the canonical store
-native and lets each host primitive read on its own. A change to the one source re-propagates
-to every consumer; the freshness gate (idempotency test + `--dry-run` diff) fails CI if any
-committed built file differs from what its source would now produce — so the duplication-drift
-that bites hand-copied shared content (CE's diverged schema, ECC's baseline duplicated 63×)
-cannot happen here. Content destined for a spawned **agent** is filled into the agent's
+host body. This keeps the canonical store native and lets each host primitive read on its own.
+A change to the one source re-propagates to every consumer; the freshness gate (idempotency
+test + `--dry-run` diff) fails CI if any committed built file differs from what its source
+would now produce — so the duplication-drift that bites hand-copied shared content cannot
+happen here. Content destined for a spawned **agent** is filled into the agent's
 **spawn prompt** by its orchestrator, not imported by the agent.
 
 Execution-surface parameterisation — keeping a node tool-agnostic about, e.g., the harness's

@@ -25,7 +25,7 @@ vocabulary. A node *is* a primitive.
 Storage is canonical `.claude`-compatible files. **The graph is a derived lens over those
 files, not a separate store** — the same file serves the renderer (the authoring/review
 view) and the plugin-builder (the vendored output). A node maps **1:1 to one rendered
-primitive** (D34): one node ⟷ one skill / agent / script file. A node's **modes** are
+primitive**: one node ⟷ one skill / agent / script file. A node's **modes** are
 branches in its body, never separate nodes; reuse is a right-sized primitive or a
 **reference**, each itself 1:1. The "two views" are two readings of the *same file* (graph
 frontmatter + native primitive), not a difference in node count (see
@@ -42,8 +42,7 @@ Not everything is a node or an edge. Three-way distinction (the discriminator li
   `references`, `precedes` / `can-follow`, `overlay`. Directed unless noted.
 - **Inline** — small references, MCP calls, and **execution surfaces** (a headless browser,
   a worktree) that live in a node's body, not worth a node or edge of their own. Ride a
-  native primitive where one exists rather than rebuilding it. (Precedent: the Be Civic
-  corpus inline tags.)
+  native primitive where one exists rather than rebuilding it.
 
 ## Arc
 
@@ -111,7 +110,7 @@ How one graph composes across a directory tree (mechanics in [harness-spec](../0
 
 ## Generality stance
 
-Dev is the **first** process domain stack-graph models, not the only one (Q7 guardrail):
+Dev is the **first** process domain stack-graph models, not the only one:
 
 - The core abstraction — **primitives, typed edges, arc-as-cyclic-traversal, the loop** —
   names nothing about software.

@@ -7,7 +7,7 @@ related: [analytics, concepts]
 
 # Recall substrate (gbrain)
 
-The **recall** half of the two-layer decisions store ([concepts](../01-concepts/), D11): the
+The **recall** half of the two-layer decisions store ([concepts](../01-concepts/)): the
 curated *conclusion* lives in `docs/decisions.md`; the surrounding *reasoning and transcript*
 live in **gbrain** — a semantic recall layer (markdown is canonical, a Postgres/PGLite index is
 derived, retrieval is hybrid). Curation and recall are different jobs; both are kept.
@@ -17,15 +17,15 @@ derived, retrieval is hybrid). Curation and recall are different jobs; both are 
 gbrain is an **enhancement, not a correctness dependency**. The curated store stands alone. A
 node checks for gbrain and degrades cleanly: `explore`'s `learnings` mode queries gbrain **if
 configured**, otherwise falls back to reading `docs/decisions.md` + Grep. Never instruct an
-agent to use gbrain when it is absent (the gstack `sync-gbrain` pattern: strip the guidance, do
-not reference a missing tool). Forcing a gbrain install on every consumer would contradict
+agent to use gbrain when it is absent: strip the guidance rather than reference a missing
+tool. Forcing a gbrain install on every consumer would contradict
 "general and open-source-able".
 
 ## Scope — a per-workspace source (locality)
 
 Each workspace registers **one gbrain *source*** (the standard `.gbrain-source` convention),
 **not** a separate brain — reusing the host's existing brain and avoiding a second single-writer
-database. **Locality is by construction** (D17): a node queries only its own workspace's source;
+database. **Locality is by construction**: a node queries only its own workspace's source;
 the factory never sees a consumer's recall. Cross-workspace learning flows only as curated
 factory-loop PRs ([devops](../08-devops/)), never as shared recall.
 

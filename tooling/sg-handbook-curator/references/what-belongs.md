@@ -8,7 +8,7 @@ status: v0.1.0 — 2026-05-30
 
 The strict principles for what may be added to or amended in `handbook/content/`. Loaded by `raise` mode before authoring any edit. These are gates, not advice.
 
-## The four rules
+## The five rules
 
 ### 1. Only missing or genuinely ambiguous
 
@@ -24,11 +24,23 @@ Each line earns its place: "would removing this cause an agent to make a mistake
 
 ### 3. No proposed or unresolved content in the handbook
 
-The handbook is canonical — a page is the answer, not the question. Proposals live in PR descriptions. Design rationale lives in design docs. Superseded framing belongs in an archive section.
+The handbook is canonical — a page is the answer, not the question. Proposals live in PR descriptions. Design rationale lives in design docs.
 
 If the canonical answer is not yet settled, do not add a stub with "TBD". The right move is to not add the page yet, and raise the question in the PR description or a design doc.
 
-### 4. Symmetric scope
+### 4. Spec bodies are timeless canon — no decision trail
+
+A page body states the model in the present tense and asserts each rule directly. It does **not** carry the trail of how the model was reached. The following never appear in a spec body — they live in `docs/` (`docs/decisions.md`, `docs/design-history.md`, the build-log review):
+
+- **Decision-ID citations** — `(D33)`, `D34`, `Q2`, `F7`, and the like. The spec asserts the rule; it does not cite the decision that made it.
+- **Supersession or iteration language** — "supersedes the earlier…", "this session's first pass", "the first defect the review surfaced", "Resolved (D34)", "this resolves Q2", "(was X since…)", "the operator's correction".
+- **Cross-project evidence as justification** — "confirmed by CE/ECC/gstack", "mirrors gstack's…", "the CE pattern", "adapted from the Be Civic corpus `skill-vs-path.md`". Naming a *mechanism* generically is fine; citing another project as the *reason* a rule holds is not.
+- **Dated or audit-tone freshness caveats** — "verified against the docs as of 2026-05", "re-check if the platform shifts". If a volatility note genuinely earns its place, state it plainly as canon ("this reflects current Claude Code behaviour"), without the dated/audit framing.
+- **Pointers to `docs/` used as justification** — "(see `docs/decisions.md`)", "rationale in the build log", "surfaced by…".
+
+Referencing a `docs/` artefact the spec *describes* (e.g. analytics naming `docs/decisions.md` as the curated decisions store) is content, not a trail — keep it, phrased as the artefact it is, not as a citation of the decision behind it.
+
+### 5. Symmetric scope
 
 Amendments cover what the caller read this session. If an edit touches a page the caller did not read, the caller reads it now before the PR is authored. If reading reveals the page's `read-when:` should have surfaced it earlier, amend `read-when:` in the same PR.
 

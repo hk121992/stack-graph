@@ -8,12 +8,11 @@ related: [graph-spec, maintenance-skill, concepts]
 # Decomposition principles
 
 How to break an arc into the graph: what becomes a node, what becomes an edge, what stays
-inline, and where the boundaries fall. Adapted from the Be Civic corpus authoring rules
-(they transfer; the inversions are noted).
+inline, and where the boundaries fall.
 
 ## Node, edge, inline, or reference
 
-The first cut (from the corpus `skill-vs-path.md` branching test) is **control flow**:
+The first cut is **control flow**:
 
 - **Node** — it owns its **own branching and sequencing**. Give it a step that decides
   between alternatives or runs an ordered procedure, and it is a unit of its own.
@@ -29,7 +28,7 @@ The first cut (from the corpus `skill-vs-path.md` branching test) is **control f
 - **Reference** — **shared content** a node depends on (a schema, a procedure, a rubric)
   with no control flow of its own. Not a node, and not duplicated per-consumer: author it
   once as a `kind: reference` artefact (`graph/_refs/<id>.md`) and depend on it via a
-  `references` edge with a `load` dial (D33; see [graph-spec](../02-graph-spec/)). **Rules**
+  `references` edge with a `load` dial (see [graph-spec](../02-graph-spec/)). **Rules**
   and **hooks** are the other two non-node primitives — a *rule* is a standing always-apply
   guideline, a *hook* is enforcement bound to an event.
 
@@ -37,14 +36,13 @@ Once you know whether a span owns control flow, [choose the primitive](#choosing
 
 ## Node anatomy
 
-A node is a single canonical markdown file (`canonical-shape.md`): **graph frontmatter**
+A node is a single canonical markdown file: **graph frontmatter**
 (the typed edge arrays) **+ an imperative body + inline tags**. The one file is
 **dual-consumer** — it renders in the authoring/review view and builds into the vendored
 plugin. Keep the frontmatter the structural truth; keep the body the instructions.
 
-Voice is imperative (`voice-and-style.md`), with one inversion from the corpus:
-stack-graph nodes are **operator/dev-internal, so internal references are allowed** — the
-opposite of the customer-facing corpus rule.
+Voice is imperative. stack-graph nodes are **operator/dev-internal, so internal references
+are allowed**.
 
 ## Skill or agent — the context axis
 
@@ -59,7 +57,7 @@ changes the node's contract and its instrumentation, not just its label.
 ## Choosing the primitive — and how each loads context
 
 Route every span by what it **is** and **how it must enter context**. Every option is a
-native Claude primitive — stack-graph invents none (D33). The load behaviour is *why* the
+native Claude primitive — stack-graph invents none. The load behaviour is *why* the
 choice matters: it decides what costs context, when, and in whose window.
 
 | The span is… | Primitive | How it loads into context |
@@ -71,7 +69,7 @@ choice matters: it decides what costs context, when, and in whose window.
 | behaviour that must be **enforced**, not merely instructed | **hook** | runs at its bound event, outside the model's discretion |
 | a one-shot call or execution surface in a body | **inline** | part of the host body; no separate load |
 
-**One node ⟷ one primitive (D34).** Each row above is its own 1:1 artefact — a node is one
+**One node ⟷ one primitive.** Each row above is its own 1:1 artefact — a node is one
 file, a reference is one file. Right-size by choosing the right primitive and extracting
 smaller ones, **never** by splitting a single primitive across several nodes that collapse at
 render. Modes are body branches, not nodes.
@@ -96,17 +94,15 @@ agent itself.
 ### Why these, and not a build-time splice
 
 These options cover every combination of *when* content must be present and *whose* context it
-enters — so injecting text at build time buys nothing the running model can perceive (D33).
+enters — so injecting text at build time buys nothing the running model can perceive.
 `@-import` already gives guaranteed-present, single-sourced content at load; on-demand
 references keep context lean; agents isolate and return summaries; rules are always-on; hooks
-enforce. A build splice only duplicates bytes the host would otherwise hold once. (Mechanics
-verified against the Claude Code docs as of 2026-05 — load-bearing, but re-check if the
-platform's skill/context model shifts; this is the kind of limitation that ages.)
+enforce. A build splice only duplicates bytes the host would otherwise hold once. This
+reflects current Claude Code load and context behaviour.
 
 ## Granularity — the sizing rule
 
-Decompose a span into its own node when **any** of these hold (adapted from the Be Civic
-granularity rule):
+Decompose a span into its own node when **any** of these hold:
 
 - **Reuse** — it is referenced by **≥2 consumers** (extract it; define once).
 - **Cohesion** — it is **self-contained with its own branching** (a distinct, cohesive unit).
@@ -117,7 +113,7 @@ Keep it **inline** when it is **used once and trivial** (≤2–3 simple actions
 goal). **Flatten** deep recursion — decompose by *need*, not by aesthetic. A different
 collaborative/autonomous (context) nature is also a split signal.
 
-**One node, one primitive** (D34, see [graph-spec](../02-graph-spec/)): a node maps **1:1**
+**One node, one primitive** (see [graph-spec](../02-graph-spec/)): a node maps **1:1**
 to a single rendered primitive. A skill's **modes** are branches in its body, never separate
 nodes; if a mode earns its own measurable goal, split it into its own primitive (still 1:1)
 rather than modelling it as a node that collapses at render. Cut by the rule above — the file

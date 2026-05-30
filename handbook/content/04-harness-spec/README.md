@@ -8,9 +8,8 @@ related: [plugin-spec, graph-spec, analytics]
 # Harness specification
 
 A **harness** is a consuming workspace's specialising layer over the vendored, general
-stack-graph. It is where a product — Be Civic is the first — puts its own instructions,
-nodes, and arcs. The factory stays general; everything product-specific lives in a
-harness, never in this repo.
+stack-graph. It is where a product puts its own instructions, nodes, and arcs. The factory
+stays general; everything product-specific lives in a harness, never in this repo.
 
 ## What lives where
 
@@ -55,7 +54,7 @@ overlays only add and the vendored ids are namespaced apart.
 ## Namespacing
 
 Vendored nodes carry the `stack-graph:` prefix; local nodes are harness-prefixed (e.g.
-`becivic:`) or unprefixed-local. The prefix guarantees a local node id never collides with
+`<harness>:`) or unprefixed-local. The prefix guarantees a local node id never collides with
 a vendored one. A local node that fills a similar role to a vendored node is simply a
 distinct node with its own id; the operator chooses which to invoke.
 
@@ -75,8 +74,8 @@ view where it does not:
   administration and analytics ([`analytics`](../06-analytics/README.md)) only — not for
   runtime resolution.
 
-## Be Civic as the first harness
+## Vendoring posture
 
-Be Civic is the first harness instance; it lives in the be-civic workspace, not here. The
-current posture is fully-vendored — the whole graph ships from the factory and the harness
-adds local extensions. A generalised-graph-plus-local-extensions split is a future option.
+A harness lives in its own consuming workspace, never in this repo. The current posture is
+**fully-vendored** — the whole graph ships from the factory and the harness adds local
+extensions on top. A generalised-graph-plus-local-extensions split is a future option.

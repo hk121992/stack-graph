@@ -72,8 +72,8 @@ builds into. That rule does not apply to handbook pages.)
 - Tables for comparison or routing; bullets for sequential steps; prose only for 1–2
   sentence orientation.
 - No `IMPORTANT:` / `YOU MUST` emphasis unless a rule is load-bearing and repeatedly missed.
-- Internal/dev-facing references are allowed (stack-graph pages are operator-and-agent
-  internal — the inverse of a customer-facing corpus rule).
+- Internal/dev-facing references are allowed — stack-graph pages are operator-and-agent
+  internal.
 
 ## Length
 

@@ -36,7 +36,7 @@ native primitives, not nodes.
 
 ## Granularity — one node, one primitive
 
-A graph node maps **1:1 to a single rendered primitive** (D34): one node ⟷ one skill /
+A graph node maps **1:1 to a single rendered primitive**: one node ⟷ one skill /
 agent / script file. There is **no node-count divergence** between the authoring view and the
 rendered directory — the graph does not model sub-parts as nodes that collapse at build.
 
@@ -78,22 +78,21 @@ Structural, binding, and composition edges (`loads`, `invokes`, `composes-into`,
 `references`, `triggers`, `overlay`) are **acyclic** — a load/invoke cycle is a defect.
 The **process edges `precedes` / `can-follow` are the only ones that may cycle**, and that
 is exactly how an arc loops: the dev sprint closes by looping `debrief --can-follow→ align-context`,
-and the review↔build correction is a `can-follow` loop. This resolves Q2: keep the
-structural skeleton a DAG; put every loop on a process edge.
+and the review↔build correction is a `can-follow` loop. The structural skeleton stays a DAG;
+every loop rides a process edge.
 
 ## Inline
 
 Small references, **MCP calls, and execution surfaces** live inline in a node body, not as
-nodes or edges — they have no control flow of their own. Precedent: the Be Civic corpus
-inline tags (`<Skill>`, `<Ref>`, `<VV>`). An edge appears only when the thing invoked is
-itself node-like (a script with logic → an `invokes` edge).
+nodes or edges — they have no control flow of their own. An edge appears only when the
+thing invoked is itself node-like (a script with logic → an `invokes` edge).
 
 ## References — shared content
 
 Shared content that several primitives need — the finding contract (`findings-schema`,
 `severity-scale`, `confidence-anchors`), the instrumentation preamble, `lens-dispatch`,
 common protocols — is a **reference**: a native single-source artefact, **not** an injected
-block (D33). stack-graph has **no build-time injection primitive**; everything is a native
+block. stack-graph has **no build-time injection primitive**; everything is a native
 `.claude` artefact, keeping the canonical store literally native.
 
 A reference is its own file at `graph/_refs/<id>.md` — frontmatter `kind: reference`
@@ -121,7 +120,7 @@ resolves the pointer) — DRY + freshness with native output, no `{{token}}` spl
 
 Shared content destined for a spawned **agent** (e.g. a lens's finding contract) is passed by
 the orchestrator into the agent's **spawn prompt**, not imported by the agent — the orchestrator
-holds the reference and fills it into the subagent's prompt at dispatch (the CE pattern).
+holds the reference and fills it into the subagent's prompt at dispatch.
 Behaviour that must be *enforced* rather than merely present is a **hook** (a `triggers` edge),
 not a reference.
 
@@ -130,7 +129,7 @@ not a reference.
 A node is **one canonical markdown file** — graph frontmatter **+** imperative body — that
 serves three consumers: the **builder** (emits a valid `.claude` primitive), the
 **renderer** (authoring/review view), and the **index** (the graph + analytics record).
-The frontmatter is a superset, grouped by consumer. This resolves Q3.
+The frontmatter is a superset, grouped by consumer.
 
 ```yaml
 ---
