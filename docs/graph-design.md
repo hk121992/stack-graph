@@ -669,6 +669,15 @@ explicit batch + breakpoint structure, declared-but-not-hard-bound agent selecti
 
 ## Capstone — the full graph map
 
-_Next: assemble the complete node + edge + goal map (all ~25–30 nodes across backbone + shared layer +
-sub-arcs, with primitive leanings and edges) as the single whole-picture view — then the comprehensive
-handbook resync (D22–D30), then authoring._
+The consolidated node + edge + goal view lives in [`graph-map.md`](graph-map.md) (~35 nodes across
+backbone + shared layer + sub-arcs, with primitive leanings, edges, and a Mermaid diagram).
+
+A gap scan after the map added the **visual-design thread** (`design-shotgun` in design,
+`design-implement` in build, completing consultation → shotgun → implement → design-review),
+two **measurement nodes** (`benchmark` for perf, `health` for code quality), an `optimise`
+sub-arc (generate→benchmark→select), and named two **cross-cutting patterns** —
+*generate→evaluate→select* (shotgun/tournament: design-shotgun, optimise, the review lens-panel)
+and *measure-vs-baseline* (benchmark, canary, health). See `graph-map.md` for all.
+
+The handbook is resynced to D22–D30. Next: author the highest-leverage nodes (lens-family, explore),
+collaboratively in chat, via `sg-graph-maintainer`.

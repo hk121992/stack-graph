@@ -64,6 +64,9 @@ not a file.
 | `security` | agent/skill | security judgment, diff to whole-surface | review, plan, standalone/periodic | modes: lens / plan-lens / daily / comprehensive; one persona |
 | `design-review` | skill | visual QA on the live app + fix-loop | review; standalone | uses browse; shares ux-principles |
 | `plan-design-lens` | skill | plan-stage design completeness + mockups | design, plan | the design lens's doc home |
+| `design-shotgun` | skill | generate visual variants, comparison board, collect feedback | design (UI work) | uses `$D` + browse; the *generate* half of the shotgun pattern |
+| `design-implement` | skill | production UI (HTML/CSS) from an approved design | build (UI units) | design-html / CE `ce-frontend-design`; shares DESIGN.md + ux-principles |
+| `optimise` | skill | generate impl variants → benchmark each → select winner | build (perf-critical); standalone | the generate-measure-select shape; composes worktree + benchmark |
 | `ship` | skill | tests→coverage→version→commit→PR (ends at PR) | land; standalone | |
 | `deploy` | skill | merge → deploy → wait | land | modes: staging-first/prod-direct/staging-only |
 | `canary` | agent/skill | post-deploy health on live prod | land; standalone | uses browse; modes: quick/full |
@@ -103,8 +106,28 @@ lenses attach as **harness overlays**.
 | `drift-detector` | agent | scan for amendment collisions / handbook drift | specify, curator |
 | `setup-browser-cookies` | skill | import auth cookies (JIT precondition) | qa, design-review |
 | `design-consultation` | skill | create DESIGN.md from scratch | design-review (loads, prerequisite) |
+| `benchmark` | agent/script | measure perf (load, web-vitals, bundle) vs baseline; before/after + trend | review (perf lens), land, optimise, debrief |
+| `health` | agent/script | composite code-quality score + trend (types/lint/tests/dead-code) | review, debrief |
 
 `explore` modes (modes-as-nodes): `repo` / `learnings` / `framework-docs` / `web` / `best-practices`.
+
+## Cross-cutting patterns
+
+Two shapes recur across the graph — author them once and reuse, rather than as one-offs:
+
+- **Generate → evaluate → select (shotgun / tournament).** Fan out N candidates, evaluate in
+  parallel, pick/synthesise the winner. Instances: `design-shotgun` (generator: visual variants;
+  judge: operator + visual lens), `optimise` (generator: impl variants; judge: measured `benchmark`),
+  and `review`'s lens-panel (generator: the diff; judge: the lens family). Shared machinery: parallel
+  fan-out + `worktree-isolation` + a selection/merge step.
+- **Measure vs baseline (evidence sources).** Run a target, capture hard numbers, diff against a
+  stored baseline, emit a trend point — *measurement, not judgment*. Instances: `benchmark` (perf),
+  `canary` (post-deploy health), `health` (code quality). All are browse/tool-driven, feed the
+  relevant lens + `debrief`'s trends, and are deterministic in shape.
+
+The **visual-design thread** spans the arc: `design-consultation` → `design-shotgun` (design) →
+`design-implement` (build) → `design-review` (review), all sharing DESIGN.md (harness overlay),
+the `ux-principles` ref, and the browse + `$D` tools.
 
 ## Non-nodes — tools, references, blocks
 
@@ -138,8 +161,8 @@ lenses attach as **harness overlays**.
 
 ## Counts & what's left to decide
 
-**~9 backbone stages + ~11 sub-arcs/sub-nodes + ~11 lenses + ~10 shared sub-nodes + a block/ref
-catalog** ≈ 30 authored nodes, plus the non-node tools/refs/blocks.
+**~9 backbone stages + ~14 sub-arcs + ~11 lenses + ~12 shared sub-nodes + a block/ref catalog**
+≈ 35 authored nodes, plus the non-node tools/refs/blocks.
 
 Structural questions to settle at the handbook resync / first authoring (rolled up from the wave
 open-Qs):
