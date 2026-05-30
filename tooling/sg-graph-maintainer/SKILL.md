@@ -236,9 +236,11 @@ CI-style gate before vendoring the graph.
    c. **`determinism:` valid.** Must be `deterministic` or `generative`.
    d. **`edges:` targets resolve.** For each edge array entry, verify a
       `graph/<target-id>/<target-id>.md` file exists. Unresolved edge targets are
-      hard failures. (Exception: edges marked `external: true` are skipped.)
-   e. **`goals:` non-empty.** At least one goal with `outcome` and `metric` fields
-      populated. Empty goals arrays are hard failures.
+      hard failures. Exceptions: edges marked `external: true` are skipped, and
+      `composes-into` is skipped (its target is a workflow id, not a node file).
+   e. **`goals:` well-formed.** At least one goal, each with `outcome`, `metric`, and
+      `earns-keep` populated. Empty goals arrays, or a goal missing any of the three,
+      are hard failures.
    f. **Body non-empty.** The imperative body below the frontmatter must be non-empty
       prose (more than one line).
    g. **Judgment pass.** Does the `mode:` value match the node's observable

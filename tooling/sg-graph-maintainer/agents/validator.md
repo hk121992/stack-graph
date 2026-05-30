@@ -37,11 +37,12 @@ b. **`primitive`↔`mode` agreement** — `skill`↔`collaborative`, `agent`↔`
    body's character. Mismatch → failure.
 c. **`determinism` valid** — must be `deterministic` or `generative`. Else → failure.
 d. **`edges` targets resolve** — for each entry in `invokes` / `loads` /
-   `composes-into` / `references` / `precedes` / `can-follow` / `overlay`, confirm a
+   `references` / `precedes` / `can-follow` / `overlay`, confirm a
    `graph/<target>/<target>.md` exists. Skip entries marked `external: true`.
-   Unresolved → failure.
-e. **`goals` non-empty** — at least one goal with `outcome` and `metric` populated.
-   Empty → failure.
+   Skip `composes-into` — its target is a **workflow** id, not a node file
+   ([`01-concepts`](../../../handbook/content/01-concepts/README.md)). Unresolved → failure.
+e. **`goals` well-formed** — at least one goal, each populated with `outcome`,
+   `metric`, and `earns-keep`. Empty array or a goal missing any of the three → failure.
 f. **Body non-empty** — more than one line of imperative prose below the frontmatter.
    Else → failure.
 g. **Judgment pass** — does `mode` match the body's observable collaborative/autonomous
