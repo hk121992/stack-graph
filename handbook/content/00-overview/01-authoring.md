@@ -2,7 +2,7 @@
 title: Authoring handbook pages
 type: reference
 read-when: Writing or editing a stack-graph handbook page.
-related: [overview, overview/maintenance]
+related: [overview, overview/maintenance, overview/agent-surfaces]
 ---
 
 # Authoring handbook pages

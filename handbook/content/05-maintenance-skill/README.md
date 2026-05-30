@@ -2,7 +2,7 @@
 title: Maintenance skill (sg-graph-maintainer)
 type: spec
 read-when: Specifying or building the skill that authors and maintains the graph.
-related: [graph-spec, decomposition, devops]
+related: [graph-spec, decomposition, devops, overview/agent-surfaces]
 ---
 
 # Maintenance skill — `sg-graph-maintainer`

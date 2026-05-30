@@ -1,6 +1,6 @@
 ---
 title: Decision log
-status: v0.2.0 — 2026-05-30
+status: v0.4.0 — 2026-05-30
 ---
 
 # Decision log
@@ -127,3 +127,81 @@ load-verified. *Why:* concrete resolution of Q5; built output cannot diverge fro
 cross-repo `factory-loop` PR from a consumer, the harness loop stays local; general→factory,
 specific→harness. *Why:* resolves the `08-devops` open questions; the exit condition for D15's
 bootstrap-direct interim is now met for handbook content. *Status:* Accepted.
+
+## Graph authoring model
+
+**D22 — One graph, two views; rendered into a flat, graph-shaped `.claude` directory.** The
+graph is authored in a **granularity-flexible view** — a workflow, sub-workflow, skill, mode,
+or step may each be a node, primitive-agnostic — and **rendered** into a flat `.claude`
+directory that looks ordinary to a user but in which **every artefact is graph-shaped** (its
+edges and goals live in its frontmatter). Not two graphs and not a second store: two views of
+one graph. *Why:* honours modes-as-nodes, "rendering doesn't matter," and deferring the
+primitive choice, while keeping "the graph is a derived lens over the files." *Refines:* the
+graph-spec granularity resolution (Q1 — "one node per primitive" describes the rendered view,
+not the authoring view). *Queues amendment:* `02-graph-spec`. *Status:* Accepted.
+
+**D23 — Decomposition = Be Civic's granularity rule, adapted.** Decompose a unit into its own
+node when it is **reused** (≥2 consumers), **self-contained and cohesive** (its own branching),
+or by **just-in-time** (a consumer needs only part of it); keep it **inline** when used once and
+trivial (≤2–3 simple actions); **flatten** deep recursion — "decompose by need, not by
+aesthetic." *Why:* sharper and reuse-aware; the operator does not align with the prior
+heuristic. *Supersedes:* `07-decomposition`'s "generic-with-branches until it earns a split."
+*Queues amendment:* `07-decomposition`. *Status:* Accepted.
+
+**D24 — Skill vs agent = the context-isolation axis.** A **skill** loads instructions into the
+**current** context (use when the step needs the live thread); an **agent** runs in an
+**isolated** context and returns only a summary (use when the subprocess does not benefit from
+the main context, is fully describable in a prompt, is parallelisable, or should be kept out of
+the thread). They **compose** — an agent can preload skills; a skill can fork to an isolated
+context and can call agents. *Why:* the documented Anthropic discriminator; collaborative vs
+autonomous is one correlate, not the rule. *Refines:* D9. *Queues amendment:* `01-concepts`,
+`02-graph-spec`. *Status:* Accepted.
+
+**D25 — Asset generation = define-once resolvers + `{{placeholder}}` templates, idempotency-gated.**
+Shared blocks are defined once as named resolvers; a node's authoring source (`.tmpl`)
+references them via `{{PLACEHOLDER}}`; the build expands every consumer in one pass to
+"do-not-edit" outputs; an idempotency test plus a `--dry-run` freshness gate block stale
+output. *Why:* concretises the abstract resolver model; proven in gstack's `gen-skill-docs`.
+*Concretises:* D13, D19. *Queues amendment:* `03-plugin-spec`. *Status:* Accepted.
+
+**D26 — Keep the canonical agent-instruction reference in-repo, as a pointer.** A handbook
+reference page points to Anthropic's canonical docs (skills best-practices, sub-agents,
+CLAUDE.md/agent best-practices, prompt-engineering) and the maintainer's authoring agents
+follow it; it is a pointer, not a vendored copy. *Why:* the maintainer must author node bodies
+to best practice; mirrors Be Civic's `agent-surfaces` page. *Status:* Accepted.
+
+**D27 — Review lenses are a shared, overlay-extensible family.** The lenses (correctness,
+security, tests, maintainability, adversarial, performance, design/DX, runtime) are reusable
+agent-nodes consumed by **both** `design` (on the design doc) and `review` (on the diff) —
+define-once (D25). The factory ships a lean **always-on core** (correctness, security, tests,
+maintainability, adversarial) + **conditional** lenses (performance, runtime/qa, design/DX);
+**product-specific lenses are harness overlays** (D7), not factory nodes. *Why:* lenses pass all
+three D23 split tests + D24 isolation; the two-homes use is define-once reuse, not duplication;
+product reviewers in the harness preserve the factory/product split. *Status:* Accepted.
+
+## Native primitives & terminology
+
+**D28 — "Arc" replaces "workflow" as our meta-term.** A named, possibly-cyclic traversal over
+nodes is an **arc**; the dev-sprint is the core arc, and sub-workflows become **sub-arcs**.
+*Why:* Claude's native `/workflows` primitive (a JS subagent-orchestration script) now owns the
+word "workflow"; we avoid the collision. *Supersedes:* D8 ("Workflow, not Process"). *Queues
+rename:* handbook (`01`/`02`/`07`, `index.json`) + tooling templates (`composes-into` target is
+an arc). *Status:* Accepted.
+
+**D29 — Native `/workflows` posture: plan-time map + run-time executor.** Our graph stays the
+canonical **plan-time map** (markdown nodes + edges); an arc renders to a **skill/command**
+(Claude-orchestrated, composes all primitives). Claude's native `/workflows` (research-preview
+JS orchestrator; composes **subagents only**; not hand-authorable; no public schema) is **not**
+a render target or backing store — it is an **optional run-time executor for the autonomous
+fan-out** (review lenses, parallel build units), assembled at plan time. *Backlog:* vendor
+**playbooks** — native-workflow templates for the multi-agent stages (design, plan, build) —
+learn-as-we-go, then refine. *Why:* rides Claude's primitive where it is strongest without
+coupling our canonical store to an unstable preview format; honours "composed at plan time."
+*Status:* Accepted (posture); playbooks = backlog.
+
+**D30 — Absorb the current Claude Directory taxonomy.** The node taxonomy (D2 rides the real
+`.claude` taxonomy) must add what has since shipped: **`rules/*.md`** (path-gated CLAUDE.md
+fragments — a `references` endpoint), **`workflows/*.js`** (native; see D29), **`agent-memory/`**
+(per-agent state — a `references` endpoint); and **`commands/` is now legacy**, folded into the
+skills mechanism (a command is an `invokes`-edge alias or a skill). *Queues amendment:*
+`02-graph-spec`, `01-concepts`. *Status:* Accepted.
