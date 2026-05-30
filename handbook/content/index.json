@@ -2,12 +2,12 @@
   { "slug": "overview", "title": "stack-graph handbook", "type": "index", "read-when": "Orienting to stack-graph — what it is and how the handbook is organised.", "related": ["concepts", "graph-spec", "devops"] },
   { "slug": "overview/authoring", "title": "Authoring handbook pages", "type": "reference", "read-when": "Writing or editing a stack-graph handbook page.", "related": ["overview", "overview/maintenance"] },
   { "slug": "overview/maintenance", "title": "Maintenance — the forcing rule", "type": "procedure", "read-when": "You hit drift, ambiguity, or a missing page while working in stack-graph.", "related": ["overview", "devops"] },
-  { "slug": "concepts", "title": "Concepts", "type": "reference", "read-when": "You need the shared mental model before reading any spec.", "related": ["graph-spec", "decomposition", "overview"] },
+  { "slug": "concepts", "title": "Concepts", "type": "reference", "read-when": "You need the shared mental model before reading any spec.", "related": ["graph-spec", "decomposition", "harness-spec", "overview"] },
   { "slug": "graph-spec", "title": "Graph specification", "type": "spec", "read-when": "Defining or implementing the node/edge model, the node schema, or storage.", "related": ["concepts", "decomposition", "plugin-spec"] },
   { "slug": "plugin-spec", "title": "Plugin specification", "type": "spec", "read-when": "Packaging the plugin or building the handbook→plugin pipeline.", "related": ["graph-spec", "harness-spec", "overview"] },
   { "slug": "harness-spec", "title": "Harness specification", "type": "spec", "read-when": "Defining how a consuming workspace customises the vendored graph.", "related": ["plugin-spec", "graph-spec"] },
   { "slug": "maintenance-skill", "title": "Maintenance skill (stack-graph-maintainer)", "type": "spec", "read-when": "Specifying or building the skill that authors and maintains the graph.", "related": ["graph-spec", "decomposition", "devops"] },
   { "slug": "analytics", "title": "Analytics & instrumentation", "type": "spec", "read-when": "Specifying how usage and workflow-conformance are measured.", "related": ["graph-spec", "devops", "concepts"] },
-  { "slug": "decomposition", "title": "Decomposition principles", "type": "reference", "read-when": "Deciding how to break a process into nodes, edges, and inline elements.", "related": ["graph-spec", "maintenance-skill"] },
+  { "slug": "decomposition", "title": "Decomposition principles", "type": "reference", "read-when": "Deciding how to break a workflow into nodes, edges, and inline elements.", "related": ["graph-spec", "maintenance-skill", "concepts"] },
   { "slug": "devops", "title": "DevOps — how stack-graph develops itself", "type": "procedure", "read-when": "Working on stack-graph itself — branching, PRs, the improvement loops.", "related": ["overview", "overview/maintenance", "analytics"] }
 ]
