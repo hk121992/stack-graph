@@ -44,6 +44,32 @@ built. **Read `handbook/content/index.json` at task start** — it lists every p
 - **Customisation = additive local overlay** (entry nodes + connecting edges); the
   vendored graph is never mutated.
 
+## Building the graph — dev tooling
+
+Two dev-time skills live in `tooling/` (kept separate from the built `skills/` plugin
+surface) and install by per-skill symlink into `~/.claude/skills/`:
+
+- **`stack-graph-maintainer`** — author and maintain graph nodes. Modes: `new` (gather
+  source-material → write research-report → synthesise the canonical node file per
+  `02-graph-spec`), `amend`, `validate`, `index`. Nodes are authored under `graph/<id>/`;
+  the node file is a valid `.claude` primitive with graph frontmatter — **the graph is
+  frontmatter, never a separate store**.
+- **`stack-graph-curator`** — maintain this handbook. Modes: `sweep` (drift scan),
+  `raise` (labelled handbook PR), `refresh-index`. Enacts the forcing rule
+  (`00-overview/02-maintenance.md`): on drift, raise a PR — never silently continue.
+
+Install once (from the repo root):
+
+```bash
+ln -s "$PWD/tooling/stack-graph-maintainer" ~/.claude/skills/stack-graph-maintainer
+ln -s "$PWD/tooling/stack-graph-curator"    ~/.claude/skills/stack-graph-curator
+```
+
+The repo is the source of truth; edits propagate through the symlink. **Contribution:**
+during bootstrap, spec + tooling changes land by direct commit to `main`; once
+`08-devops` fixes the branch/label model and the curator is exercised, handbook changes
+move to labelled PRs via `/stack-graph-curator raise`.
+
 ## Keep it clean
 
 This repo is general and open-source-*able*. Keep product-specific references (paths,

@@ -132,3 +132,24 @@ The **build projects** each node file into (1) a clean native `.claude` file —
 fields + the body with resolvers expanded, graph keys stripped — and (2) its rows in the
 graph record. One source, three consumers, no second database. Build mechanics:
 [plugin-spec](../03-plugin-spec/).
+
+## Field notes
+
+Resolutions to gaps an author hits against the schema above:
+
+- **Required vs native-passthrough frontmatter.** Required on every node: `id`,
+  `primitive`, `title`, `description`, `mode`, `determinism`, `edges`, `goals`,
+  `status`. Everything else (`when-to-use`, `model`, `allowed-tools` / `tools`,
+  `argument-hint`, …) is a **native `.claude` field** — optional, carried through
+  verbatim by the builder, following the primitive's own schema. This spec does not
+  re-enumerate them.
+- **`mode` on a `command` or `script`.** Same rule as skill/agent: `collaborative` if it
+  pauses for the operator, `autonomous` if it runs to a result unattended. A command
+  that is a thin alias with no logic of its own is **not a node** — it is an `invokes`
+  edge.
+- **`overlay` entry shape.** `{ target: <global-node-id>, via: <edge-type> }` — a local
+  overlay node declares which vendored node it attaches to and the edge type it adds.
+  Additive only; it never rewrites the target.
+- **`triggers` is not authored in a node's `edges`.** A hook declares its trigger
+  binding in the hook's own config (event → node); node files carry no `triggers` array.
+  The record derives `triggers` edges from hook configs, not from node frontmatter.
