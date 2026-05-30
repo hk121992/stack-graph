@@ -7,10 +7,18 @@ related: [analytics, concepts]
 
 # Recall substrate (gbrain)
 
-The **recall** half of the two-layer decisions store ([concepts](../01-concepts/)): the
-curated *conclusion* lives in `docs/decisions.md`; the surrounding *reasoning and transcript*
-live in **gbrain** — a semantic recall layer (markdown is canonical, a Postgres/PGLite index is
-derived, retrieval is hybrid). Curation and recall are different jobs; both are kept.
+The **recall** layer of the knowledge substrate ([analytics](README.md)): the curated
+*conclusion* lives in `docs/decisions.md`; the surrounding *reasoning and transcript* live in
+**gbrain** — a semantic recall layer (markdown is canonical, a Postgres/PGLite index is derived,
+retrieval is hybrid). Curation and recall are different jobs; both are kept.
+
+**Recall, not the code-map.** gbrain's scope is **prose** — reasoning, transcripts, decisions.
+It has no structural code ingestion and does not answer "what calls X / what depends on Y";
+that is the **code-map**, a separate, deterministically-extracted substrate (AST tooling such
+as a repo-map + ast-grep), described in [analytics](README.md). The two are distinct layers and
+neither replaces the other. Inferred code↔spec graph tools are **not** the source of truth here
+— traceability is authored ([analytics](README.md)); such a tool could only ever augment it with
+human-confirmed candidates.
 
 ## Optional & capability-gated
 

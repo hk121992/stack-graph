@@ -1,6 +1,6 @@
 ---
 title: Decision log
-status: v0.9.0 — 2026-05-30
+status: v0.10.0 — 2026-05-30
 ---
 
 # Decision log
@@ -354,3 +354,36 @@ discretion), and an **`@-import` reference** (`load: import`) carries the in-bod
 markers the hook cannot observe from outside the node. `import` alone is present-but-not-executed;
 a hook alone cannot see in-body points; together they cover enforced native events + in-body
 annotations. *Refines:* D20 under the D33 reference/hook split. *Status:* Accepted.
+
+## Knowledge substrate
+
+**D38 — Product knowledge has four homes, and traceability is *authored*, not inferred.** A node
+that needs product knowledge does not invent a private store; the knowledge already has homes:
+(1) the **handbook** (+ decisions store) — curated spec / domain / rationale (authored, reviewed);
+(2) the **code-map** — the product's code structure (calls/deps/defs-refs), deterministically
+extracted; (3) **gbrain recall** — reasoning / transcripts / decisions (prose, semantic); (4)
+**`.claude` references** — operational executables (scripts/configs). Route any knowledge by what
+it *is* (canonical truth → handbook; extracted code structure → code-map; prose recall → gbrain;
+executable → reference). **Code↔spec traceability** (the "unified graph" prize) is achieved by
+**authoring + curating** it — the `spec touchpoints` discipline, `references` edges, the handbook
+page-graph, the raise/integrate flow — **not** by inferring fuzzy edges. *Why:* keeping *inferred*
+code↔spec edges fresh is an open, unsolved problem across the whole tooling field (no lineage, no
+re-validation); stack-graph's authored-edge model sidesteps it by construction. *Supersedes:* the
+invented "product-map manifest" (the crystallization manifest for `explore`) — knowledge goes to
+these homes, not a bespoke manifest. *Detail + field survey:* `docs/knowledge-substrate.md`.
+*Queues amendment:* `06-analytics` (the partition), `06-analytics/recall-substrate` (gbrain scope),
+rework of `explore`. *Status:* Accepted.
+
+**D39 — Substrate tooling: deterministic code-map now, gbrain for recall, inferred-graph tools
+deferred.** (a) **Code-map → mature deterministic AST.** `explore`'s `repo` mode uses an
+Aider-style **repo-map** (ranked orientation) + **ast-grep** (precise drill-down) — local, no-LLM,
+no-DB, deterministic, MCP/CLI. A persistent graph-DB (code-graph-rag / potpie / blarify) is
+**deferred** until a node needs **multi-hop / blast-radius impact analysis** (a `review`/`build`
+need). (b) **gbrain scope clarified (refines D31):** gbrain is the **prose-recall** layer, **not**
+the code-map — it has no structural code ingestion. (c) **graphify / unified-inference deferred**
+behind a capability gate — the only single-tool aspirant, but its code↔spec edges are LLM-inferred,
+unverified, and freshness-unsolved; revisit per the triggers in `docs/knowledge-substrate.md`
+(a real impact-analysis need; a tool proving fresh code↔spec edges on our corpus; authored
+traceability proving insufficient). All substrates stay **optional, capability-gated, local-first,
+consume-don't-fork** (the D31 posture). *Why + evidence (incl. AST-beats-LLM for code structure):*
+`docs/knowledge-substrate.md`. *Status:* Accepted (revisit triggers recorded).

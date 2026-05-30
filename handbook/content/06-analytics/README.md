@@ -97,14 +97,29 @@ harness*, automatically. It is **measurable**: a falling generative fraction per
 compounding; a fraction that never falls means the node is not building reusable assets — itself
 an earns-keep signal.
 
-## Decisions are two-layer
+## The knowledge substrate
 
-A curated **decisions store** (authoritative conclusions — for stack-graph itself,
-[`docs/decisions.md`](../../../docs/decisions.md)) sits over a **gbrain recall substrate**
-(the surrounding transcripts and reasoning). Curation and recall are different jobs; both
-are kept. Analytics feeds the recall substrate; the store records what the loop concludes.
-The gbrain integration — config, reads/writes, and upstream compatibility — is specified in
-[`recall-substrate`](01-recall-substrate.md).
+Knowledge lives in four homes, routed by what it *is*:
+
+- **Curated canon** — the handbook (spec / domain) and the decisions store (authoritative
+  conclusions, [`docs/decisions.md`](../../../docs/decisions.md)). Authored and human-reviewed;
+  the source of truth.
+- **Code-map** — the product's code structure (calls, dependencies, definitions/references),
+  **deterministically extracted** by AST tooling and traversed. Regenerated from source, not
+  authored.
+- **Recall** — the surrounding reasoning and transcripts, retrieved semantically
+  ([`recall-substrate`](01-recall-substrate.md)). Derived, not canonical.
+- **Operational references** — executable assets a node runs (scripts, configs, checklists),
+  co-located with the node ([`graph-spec`](../02-graph-spec/README.md)).
+
+Curation, extraction, and recall are different jobs; all are kept. Analytics feeds recall; the
+canon records what the loop concludes.
+
+**Traceability is authored, not inferred.** The links between spec and code — what governs
+what, what realises what — are **authored and curated** (the spec-touchpoints table on a design
+doc, `references` edges, the handbook page-graph, the curator's raise/integrate flow), never
+inferred by a tool. Inferred cross-edges cannot be kept fresh reliably; the graph's typed edges
+are authored truth.
 
 ## Locality
 
