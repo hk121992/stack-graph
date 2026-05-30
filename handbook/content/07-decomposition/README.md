@@ -1,15 +1,15 @@
 ---
 title: Decomposition principles
 type: reference
-read-when: Deciding how to break a workflow into nodes, edges, and inline elements.
+read-when: Deciding how to break an arc into nodes, edges, and inline elements.
 related: [graph-spec, maintenance-skill, concepts]
 ---
 
 # Decomposition principles
 
-How to break a workflow into the graph: what becomes a node, what becomes an edge, what
-stays inline, and where the boundaries fall. Adapted from the Be Civic corpus authoring
-rules (they transfer; the inversions are noted).
+How to break an arc into the graph: what becomes a node, what becomes an edge, what stays
+inline, and where the boundaries fall. Adapted from the Be Civic corpus authoring rules
+(they transfer; the inversions are noted).
 
 ## Node, edge, or inline
 
@@ -20,9 +20,12 @@ The discriminator (from the corpus `skill-vs-path.md` branching test):
 - **Edge** — it is merely **reached or invoked** by another node, with no independent
   control flow of its own. Model the relationship, not a node (`loads`, `invokes`,
   `composes-into`, `references`).
-- **Inline** — a one-shot reference or an **MCP call** in a node's body. Worth neither a
-  node nor an edge. An edge appears only when the thing invoked is itself node-like (e.g.
-  a script with its own logic).
+- **Inline** — a one-shot reference, an **MCP call**, or an **execution surface** (a
+  headless browser, a worktree) in a node's body. Worth neither a node nor an edge — it has
+  no control flow; the node calling it owns the judgment. Ride a native primitive where one
+  exists (e.g. `isolation: 'worktree'`) rather than building a node for it. An edge appears
+  only when the thing invoked is itself node-like (a script with its own logic →
+  an `invokes` edge).
 
 ## Node anatomy
 
@@ -35,32 +38,41 @@ Voice is imperative (`voice-and-style.md`), with one inversion from the corpus:
 stack-graph nodes are **operator/dev-internal, so internal references are allowed** — the
 opposite of the customer-facing corpus rule.
 
-## Skill or agent
+## Skill or agent — the context axis
 
-Once a span is a node, its **collaborative/autonomous** nature picks the primitive
-(see [concepts](../01-concepts/)): operator-in-the-loop → **skill**; runs unattended to a
-result → **agent**. Decide this at decomposition time; it changes the node's contract and
-its instrumentation, not just its label.
+Once a span is a node, **context** picks the primitive (see [concepts](../01-concepts/)): a
+**skill** loads into the *current* context (use when the step needs the live main thread);
+an **agent** runs in an *isolated* context and returns a summary (use when the work does not
+benefit from the main thread, is describable in a prompt, or is parallelizable). They
+compose — a skill can dispatch agents; an agent can preload skills. Collaborative-vs-
+autonomous is the usual correlate, not the rule. Decide this at decomposition time; it
+changes the node's contract and its instrumentation, not just its label.
 
-## Granularity
+## Granularity — the sizing rule
 
-The recurring choice is **generic-with-branches** (one node that decides between variants
-internally) vs **one-node-per-variant**. Prefer generic-with-branches until a variant
-earns its own node by having distinct branching, distinct inputs/outputs, or a distinct
-goal. Heuristics for the **atomic unit**:
+Decompose a span into its own node when **any** of these hold (adapted from the Be Civic
+granularity rule):
 
-- A node is **atomic** when splitting it would create an edge you would never traverse on
-  its own — the halves are only ever run together.
-- **Split** when a span owns **distinct branching**, or a **distinct goal you would
-  measure separately** (below), or a different collaborative/autonomous nature.
+- **Reuse** — it is referenced by **≥2 consumers** (extract it; define once).
+- **Cohesion** — it is **self-contained with its own branching** (a distinct, cohesive unit).
+- **Just-in-time** — a consumer needs only **part** of it (split so each consumer pulls only
+  what it needs).
+
+Keep it **inline** when it is **used once and trivial** (≤2–3 simple actions, no independent
+goal). **Flatten** deep recursion — decompose by *need*, not by aesthetic. A different
+collaborative/autonomous (context) nature is also a split signal.
+
+Granularity is **two-view** (see [graph-spec](../02-graph-spec/)): the authoring view may
+treat a skill's **modes** as nodes; the render collapses or expands them. Cut by the rule
+above; let the render decide the file shape.
 
 ## Let goals draw the boundary
 
 A node must have a **stated outcome and a way to measure it** (the loop, see
 [analytics](../06-analytics/)). Use that as a decomposition test: if you cannot say what a
-candidate node *achieves* and how you would know it earned its keep, the boundary is in
-the wrong place — widen or narrow it until the node has a measurable job. Boundaries
-chosen this way are the ones the loop can later evaluate, merge, or cut.
+candidate node *achieves* and how you would know it earned its keep, the boundary is in the
+wrong place — widen or narrow it until the node has a measurable job. Boundaries chosen this
+way are the ones the loop can later evaluate, merge, or cut.
 
 ## Stay process-agnostic
 

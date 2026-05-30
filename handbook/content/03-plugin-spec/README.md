@@ -32,7 +32,7 @@ The plugin mirrors the Be Civic plugin shape:
 | `.claude-plugin/plugin.json`, `marketplace.json` | manifest + marketplace entry |
 | `skills/<name>/SKILL.md` | built skill nodes |
 | `agents/<name>.md` | built agent nodes |
-| `commands/<name>.md` | built command nodes |
+| `commands/<name>.md` | built command nodes (legacy — prefer skills) |
 | `hooks/` | hook configs (the `triggers` bindings) |
 | `lib/` | scripts reached by `invokes` |
 
@@ -60,6 +60,20 @@ The build is **idempotency-gated**: output is a pure function of input, so a re-
 unchanged source is byte-identical, and the build flags any committed output that drifts
 from what its source would now produce. Built output cannot silently diverge from the node
 files.
+
+## Resolvers — define once, vendor everywhere
+
+The shared blocks every node needs — the instrumentation preamble
+([`analytics`](../06-analytics/README.md)), schemas (findings, severity), and common
+protocols — are authored **once** as named **resolvers** and referenced from a node body by
+a `{{PLACEHOLDER}}` token; the shared text is never inlined per node. The Resolve stage
+expands every token in one pass, so a block authored once propagates to all consumers, and a
+change to a resolver re-renders every node that references it. Execution surfaces follow the
+same pattern — e.g. `{{browser.exec}}` resolves to the harness's concrete browser, keeping
+the node tool-agnostic. The freshness gate (idempotency test + `--dry-run` diff) fails CI if
+any committed built file differs from what its source would now produce. Mechanism mirrors
+gstack's `gen-skill-docs` resolver build (the define-once source is a resolver function; the
+consumer is a `.tmpl` with `{{...}}` tokens; one command expands all).
 
 ## Frontmatter mapping
 

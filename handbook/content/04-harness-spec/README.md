@@ -9,14 +9,14 @@ related: [plugin-spec, graph-spec, analytics]
 
 A **harness** is a consuming workspace's specialising layer over the vendored, general
 stack-graph. It is where a product — Be Civic is the first — puts its own instructions,
-nodes, and workflows. The factory stays general; everything product-specific lives in a
+nodes, and arcs. The factory stays general; everything product-specific lives in a
 harness, never in this repo.
 
 ## What lives where
 
 | In the factory (vendored) | In the harness (local) |
 |---|---|
-| General nodes, edges, and the loop machinery | Product-specific nodes and workflows |
+| General nodes, edges, and the loop machinery | Product-specific nodes and arcs |
 | The build, the graph model, the maintainer | The product's `CLAUDE.md` and instructions |
 | Namespaced `stack-graph:*` | Local entry nodes + edges into the vendored graph |
 

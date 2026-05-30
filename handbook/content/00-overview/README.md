@@ -8,7 +8,7 @@ related: [concepts, graph-spec, devops]
 # stack-graph handbook
 
 stack-graph is **the factory**: a general, process-agnostic system that models an agent
-operating environment as a graph of its `.claude` primitives and the workflows that
+operating environment as a graph of its `.claude` primitives and the arcs that
 traverse them, then instruments and improves them through a PR-gated loop. A product is
 what *runs inside* the factory.
 

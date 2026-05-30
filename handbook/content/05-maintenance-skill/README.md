@@ -72,7 +72,7 @@ built output cannot drift from its source.
 
 **Mechanical** (hard failures): required frontmatter fields present; `primitive`↔`mode`
 agreement (`skill`↔`collaborative`, `agent`↔`autonomous`); `determinism` valid; every
-`edges:` target resolves to a node file — except `composes-into` (a workflow id) and edges
+`edges:` target resolves to a node file — except `composes-into` (an arc id) and edges
 marked `external: true`; at least one `goals:` entry, each carrying `outcome`, `metric`, and
 `earns-keep`; body non-empty.
 

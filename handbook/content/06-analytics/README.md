@@ -1,7 +1,7 @@
 ---
 title: Analytics & instrumentation
 type: spec
-read-when: Specifying or implementing how usage, outcomes, and workflow-conformance are measured.
+read-when: Specifying or implementing how usage, outcomes, and arc-conformance are measured.
 related: [graph-spec, devops, concepts, plugin-spec, harness-spec]
 ---
 
@@ -44,11 +44,11 @@ Locality).
 ```json
 { "ts": "<ISO>", "session": "<id>", "kind": "enter|exit|gate|traverse",
   "node": "<node-id>", "from": "<node-id>", "to": "<node-id>",
-  "workflow": "<workflow-id>", "outcome": "<string>", "gate": "<name:pass|fail>" }
+  "arc": "<arc-id>", "outcome": "<string>", "gate": "<name:pass|fail>" }
 ```
 
 `node` is present on `enter`/`exit`/`gate`; `from`+`to` on `traverse` (resolving to an
-edge). `workflow` is the traversal context when one is active.
+edge). `arc` is the traversal context when one is active.
 
 ## Binding events to the graph
 
@@ -57,7 +57,7 @@ the schema events resolve against. Binding is by id:
 
 - An **event** carries the `node` id, or `from`+`to` ids that name an **edge**.
 - A session's ordered `node` events are an **observed traversal**.
-- **Conformance** = the observed traversal checked against a workflow's declared
+- **Conformance** = the observed traversal checked against an arc's declared
   `precedes` / `can-follow` edges. Off-path steps and skipped gates are visible. The check
   is deterministic — it compares two edge sets, no model judgment.
 - **Outcome measurement** = a node's declared `goals.metric` computed from its events plus

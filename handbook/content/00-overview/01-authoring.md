@@ -54,7 +54,7 @@ builds into. That rule does not apply to handbook pages.)
 | Good — names the trigger | Bad — describes the page |
 |---|---|
 | `Packaging the plugin or building the handbook→plugin pipeline.` | `Covers the plugin packaging.` |
-| `Deciding how to break a workflow into nodes, edges, and inline elements.` | `About decomposition.` |
+| `Deciding how to break an arc into nodes, edges, and inline elements.` | `About decomposition.` |
 
 ## Page types
 
