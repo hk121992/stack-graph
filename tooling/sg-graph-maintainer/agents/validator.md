@@ -45,6 +45,8 @@ d. **`edges` targets resolve** — for each entry in `invokes` / `loads` /
 d2. **`references` edge targets resolve (D33)** — for each entry in the `references` edge
    array, confirm the target resolves: a shared reference at `graph/_refs/<target>.md`
    (`kind: reference`) or, where the reference is itself a node, `graph/<target>/<target>.md`.
+   Skip entries marked `external: true` (a harness-supplied / out-of-factory target — e.g. a
+   crystallization manifest a node grows in the harness; there is no factory file to resolve).
    Unresolved → failure. If an entry carries `load:`, its value must be `import` or
    `on-demand`; any other value → failure.
 e. **`goals` well-formed** — at least one goal, each populated with `outcome`,

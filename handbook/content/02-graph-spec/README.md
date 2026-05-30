@@ -118,6 +118,13 @@ single-sources each reference into its consumers (places/symlinks the one canoni
 resolves the pointer) — DRY + freshness with native output, no `{{token}}` splice
 ([plugin-spec](../03-plugin-spec/README.md)).
 
+A `references` edge may be marked **`external: true`** when its target is **harness-supplied**
+and absent from the factory — e.g. a **crystallization manifest** a node grows in its harness
+(the asset record a self-improving node consults; see
+[harness-spec](../04-harness-spec/README.md)). The factory ships only the consumer's pointer;
+the harness supplies the file. Validation and the build skip an external reference — there is
+no factory file to resolve or single-source.
+
 Shared content destined for a spawned **agent** (e.g. a lens's finding contract) is passed by
 the orchestrator into the agent's **spawn prompt**, not imported by the agent — the orchestrator
 holds the reference and fills it into the subagent's prompt at dispatch.

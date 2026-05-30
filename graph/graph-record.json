@@ -1,8 +1,8 @@
 {
   "generated": "2026-05-30T00:00:00Z",
-  "node_count": 5,
+  "node_count": 6,
   "reference_count": 4,
-  "edge_count": 21,
+  "edge_count": 22,
   "nodes": {
     "review": {
       "primitive": "skill",
@@ -10,12 +10,19 @@
       "title": "Review",
       "status": "v0.1.0 — 2026-05-30",
       "edges": {
-        "invokes": ["lens-correctness", "lens-security", "lens-tests", "lens-maintainability"],
-        "composes-into": [{ "id": "dev-sprint", "stage": "review" }],
+        "invokes": [
+          { "id": "lens-correctness" },
+          { "id": "lens-security" },
+          { "id": "lens-tests" },
+          { "id": "lens-maintainability" }
+        ],
+        "composes-into": [
+          { "id": "dev-sprint", "stage": "review" }
+        ],
         "references": [
-          { "id": "lens-dispatch", "load": "on-demand" },
-          { "id": "findings-schema", "load": "import" },
-          { "id": "severity-scale", "load": "import" },
+          { "id": "lens-dispatch",      "load": "on-demand" },
+          { "id": "findings-schema",    "load": "import" },
+          { "id": "severity-scale",     "load": "import" },
           { "id": "confidence-anchors", "load": "import" }
         ]
       }
@@ -71,6 +78,17 @@
           { "id": "dev-sprint", "stage": "plan" }
         ]
       }
+    },
+    "explore": {
+      "primitive": "agent",
+      "mode": "autonomous",
+      "title": "Explore (context-gathering agent)",
+      "status": "v0.1.0 — 2026-05-30",
+      "edges": {
+        "references": [
+          { "id": "product-map-manifest", "load": "on-demand", "external": true }
+        ]
+      }
     }
   },
   "references": {
@@ -96,26 +114,27 @@
     }
   },
   "edges": [
-    { "from": "review", "to": "lens-correctness", "type": "invokes" },
-    { "from": "review", "to": "lens-security", "type": "invokes" },
-    { "from": "review", "to": "lens-tests", "type": "invokes" },
+    { "from": "review", "to": "lens-correctness",     "type": "invokes" },
+    { "from": "review", "to": "lens-security",        "type": "invokes" },
+    { "from": "review", "to": "lens-tests",           "type": "invokes" },
     { "from": "review", "to": "lens-maintainability", "type": "invokes" },
-    { "from": "review", "to": "dev-sprint", "type": "composes-into", "stage": "review" },
-    { "from": "review", "to": "lens-dispatch", "type": "references", "load": "on-demand" },
-    { "from": "review", "to": "findings-schema", "type": "references", "load": "import" },
-    { "from": "review", "to": "severity-scale", "type": "references", "load": "import" },
-    { "from": "review", "to": "confidence-anchors", "type": "references", "load": "import" },
-    { "from": "lens-correctness", "to": "dev-sprint", "type": "composes-into", "stage": "review" },
-    { "from": "lens-correctness", "to": "dev-sprint", "type": "composes-into", "stage": "design" },
-    { "from": "lens-correctness", "to": "dev-sprint", "type": "composes-into", "stage": "plan" },
-    { "from": "lens-security", "to": "dev-sprint", "type": "composes-into", "stage": "review" },
-    { "from": "lens-security", "to": "dev-sprint", "type": "composes-into", "stage": "design" },
-    { "from": "lens-security", "to": "dev-sprint", "type": "composes-into", "stage": "plan" },
-    { "from": "lens-tests", "to": "dev-sprint", "type": "composes-into", "stage": "review" },
-    { "from": "lens-tests", "to": "dev-sprint", "type": "composes-into", "stage": "design" },
-    { "from": "lens-tests", "to": "dev-sprint", "type": "composes-into", "stage": "plan" },
+    { "from": "review", "to": "dev-sprint",           "type": "composes-into", "stage": "review" },
+    { "from": "review", "to": "lens-dispatch",        "type": "references",    "load": "on-demand" },
+    { "from": "review", "to": "findings-schema",      "type": "references",    "load": "import" },
+    { "from": "review", "to": "severity-scale",       "type": "references",    "load": "import" },
+    { "from": "review", "to": "confidence-anchors",   "type": "references",    "load": "import" },
+    { "from": "lens-correctness",   "to": "dev-sprint", "type": "composes-into", "stage": "review" },
+    { "from": "lens-correctness",   "to": "dev-sprint", "type": "composes-into", "stage": "design" },
+    { "from": "lens-correctness",   "to": "dev-sprint", "type": "composes-into", "stage": "plan" },
+    { "from": "lens-security",      "to": "dev-sprint", "type": "composes-into", "stage": "review" },
+    { "from": "lens-security",      "to": "dev-sprint", "type": "composes-into", "stage": "design" },
+    { "from": "lens-security",      "to": "dev-sprint", "type": "composes-into", "stage": "plan" },
+    { "from": "lens-tests",         "to": "dev-sprint", "type": "composes-into", "stage": "review" },
+    { "from": "lens-tests",         "to": "dev-sprint", "type": "composes-into", "stage": "design" },
+    { "from": "lens-tests",         "to": "dev-sprint", "type": "composes-into", "stage": "plan" },
     { "from": "lens-maintainability", "to": "dev-sprint", "type": "composes-into", "stage": "review" },
     { "from": "lens-maintainability", "to": "dev-sprint", "type": "composes-into", "stage": "design" },
-    { "from": "lens-maintainability", "to": "dev-sprint", "type": "composes-into", "stage": "plan" }
+    { "from": "lens-maintainability", "to": "dev-sprint", "type": "composes-into", "stage": "plan" },
+    { "from": "explore", "to": "product-map-manifest", "type": "references", "load": "on-demand", "external": true }
   ]
 }

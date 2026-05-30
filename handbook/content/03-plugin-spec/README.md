@@ -73,7 +73,9 @@ common protocols — is authored **once** as a `graph/_refs/<id>.md` **reference
 `load` dial. The build **single-sources** it: the canonical file is placed (copy or symlink)
 into every consumer's bundle and the host's pointer resolves to it — a native `@-import`
 (`load: import`, guaranteed-present at load) or a backtick path the agent reads
-(`load: on-demand`).
+(`load: on-demand`). A reference marked **`external: true`** (harness-supplied — e.g. a
+crystallization manifest a node grows in its harness) is **not** single-sourced: the factory
+ships only the consumer's pointer, and the harness supplies the file.
 
 A reference is **emitted as its own native file**, never spliced as `{{token}}` text into a
 host body. This keeps the canonical store native and lets each host primitive read on its own.
