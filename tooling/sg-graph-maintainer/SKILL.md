@@ -1,12 +1,12 @@
 ---
-name: stack-graph-maintainer
+name: sg-graph-maintainer
 description: Dev-time tooling for authoring and maintaining nodes in the stack-graph factory. Four modes — new (greenfield node: gather source-material, write research-report, synthesise canonical), amend (update research-report first, then re-render canonical), validate (mechanical + judgment check of a node file against the 02-graph-spec schema), index (scan edge frontmatter across all node files, regenerate the global graph record). Reads as instructions to Claude inside a Claude Code session. Use when authoring or maintaining graph nodes in the authoring workspace at graph/<id>/. NOT a runtime skill shipped to product end-users.
 ---
 
-# stack-graph-maintainer
+# sg-graph-maintainer
 
-You are operating the `stack-graph-maintainer` skill. This file is your runtime
-contract: the operator invoked `/stack-graph-maintainer <mode> <args>` (or, with no
+You are operating the `sg-graph-maintainer` skill. This file is your runtime
+contract: the operator invoked `/sg-graph-maintainer <mode> <args>` (or, with no
 mode, the bare command) inside a Claude Code session, and Claude Code loaded this
 SKILL.md as your instructions. There is no dispatcher binary, no daemon, no
 `doctor` subcommand. **You are the dispatcher.** Mode selection, preflight checks,
@@ -15,7 +15,7 @@ this file.
 
 ## Dev-tooling boundary
 
-`stack-graph-*` skills are dev-time tooling for building and maintaining the
+`sg-*` skills are dev-time tooling for building and maintaining the
 factory. Vendored graph nodes ship namespaced `stack-graph:*` inside consuming
 workspaces. **This skill is not shipped to product end-users as-is.** The operator
 (and agents acting on the operator's behalf) invoke it to author, amend, validate, and
@@ -52,11 +52,11 @@ the spec wins:
 ## How this skill is invoked
 
 ```
-/stack-graph-maintainer                         # bare; prints orientation and asks which mode
-/stack-graph-maintainer new <id>
-/stack-graph-maintainer amend <id>
-/stack-graph-maintainer validate [<id>|all]
-/stack-graph-maintainer index
+/sg-graph-maintainer                         # bare; prints orientation and asks which mode
+/sg-graph-maintainer new <id>
+/sg-graph-maintainer amend <id>
+/sg-graph-maintainer validate [<id>|all]
+/sg-graph-maintainer index
 ```
 
 `<id>` is the node identifier: kebab-case, matching the directory name under `graph/`
@@ -64,13 +64,13 @@ and the `id:` frontmatter field in the node file.
 
 ## Bare-invocation behavior
 
-When the operator types `/stack-graph-maintainer` with no mode, print the orientation
+When the operator types `/sg-graph-maintainer` with no mode, print the orientation
 block below, walk the operator through the decision tree, then ask via
 **AskUserQuestion** which mode to run.
 
 ### Orientation block (print verbatim, lightly adapted)
 
-> stack-graph-maintainer is the dev-time skill for authoring and maintaining nodes in
+> sg-graph-maintainer is the dev-time skill for authoring and maintaining nodes in
 > the stack-graph factory graph. Four modes:
 >
 > - **new** — greenfield node: no prior research-report, no prior canonical. Researcher
@@ -181,7 +181,7 @@ reflecting the change in the research-report first.
 1. **Preflight.** Run preflight checks. Abort on failure.
 2. **Verify artefacts exist.** Check `graph/<id>/research-report.md` and
    `graph/<id>/<id>.md`. If either is missing, abort: "Cannot amend `<id>`: missing
-   artefacts. Run `/stack-graph-maintainer new <id>` first."
+   artefacts. Run `/sg-graph-maintainer new <id>` first."
 3. **Describe the amendment.** Ask the operator (via AskUserQuestion if not already
    provided in args): "What are you changing? Describe the intended edit so the
    researcher-amender and translator know what to target." This description becomes

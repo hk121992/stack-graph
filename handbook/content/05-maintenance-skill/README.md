@@ -1,12 +1,12 @@
 ---
-title: Maintenance skill (stack-graph-maintainer)
+title: Maintenance skill (sg-graph-maintainer)
 type: spec
 read-when: Specifying or building the skill that authors and maintains the graph.
 related: [graph-spec, decomposition, devops]
 status: v0.0.0 — 2026-05-29
 ---
 
-# Maintenance skill — `stack-graph-maintainer`
+# Maintenance skill — `sg-graph-maintainer`
 
 **Status: scaffold — spec to be authored.**
 

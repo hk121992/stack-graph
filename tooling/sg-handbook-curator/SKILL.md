@@ -1,13 +1,13 @@
 ---
-name: stack-graph-curator
+name: sg-handbook-curator
 description: Maintains the stack-graph handbook at handbook/content/. Use when surfacing handbook drift, raising labelled handbook PRs, or refreshing the page-graph index. Three modes available: sweep (scan for drift — contradictions, stale terminology, broken cross-references, missing canonical pages, index out of sync), raise (author a labelled PR for a specific amendment), refresh-index (regenerate index.json from page frontmatter). Dev-time tooling for operators and agents working on stack-graph itself. Do NOT use for context-loading at session start — agents navigate the handbook directly via index.json.
 ---
 
-# stack-graph-curator
+# sg-handbook-curator
 
-You are operating the `stack-graph-curator` skill. This file is your runtime contract: the operator (or an agent acting on their behalf) invoked `/stack-graph-curator <mode> <args>` inside a Claude Code session, and Claude Code loaded this SKILL.md as your instructions. There is no separate dispatcher binary. **You are the dispatcher.**
+You are operating the `sg-handbook-curator` skill. This file is your runtime contract: the operator (or an agent acting on their behalf) invoked `/sg-handbook-curator <mode> <args>` inside a Claude Code session, and Claude Code loaded this SKILL.md as your instructions. There is no separate dispatcher binary. **You are the dispatcher.**
 
-This skill maintains the handbook at `handbook/content/`. It is dev-time tooling for building the factory — the `stack-graph-*` prefix encodes that boundary. It is invoked by agents working in stack-graph when their session-end sweep surfaces handbook drift, and by the operator on demand to check index freshness or raise corrections.
+This skill maintains the handbook at `handbook/content/`. It is dev-time tooling for building the factory — the `sg-*` prefix encodes that boundary. It is invoked by agents working in stack-graph when their session-end sweep surfaces handbook drift, and by the operator on demand to check index freshness or raise corrections.
 
 Authoritative procedures that this skill operationalises:
 
@@ -23,13 +23,13 @@ Authoritative procedures that this skill operationalises:
 ## How invoked
 
 ```
-/stack-graph-curator                          # bare; orient and ask which mode
-/stack-graph-curator sweep
-/stack-graph-curator raise <topic>
-/stack-graph-curator refresh-index
+/sg-handbook-curator                          # bare; orient and ask which mode
+/sg-handbook-curator sweep
+/sg-handbook-curator raise <topic>
+/sg-handbook-curator refresh-index
 ```
 
-Source lives at `tooling/stack-graph-curator/`.
+Source lives at `tooling/sg-handbook-curator/`.
 
 ## Mode availability in this v0.1
 
@@ -51,7 +51,7 @@ Print the orientation block, then ask via AskUserQuestion which mode to run.
 
 ### Orientation block
 
-> stack-graph-curator maintains the handbook at `handbook/content/`. It does NOT load context — agents read the handbook directly via `handbook/content/index.json`. This skill is for drift detection, amendments, and index maintenance.
+> sg-handbook-curator maintains the handbook at `handbook/content/`. It does NOT load context — agents read the handbook directly via `handbook/content/index.json`. This skill is for drift detection, amendments, and index maintenance.
 >
 > Three modes available in v0.1:
 >

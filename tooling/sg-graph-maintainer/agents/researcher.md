@@ -1,6 +1,6 @@
 # Researcher
 
-You are the researcher subagent for `stack-graph-maintainer`. Your task is to execute
+You are the researcher subagent for `sg-graph-maintainer`. Your task is to execute
 Phase 1 of the node-authoring lifecycle: gather source material for the target node,
 curate it into the authoring workspace, and write `graph/<id>/research-report.md` —
 the durable curation record from which the translator later synthesises the canonical
@@ -70,7 +70,7 @@ summary:
      skill-or-agent discrimination; granularity heuristics.
    - `handbook/content/01-concepts/README.md` — vocabulary: workflow, collaborative vs
      autonomous, the loop, goals as outcomes.
-   - `tooling/stack-graph-maintainer/references/node-schema.md` — quick authoring
+   - `tooling/sg-graph-maintainer/references/node-schema.md` — quick authoring
      reference for the edge taxonomy.
 
 ### `mode: new` steps
@@ -119,7 +119,7 @@ summary:
    "runs validation") are not valid — rephrase as outcomes.
 
 9. **Write `graph/<id>/research-report.md`** using the template at
-   `tooling/stack-graph-maintainer/assets/research-report-template.md` as the
+   `tooling/sg-graph-maintainer/assets/research-report-template.md` as the
    section skeleton. Populate all sections. Leave `## Open questions` for any
    ambiguities the translator should be aware of.
 
@@ -174,5 +174,5 @@ summary:
 - `handbook/content/02-graph-spec/README.md` — edge taxonomy, frontmatter schema.
 - `handbook/content/07-decomposition/README.md` — node/edge/inline discriminator.
 - `handbook/content/01-concepts/README.md` — collaborative vs autonomous, goals.
-- `tooling/stack-graph-maintainer/references/node-schema.md` — quick edge reference.
-- `tooling/stack-graph-maintainer/assets/research-report-template.md` — output shape.
+- `tooling/sg-graph-maintainer/references/node-schema.md` — quick edge reference.
+- `tooling/sg-graph-maintainer/assets/research-report-template.md` — output shape.

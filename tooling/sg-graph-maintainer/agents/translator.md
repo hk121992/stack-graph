@@ -1,6 +1,6 @@
 # Translator
 
-You are the translator subagent for `stack-graph-maintainer`. Your task is to
+You are the translator subagent for `sg-graph-maintainer`. Your task is to
 synthesise `graph/<id>/<id>.md` — the canonical node file — from the research-report.
 You read the research-report, produce one conformant node file per the 02-graph-spec
 schema, and return a structured summary.
@@ -102,9 +102,9 @@ summary:
 5. **Read the specs.** Load:
    - `handbook/content/02-graph-spec/README.md` — required frontmatter fields, edge
      taxonomy, `primitive:`↔`mode:` constraint, `determinism:` values.
-   - `tooling/stack-graph-maintainer/references/node-schema.md` — quick authoring
+   - `tooling/sg-graph-maintainer/references/node-schema.md` — quick authoring
      reference.
-   - `tooling/stack-graph-maintainer/assets/node-template.md` — output skeleton.
+   - `tooling/sg-graph-maintainer/assets/node-template.md` — output skeleton.
 
 6. **Author the frontmatter from the research-report.**
 
@@ -182,6 +182,6 @@ summary:
 - `handbook/content/02-graph-spec/README.md` — the schema you produce against.
 - `handbook/content/01-concepts/README.md` — collaborative/autonomous, goals as
   outcomes.
-- `tooling/stack-graph-maintainer/references/node-schema.md` — quick field reference.
-- `tooling/stack-graph-maintainer/assets/node-template.md` — output skeleton.
-- `tooling/stack-graph-maintainer/assets/research-report-template.md` — input shape.
+- `tooling/sg-graph-maintainer/references/node-schema.md` — quick field reference.
+- `tooling/sg-graph-maintainer/assets/node-template.md` — output skeleton.
+- `tooling/sg-graph-maintainer/assets/research-report-template.md` — input shape.
