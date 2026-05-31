@@ -13,6 +13,7 @@ determinism: generative
 # recall, handbook/decisions canon) inline via read-only tools — substrate access is
 # not a graph edge (D38). Its `composes-into` edges to the stages that fan it out
 # (align-context / design / plan / build) are deferred until those stage nodes exist (F7).
+edges: {}
 # analytics — the loop
 goals:
   - outcome: The consuming stage starts work with the relevant context already in hand and does not re-explore the same ground.
