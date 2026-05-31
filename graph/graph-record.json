@@ -18,7 +18,7 @@
         ],
         "references": [
           {
-            "id": "product-canon",
+            "id": "handbook",
             "load": "on-demand",
             "external": true
           },
@@ -37,7 +37,7 @@
       "edges": {
         "references": [
           {
-            "id": "product-canon",
+            "id": "handbook",
             "load": "on-demand",
             "external": true
           }
@@ -63,7 +63,7 @@
         ],
         "references": [
           {
-            "id": "product-canon",
+            "id": "handbook",
             "load": "on-demand",
             "external": true
           },
@@ -315,7 +315,7 @@
     },
     {
       "from": "drift-detector",
-      "to": "product-canon",
+      "to": "handbook",
       "type": "references",
       "load": "on-demand",
       "external": true
@@ -328,7 +328,7 @@
     },
     {
       "from": "explore",
-      "to": "product-canon",
+      "to": "handbook",
       "type": "references",
       "load": "on-demand",
       "external": true
@@ -350,7 +350,7 @@
     },
     {
       "from": "handbook-curator",
-      "to": "product-canon",
+      "to": "handbook",
       "type": "references",
       "load": "on-demand",
       "external": true

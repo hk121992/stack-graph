@@ -441,18 +441,18 @@ traceability proving insufficient). All substrates stay **optional, capability-g
 consume-don't-fork** (the D31 posture). *Why + evidence (incl. AST-beats-LLM for code structure):*
 `docs/knowledge-substrate.md`. *Status:* Accepted (revisit triggers recorded).
 
-**D41 — A node references the product canon via an overlay-resolved `external: true` locator,
+**D41 — A node references the handbook via an overlay-resolved `external: true` locator,
 never vendored content.** How a node reaches the curated-canon home (D38) at runtime.
 
 - **Two handbooks; only one is a runtime reference.** stack-graph's **own** handbook is
   *compiled into* each node body at build (research-report → canonical); a node never reads the
-  factory handbook at runtime. The **harness's product canon** (its own handbook + decisions) is
+  factory handbook at runtime. The **harness's own handbook** (its spec, manual, decisions, history) is
   what canon-centric nodes read at runtime — and it is the harness's, not the factory's to ship.
-- **Mechanism: a shared `product-canon` `external: true` reference (`load: on-demand`).** The
+- **Mechanism: a shared `handbook` `external: true` reference (`load: on-demand`).** The
   factory ships only the pointer; the harness **overlay** resolves it to that product's canon
   root + page index; the node navigates pages at the step of need. This reuses the existing
   external-reference pattern ([`02-graph-spec`]) — validation/build skip it.
-- **Overlay resolution, not injection.** The body carries a stable "follow your `product-canon`
+- **Overlay resolution, not injection.** The body carries a stable "follow your `handbook`
   reference"; the overlay binds what it points at (a path / index). This is harness config (the
   "variable path"), **not** a `{{token}}` body splice (D33 banned that).
 - **Not vendored content.** Copying the handbook into vendored `_refs` is rejected: it would
@@ -467,7 +467,7 @@ never vendored content.** How a node reaches the curated-canon home (D38) at run
   it operates on the factory itself, un-vendored, so no overlay binding is needed.
 
 *Reframes:* the `02-graph-spec` `external: true` example (was the crystallization manifest —
-explore's, retired by D38) now leads with `product-canon`. Re-adds an external reference to
+explore's, retired by D38) now leads with `handbook`. Re-adds an external reference to
 `explore` — the *correct* shared locator, not the killed bespoke `product-map-manifest`.
-*Queues amendment:* `02-graph-spec` (done), `04-harness-spec` (overlay binds product-canon),
+*Queues amendment:* `02-graph-spec` (done), `04-harness-spec` (overlay binds handbook),
 `graph-map.md`. *Status:* Accepted.

@@ -4,7 +4,7 @@ type: research-report
 status: complete (crystallization-manifest section superseded by D38 — see banner)
 authored: 2026-05-30
 last_updated: 2026-05-30
-amended: [2026-05-30 D38-banner, 2026-05-31 D41-product-canon-ref]
+amended: [2026-05-30 D38-banner, 2026-05-31 D41-handbook-ref]
 sources_lifted: 7
 researcher_adequacy_note: |
   Lifted the five CE researcher agents (one per explore mode — repo / learnings /
@@ -35,7 +35,7 @@ researcher_adequacy_note: |
 > `explore.md` (v0.2.0) reflects the substrate model; this report does not. See
 > `docs/knowledge-substrate.md` and decisions D38/D39.
 
-> **Amendment (2026-05-31, D41).** explore now carries a `product-canon` `external: true`
+> **Amendment (2026-05-31, D41).** explore now carries a `handbook` `external: true`
 > reference (`load: on-demand`) — the *correct* successor to the killed `product-map-manifest`.
 > It is not a bespoke store: it is the shared, overlay-resolved locator for the curated-canon
 > home (handbook + decisions) that every canon-centric node depends on. explore's domain read

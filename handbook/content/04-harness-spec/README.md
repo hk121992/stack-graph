@@ -34,10 +34,10 @@ A harness customises by **adding**, in the same node-file format as the factory:
 The result is one traversable graph: a traversal can start in a local entry node and cross
 into vendored branches.
 
-### Binding the product canon
+### Binding the handbook
 
 A canon-centric vendored node (the curator, the drift detector, a context-gathering or design
-node) depends on the **product canon** through a `product-canon` `external: true` reference
+node) depends on the **handbook** through a `handbook` `external: true` reference
 ([`graph-spec`](../02-graph-spec/README.md)). The factory ships only the pointer; the **overlay
 binds it** to this product's canon root + page index (handbook + decisions). This is config the
 harness supplies — a path/index the node navigates on-demand — never a body edit. The vendored

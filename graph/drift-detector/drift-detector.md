@@ -13,7 +13,7 @@ edges:
   composes-into:
     - { id: dev-sprint, stage: specify }
   references:
-    - { id: product-canon, load: on-demand, external: true }
+    - { id: handbook, load: on-demand, external: true }
     - { id: what-belongs, load: on-demand }
 # analytics — the loop
 goals:
@@ -41,7 +41,7 @@ trigger_examples: [<string>, ...]       # optional: moments where drift was susp
 forbidden_terms: [<string>, ...]        # optional: vocabulary the harness has declared off-canon
 ```
 
-Resolve each slug to its page via the canon's page index (follow your `product-canon` reference
+Resolve each slug to its page via the canon's page index (follow your `handbook` reference
 — the overlay binds it to this product's canon root + index), then read only those pages. Do not
 expand into siblings.
 

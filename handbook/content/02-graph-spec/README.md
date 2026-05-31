@@ -119,16 +119,16 @@ resolves the pointer) — DRY + freshness with native output, no `{{token}}` spl
 ([plugin-spec](../03-plugin-spec/README.md)).
 
 A `references` edge may be marked **`external: true`** when its target is **harness-supplied**
-and absent from the factory. The canonical case is the **product canon** — a node whose job
+and absent from the factory. The canonical case is the **handbook** — a node whose job
 touches the consuming product's own handbook + decisions (the curator, the drift detector, a
-context-gathering or design node) depends on a `product-canon` locator (`load: on-demand`); the
+context-gathering or design node) depends on a `handbook` locator (`load: on-demand`); the
 factory ships only the pointer, and the harness **overlay** resolves it to that product's canon
 root + page index ([harness-spec](../04-harness-spec/README.md)). The node then navigates pages
 at the step of need. (Another case is a **crystallization manifest** a self-improving node grows
 in its harness — the asset record it consults.) The factory ships only the consumer's pointer;
 the harness supplies the target. Validation and the build skip an external reference — there is
 no factory file to resolve or single-source. This is **overlay resolution, not `{{token}}`
-injection**: the body carries a stable "follow your `product-canon` reference", and the overlay
+injection**: the body carries a stable "follow your `handbook` reference", and the overlay
 binds what it points at (a path / index) — the binding is harness config, never a body splice.
 
 Shared content destined for a spawned **agent** (e.g. a lens's finding contract) is passed by

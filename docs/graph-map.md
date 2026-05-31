@@ -157,7 +157,7 @@ handbook + repo). The factory self-applies the same pattern via `tooling/sg-hand
 **curated-canon** home; code-map and recall homes have their own writers.
 
 **Reaching the canon (D41).** Canon-centric nodes (`handbook-curator`, `drift-detector`,
-`explore`, later `design`/`specify`) reach the product canon through a shared `product-canon`
+`explore`, later `design`/`specify`) reach the handbook through a shared `handbook`
 `external: true` reference (`load: on-demand`) — overlay-resolved to the product's handbook +
 decisions root/index, navigated on-demand. A locator, never vendored content; not in the factory
 `_refs` (external), so it shows as an edge but not a reference artefact.
