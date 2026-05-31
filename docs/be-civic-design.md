@@ -15,6 +15,38 @@ specifics live in **working docs like this one**, never in the spec. We do not s
 generalising past what BC needs or worrying about "per-harness authoring choice" in the spec —
 we make the choice BC wants, keep the spec's *language* general, and move.
 
+## Behavior contract — what Claude actually does (verified)
+
+The design is only sound if the way we **want** it to behave matches how Claude Code **actually**
+behaves. Verified against the official docs (2026-05-30/31). Each mechanism is tagged:
+**native** = Claude does it for free · **built** = stack-graph must build it · **convention** =
+a vendored node body must be *authored* to do it (not magic).
+
+| Behavior | Verified fact | Kind | Consequence for this design |
+|---|---|---|---|
+| Auto-discovery | Claude scans only `.claude/` + standard paths; **never** arbitrary trees (`handbook/`, `roadmap/`) | native | the handbook is **navigated, not auto-loaded**; its index path must be made ambient deliberately |
+| `CLAUDE.md` cascade | auto-loaded; walks up the tree (root→cwd), nested loaded **lazily** on file-read, all **concatenated** | native | the workspace `CLAUDE.md` (handbook pointer) reaches every child **for free**; keep each level thin |
+| `@`-import | path-agnostic (in/out `.claude`, rel/abs), **eager** at load, recursive ≤4 hops; first external import prompts approval | native | the handbook **index** can be `@`-imported into the workspace `CLAUDE.md` to make it ambient |
+| Skills | name+description **ambient** at session start; body only on invoke | native | ~50 node descriptions are ambient everywhere — cheap, but keep `description` tight |
+| User-scope skills | available in **every** project; absent from the `/` menu (but `/name` + model-invoke still work) | native | vendoring at user scope → graph available everywhere, **no menu clutter** |
+| Precedence on name collision | enterprise > user > **project** (user *overrides* project); **plugin skills are namespaced** → cannot collide | native | **vendor as a namespaced plugin (`stack-graph:*`)** so user-scope never shadows a project overlay — do **not** vendor as loose `~/.claude/skills/` files |
+| Per-directory skill scoping | **does not exist** — all user/plugin skills are ambient in every dir; Claude never hides by directory | native | our "scoped view" is **orientation, not enforcement**; we cannot natively hide irrelevant nodes in a child |
+| `.claude/rules/` | auto-load; with `paths:` frontmatter → **path-gated** to matching globs | native | optional: a path-gated rule can surface a node-owned canon fragment when working in its area |
+| Live-edit watching | all scopes reload on `SKILL.md` edit without restart | native | authoring/iteration is immediate at any level |
+| Trust gate | a project `.claude`'s `allowed-tools` needs the workspace-trust dialog; user/plugin auto-trusted | native | the user-scope vendored graph is auto-trusted; a project overlay's tool pre-approvals wait on trust |
+| Build pipeline | place refs → strip graph keys → place by primitive → index | **built** | refs single-sourced into bundles; the flat plugin is a build output |
+| Composed view (agents/hooks/settings) | these **do not nest** natively | **built** | stack-graph generates the composed agent/hook/settings view per directory |
+| Scoped view + generated child `CLAUDE.md` | not native | **built** | we generate the child's thin `CLAUDE.md` + the scoped-view orientation |
+| External-reference resolution (`handbook`/`code-map`/`assets`) | a vendored node finds the path by **reading the ambient pointer / `bindings.yaml`** | **convention** | the node body must be **authored** to read its binding, then navigate — it is not resolved for us |
+| Crystallisation · instrumentation · event log · code-map | none are native | **built** | all are stack-graph mechanisms layered onto Claude |
+
+**The load-bearing path uses only native behavior:** the workspace `CLAUDE.md` cascades the
+handbook-index pointer into every child; nodes `Read` the index and pages on-demand (path-agnostic);
+the graph is a namespaced plugin available everywhere without collision. Everything tagged **built**
+is stack-graph's own responsibility — it does not come from Claude — and everything tagged
+**convention** must be written into node bodies. That split is the honest answer to "will it behave
+the way we want": the spine does, by native mechanics; the rest is work we own.
+
 ## The three-level scope model
 
 | Level | Holds | Discipline |
@@ -158,8 +190,16 @@ bundle** by the build (copy/symlink), so a skill bundle co-locates the refs it `
       canary/     manifest.md + post-deploy checks
 ```
 
-`bindings.yaml` is the concrete answer to "how does a vendored node find this product's
-handbook":
+Two layers resolve "where is this product's X", and the split matters for reliability:
+
+- **The handbook index path is ambient via the cascading `CLAUDE.md`** (native, load-bearing) —
+  the workspace `CLAUDE.md` says "read `./handbook/content/index.json` at task start", and that
+  reaches every child for free. This is the *guaranteed* path; it's how Be Civic already works.
+- **`bindings.yaml` carries the structured rest** (per-surface repo/label, the code-map and
+  assets paths) for the nodes that need more than the ambient pointer — the curator (repo+label
+  to open PRs), `explore`/code-map (the code-map path), crystallising nodes (the assets path).
+  This is a **convention**: those node bodies are authored to read it. It is *not* magic, and it
+  is the only thing that differs between two harnesses on the same vendored graph.
 
 ```yaml
 bindings:                          # external-reference id  →  where the overlay points it
@@ -211,6 +251,74 @@ reference to a path). Different jobs.
   pointer. No fat hand-maintained chain.
 - **`.stack-graph/`** — everything generated and regenerable (code-map, event log, graph-record),
   gitignored. `.claude/` is authored/committed; `.stack-graph/` is machine output.
+
+## Lifecycle flows (behavior-grounded)
+
+How each artefact actually moves, mechanism by mechanism:
+
+**A child session resolves its context.** Open `~/be-civic/plugin/`. Natively: the workspace
+`CLAUDE.md` (handbook pointer) + the child `CLAUDE.md` cascade in (concatenated); every vendored
+`stack-graph:*` skill is ambient by name+description; local overlay skills are ambient too. The
+agent navigates — `Read`s the handbook index for canon, invokes graph nodes for capability.
+*Reality check:* all ~50 node descriptions are ambient (no native per-dir hiding), so the
+generated `scoped-view.md` is **orientation** ("for this child, these nodes matter"), not a hard
+filter. Keep node descriptions tight so the ambient cost stays low.
+
+**Working → critical (graduation).** A draft lives in a child's `working/`. Its curator
+(`handbook-curator` for canon; lighter `roadmap`/`marketing` curators for working surfaces) raises
+a PR against the matching workspace surface; integrate merges; the portal re-renders. The handbook
+is heavily gated (raise→integrate); high-churn surfaces use a lighter gate. *Native parts:* `gh`
+PRs, git. *Built parts:* the curator nodes and the per-surface gate.
+
+**A node reads canon.** `explore` (domain mode) or `drift-detector` reads its `handbook` binding
+→ the ambient index path → navigates `index.json` → `Read`s the relevant pages on-demand. All
+native (`Read` is path-agnostic); the only authored part is "consult the handbook" in the body.
+
+**A node crystallises.** `benchmark` (etc.) works out this product's specifics on early runs →
+proposes an asset → gated at `reconcile` → committed to `~/be-civic/.claude/assets/benchmark/`
+→ its stable manifest reference (bound via `bindings.yaml: assets`) points there → next run reuses
+it. *Why here:* the node's own bundle is read-only user-scope, so its grown assets must live in
+the committed project-scope overlay.
+
+## Behavior risks & what we must build
+
+Honest list of where "wanted" ≠ "free", so we build/verify rather than assume:
+
+1. **No native per-directory skill scoping.** All user-scope nodes are ambient everywhere; we
+   cannot hide a child's irrelevant nodes. *Mitigation:* tight descriptions + an orientation
+   scoped-view; accept the ambient name/description cost. (If it ever bites, `disable-model-invocation`
+   + path-gated rules are levers.)
+2. **The composed view + scoped view + generated child `CLAUDE.md` are ours to build** — agents,
+   hooks, and settings do not nest natively. This is real build work, not a freebie.
+3. **`bindings.yaml` + external-reference resolution is a convention** — every canon-centric node
+   body must be authored to read its binding. If a node forgets, nothing resolves. Verify in
+   `validate`.
+4. **`@`-import of an external file prompts approval the first time** — if we `@`-import the
+   handbook index from outside `.claude`, the operator sees a one-time approval. Acceptable; note it.
+5. **The portal/UI is a separate render**, not native — each workspace surface needs a renderer
+   (Be Civic already has per-surface `renderer/` + `index.html`).
+6. **`code-map` and `gbrain` are generated/external and capability-gated** — degrade cleanly when
+   absent (already the explore/recall posture).
+
+None of these block the design; they're the line between "Claude gives us this" and "we build
+this", which is exactly what we needed to be explicit about.
+
+## Generalization → the general spec
+
+This doc is BC-concrete; the spec stays general. Each BC element maps to a general concept that
+must be captured in `handbook/content/` (no BC names) — the next step after this design is signed off:
+
+| BC-concrete here | General concept | Spec home (write/amend) |
+|---|---|---|
+| user/workspace/child levels | the **deployment topology** (vendored-at-user / workspace-critical / child-working) | `04-harness-spec` (new section) + `03-plugin-spec` |
+| vendor as namespaced plugin (precedence) | **namespacing neutralizes user>project precedence** | `03-plugin-spec` (amend: precedence rationale) |
+| critical-output-vs-working-document; graduation | **surfaces have disciplines (canonical/working) + a graduation gate** | a concept page + `06-analytics` (the loop) |
+| `bindings.yaml`, ambient index | **external-reference resolution = ambient pointer + overlay binding** | `02-graph-spec` (external refs) + `04-harness-spec` (binding) |
+| handbook/roadmap/marketing/risk as surfaces + curators | the **canon-surface + curator family** pattern | `05-maintenance-skill` or a new canon page; D40 |
+| scoped view / composed view / generated CLAUDE.md | **per-directory composition is generated** | `04-harness-spec` (D12 — make concrete) |
+| the verified native mechanics | **the runtime loading/discovery contract** | a new `03`/runtime page (so the spec records what we rely on) |
+| functions as arcs / lenses / packs | **a function is a process = arc(s)/lens(es) over the graph** | `01-concepts` (arcs) + `07-decomposition` |
+| no per-dir skill scoping (orientation only) | **scoped view is advisory, not enforcement** | `04-harness-spec` (state the limit) |
 
 ## Open / next
 
