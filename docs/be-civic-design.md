@@ -36,7 +36,7 @@ a vendored node body must be *authored* to do it (not magic).
 | Trust gate | a project `.claude`'s `allowed-tools` needs the workspace-trust dialog; user/plugin auto-trusted | native | the user-scope vendored graph is auto-trusted; a project overlay's tool pre-approvals wait on trust |
 | Build pipeline | place refs → strip graph keys → place by primitive → index | **built** | refs single-sourced into bundles; the flat plugin is a build output |
 | Composed view (agents/hooks/settings) | these **do not nest** natively | **built** | stack-graph generates the composed agent/hook/settings view per directory |
-| Scoped view + generated child `CLAUDE.md` | not native | **built** | we generate the child's thin `CLAUDE.md` + the scoped-view orientation |
+| Per-directory `CLAUDE.md` | not native to *generate*; cascade IS native | **built (only if needed)** | we do **not** generate a per-child `CLAUDE.md` by default — the org-root one cascades in; a local one (or a composed agent/hook view) is added only where a directory needs it |
 | External-reference resolution (`handbook`/`code-map`/`assets`) | a vendored node finds the path by **reading the ambient pointer / `bindings.yaml`** | **convention** | the node body must be **authored** to read its binding, then navigate — it is not resolved for us |
 | Crystallisation · instrumentation · event log · code-map | none are native | **built** | all are stack-graph mechanisms layered onto Claude |
 
@@ -49,27 +49,27 @@ the way we want": the spine does, by native mechanics; the rest is work we own.
 
 ## The three-level scope model
 
-Three scope **roles**, realised in a tree where a dedicated **workspace directory** holds the
-company docs and the **product children** sit beside it (matching Be Civic's `bc-workspace/` today):
+Roles, realised in a tree with **one `CLAUDE.md`** (at the org root), a **docs-only workspace**, and
+**a directory per function** (matching Be Civic's `bc-workspace/` + product repos today):
 
-| Role | Directory | Holds | Discipline |
-|---|---|---|---|
-| **User scope** | `~/.claude/` | the vendored, generic stack-graph graph + machinery | read-only, never touched |
-| **Org root** | `~/be-civic/` | the **cascade anchor**: a thin `CLAUDE.md` (handbook pointer) + the overlay + settings; contains the workspace and the product children | orientation only |
-| **Workspace** | `~/be-civic/workspace/` | **critical / company-level docs, rendered as one space** — handbook, roadmap, marketing plan, risk register, design system, … + the render machinery | canonical / critical |
-| **Child** (product or working project) | `~/be-civic/<product>/` | **working files + its own scoped graph** — source, drafts, alternates, archives | working / per-project |
+| Role | Directory | Holds |
+|---|---|---|
+| **User scope** | `~/.claude/` | the vendored, generic stack-graph graph + machinery (read-only) |
+| **Org root** | `~/be-civic/` | the **single project `CLAUDE.md`** (navigation) + the overlay + the references we author (handbook index, `bindings`, navigation material) |
+| **Workspace** | `~/be-civic/workspace/` | **docs / output ONLY** — the rendered critical documents (handbook, roadmap, marketing plan, risk register, design system, …), one navigable space |
+| **Function directories** | `~/be-civic/<function>/` | each function's **working space**: engineering (the products), product (PM working), marketing (campaigns), legal (matters) |
 
-Rule: **critical / company-level docs live in the dedicated `workspace/` directory** (so they are
-referable from anywhere and render as one navigable space); **working documents live in a child.**
-Working → critical is a *graduation* gated by that surface's curator (handbook = heavy raise/integrate;
-working surfaces = lighter).
+**One `CLAUDE.md`, at the org root — we do not proliferate them.** The workspace gets none; function
+directories get none to start. The single project `CLAUDE.md` + the **graph** (ambient skill metadata,
+available in every directory) + the **references** we author are the assumed-sufficient navigation. A
+per-directory `CLAUDE.md` is added *later, only if* a directory proves to need local orientation.
+(Native support: the org-root `CLAUDE.md` cascades *down* into every function/product directory for
+free — so a child inherits it without having its own.)
 
-The **org-root `CLAUDE.md` is the cascade anchor.** It carries the handbook-index pointer, and
-because it is an ancestor of *both* the workspace and every product child, that pointer reaches all
-of them natively. (A sibling `workspace/CLAUDE.md` would **not** cascade into the product children —
-they are siblings, not descendants — so the pointer must sit at the org root.) Every level's
-`CLAUDE.md` stays thin and pointer-based; a child's is **generated from its scoped view**. The graph
-is the "what can I do here" mechanism; the handbook index is the "what's settled" one. No fat chains.
+**The workspace is output, not work.** Functions do their work in their own directories; their
+**critical outputs graduate into the workspace** (gated by the surface's curator — handbook = heavy
+raise/integrate, working surfaces = lighter) where they are rendered. Drafts, alternates, and
+archives stay in the function directory.
 
 ## The four functions
 
@@ -98,37 +98,31 @@ plan, risk register). The split is by canonicity/churn.
       · curators:      handbook-curator, roadmap-curator, marketing-curator, … (the family)
     (+ maintainer / build / analytics machinery — not user-touched)
 
-~/be-civic/                             ORG ROOT — cascade anchor (not a doc home itself)
-  CLAUDE.md                                thin: orientation + handbook-index pointer (→ workspace; cascades to ALL below)
-  .claude/                                 harness OVERLAY: bc entry nodes, bc-only nodes, stack-graph/bindings.yaml, settings
-  .stack-graph/                            generated/local (gitignored): graph-record, scoped views, analytics rollups
+~/be-civic/                      ORG ROOT — the ONE CLAUDE.md; cascade anchor
+  CLAUDE.md                        navigation: handbook-index pointer + how to use the graph + refs (cascades to ALL below)
+  .claude/                         overlay: bc entry nodes, bc-only nodes, settings; references (incl. bindings) read on-demand
+  .stack-graph/                    generated/local (gitignored): graph-record, analytics rollups
 
-  workspace/                            THE WORKSPACE — critical / company docs, rendered as ONE space
-    handbook/   content/<NN>/ + index.json    ─┐ Engineering & design (canonical)
-    design-system/                             ─┘
-    roadmap/                                   ─┐ Product management
-    product/    (value-prop / BM canvas / bmd)  ─┘
-    marketing/  (plan, messaging, channels)    ── Marketing & communications
-    risk/  legal/                              ── Legal & risk (register, policies)
-    portal/                                    the unified UI ("one space, many apps") — rendered output
-    .workspace-build/                          render machinery (handbook renderer ✓, workspace UI build, …)
+  workspace/                     DOCS / OUTPUT ONLY — rendered as one navigable space (no CLAUDE.md)
+    handbook/   content/<NN>/ + index.json     canonical reference
+    roadmap/  marketing-plan/  risk-register/  design-system/  product-canvas/
+    portal/                                     unified UI ("one space, many apps")
+    .workspace-build/                           render machinery (handbook renderer ✓, workspace UI build)
 
-  ── product children (SIBLINGS of the workspace; each its own scoped graph + working files) ──
-  ├── plugin/            the Belgian-admin agent corpus (be-civic product)
-  │     CLAUDE.md          generated thin scoped pointer
-  │     .claude/           overlay + generated scoped-view
-  │     skills/ data/ …    product source
-  │     working/           drafts, alternates, archives
-  │     .stack-graph/      child-local generated (code-map, events)
-  ├── knowledge-graph/   taxcalc/   landing/   renderer-core/    more products
-  ├── campaigns/<id>/    marketing working project → plan graduates to workspace/marketing/
-  └── matters/<id>/      legal working matter → entries graduate to workspace/risk/
+  ── function directories (siblings of the workspace; where the work happens; no own CLAUDE.md to start) ──
+  engineering/                   the products (each its own repo: scoped graph + working files)
+    plugin/  knowledge-graph/  taxcalc/  landing/  renderer-core/
+  product/                       PM working: discovery, experiments, drafts   → graduates to roadmap + product-canvas
+  marketing/                     marketing working: campaigns, content drafts → graduates to marketing-plan
+  legal/                         legal working: matters, contract drafts      → graduates to risk-register
 ```
 
-A **child** is any working project dir — a code product, a marketing campaign, or a legal
-matter — sitting **beside** the workspace, not inside it. Its scoped graph surfaces the function
-pack(s) relevant to it + the spine. Its critical output **graduates up to the matching
-`workspace/` surface**; its drafts/alternates/archives stay local.
+The **workspace holds only docs/output**; the **functions work in their own directories** beside it.
+A function directory holds that function's working files (engineering: the product repos; marketing:
+campaigns; legal: matters; product: discovery); its **critical output graduates into the matching
+`workspace/` surface** (rendered), while drafts/alternates/archives stay in the function directory.
+None of these directories needs its own `CLAUDE.md` to start — the org-root `CLAUDE.md` cascades in,
+and the graph + references carry navigation.
 
 ## The workspace: one space, many apps
 
@@ -222,11 +216,18 @@ Two layers resolve "where is this product's X", and the split matters for reliab
   the **org-root** `CLAUDE.md` says "read `./workspace/handbook/content/index.json` at task start",
   and that reaches the workspace and every child for free. This is the *guaranteed* path; it's how
   Be Civic already works.
-- **`bindings.yaml` carries the structured rest** (per-surface repo/label, the code-map and
-  assets paths) for the nodes that need more than the ambient pointer — the curator (repo+label
-  to open PRs), `explore`/code-map (the code-map path), crystallising nodes (the assets path).
-  This is a **convention**: those node bodies are authored to read it. It is *not* magic, and it
-  is the only thing that differs between two harnesses on the same vendored graph.
+- **`bindings` carries the structured rest** (per-surface repo/label, the code-map and assets
+  paths) for the nodes that need more than the ambient pointer — the curator (repo+label to open
+  PRs), `explore`/code-map (the code-map path), crystallising nodes (the assets path). This is a
+  **convention**: those node bodies are authored to read it, and it is the only thing that differs
+  between two harnesses on the same vendored graph.
+
+  **`bindings` is a *reference*, not a Claude-native config.** `.claude/` only auto-loads
+  `skills/`/`agents/`/`commands/`/`rules/`/`CLAUDE.md`/`settings.json` — an arbitrary path like
+  `.claude/stack-graph/bindings.yaml` gets **no special treatment**; it is inert until a node
+  `Read`s it. So it behaves exactly like any reference (on-demand), pointed at from the one
+  `CLAUDE.md`. It could live anywhere; under `.claude/` is just tidy. Don't mistake it for a
+  config Claude resolves for us.
 
 ```yaml
 bindings:                          # external-reference id  →  where the overlay points it (org-root relative)
@@ -243,22 +244,25 @@ Two distinct overlay mechanisms: **`overlay` edges** live in local node frontmat
 local node to a vendored one); **bindings** live in `bindings.yaml` (resolve an `external: true`
 reference to a path). Different jobs.
 
-### 3. Child — e.g. `~/be-civic/plugin/.claude/` (per-product)
+### 3. A product directory — e.g. `~/be-civic/engineering/plugin/` (per-product)
+
+**No `CLAUDE.md` of its own to start** — it inherits the org-root one by cascade. It carries only
+what is genuinely product-local:
 
 ```
-~/be-civic/plugin/               the Belgian-admin agent product
-  CLAUDE.md                      GENERATED thin scoped pointer (regenerable from the scoped view)
+~/be-civic/engineering/plugin/   the Belgian-admin agent product
   .claude/
-    stack-graph/
-      bindings.yaml              child overrides only (code-map → ./.stack-graph/code-map);
-                                 inherits the workspace handbook/roadmap bindings by cascade
-      scoped-view.md             GENERATED: vendored graph + workspace overlay + this child's overlay
     skills/  agents/             child-local overlay nodes (usually none)
-    assets/<node-id>/            child-specific crystallised assets
+    assets/<node-id>/            product-specific crystallised assets (committed)
+    bindings.yaml                OPTIONAL: only product-local overrides (e.g. code-map path); a reference, read on-demand
   skills/ data/ …                the product source (the corpus)
-  working/                       drafts, alternates, archives (NON-critical, stays local)
-  .stack-graph/                  generated/local (gitignored): code-map/, events.jsonl, graph-record.json
+  working/                       drafts, alternates, archives (NON-critical)
+  .stack-graph/                  generated/local (gitignored): code-map/, events.jsonl
 ```
+
+A per-product `CLAUDE.md`, or a generated composed view, is added **only if needed** — agents/hooks
+don't nest, so *if* a product relies on local agents we generate their composed view there;
+otherwise nothing. The default is: org-root `CLAUDE.md` cascades in, graph + references do the rest.
 
 ### The non-obvious files, explained
 
@@ -273,9 +277,10 @@ reference to a path). Different jobs.
   between two harnesses on the same vendored graph.
 - **`.claude/assets/<node-id>/`** — committed crystallised assets; a vendored node's stable
   manifest reference binds here (it can't write into its own read-only user-scope bundle).
-- **`scoped-view.md` + generated `CLAUDE.md`** — a child doesn't hand-author its context; the
-  scoped view (vendored + ancestor overlays + own) is generated, and the thin `CLAUDE.md` is its
-  pointer. No fat hand-maintained chain.
+- **One `CLAUDE.md` (org root); none per child by default** — a working directory inherits the
+  org-root `CLAUDE.md` by cascade and navigates via the graph + references. We do **not** generate
+  a per-child `CLAUDE.md`. A local `CLAUDE.md` or a generated composed agent/hook view is added
+  only where a directory genuinely needs it (e.g. local agents, which don't nest natively).
 - **`.stack-graph/`** — everything generated and regenerable (code-map, event log, graph-record),
   gitignored. `.claude/` is authored/committed; `.stack-graph/` is machine output.
 
@@ -283,14 +288,14 @@ reference to a path). Different jobs.
 
 How each artefact actually moves, mechanism by mechanism:
 
-**A child session resolves its context.** Open `~/be-civic/plugin/`. Natively: the **org-root**
-`CLAUDE.md` (handbook pointer) + the child `CLAUDE.md` cascade in (concatenated) — note the sibling
-`workspace/CLAUDE.md` does *not*, which is exactly why the handbook pointer sits at the org root;
-every vendored `stack-graph:*` skill is ambient by name+description; local overlay skills too. The
-agent navigates — `Read`s the handbook index for canon, invokes graph nodes for capability.
-*Reality check:* all ~50 node descriptions are ambient (no native per-dir hiding), so the
-generated `scoped-view.md` is **orientation** ("for this child, these nodes matter"), not a hard
-filter. Keep node descriptions tight so the ambient cost stays low.
+**A working session resolves its context.** Open `~/be-civic/engineering/plugin/`. Natively: the
+**org-root** `CLAUDE.md` (handbook pointer) cascades in — there is **no child `CLAUDE.md` by
+default**, and the sibling `workspace/CLAUDE.md` would not cascade anyway, which is exactly why the
+pointer sits at the org root. Every vendored `stack-graph:*` skill is ambient by name+description;
+local overlay skills too. The agent navigates — `Read`s the handbook index for canon, invokes graph
+nodes for capability, reads the `bindings` reference for paths. *Reality check:* all ~50 node
+descriptions are ambient (no native per-dir hiding), so any generated orientation view is
+**advisory**, not a hard filter. Keep node descriptions tight so the ambient cost stays low.
 
 **Working → critical (graduation).** A draft lives in a child's `working/`. Its curator
 (`handbook-curator` for canon; lighter `roadmap`/`marketing` curators for working surfaces) raises
@@ -316,8 +321,10 @@ Honest list of where "wanted" ≠ "free", so we build/verify rather than assume:
    cannot hide a child's irrelevant nodes. *Mitigation:* tight descriptions + an orientation
    scoped-view; accept the ambient name/description cost. (If it ever bites, `disable-model-invocation`
    + path-gated rules are levers.)
-2. **The composed view + scoped view + generated child `CLAUDE.md` are ours to build** — agents,
-   hooks, and settings do not nest natively. This is real build work, not a freebie.
+2. **Composed views are ours to build, but only where needed** — agents/hooks/settings don't nest
+   natively. We start with **one org-root `CLAUDE.md`** (no per-child generation); a composed
+   agent/hook view is generated only for a directory that has local agents/hooks. Don't pre-build
+   per-child context.
 3. **`bindings.yaml` + external-reference resolution is a convention** — every canon-centric node
    body must be authored to read its binding. If a node forgets, nothing resolves. Verify in
    `validate`.
@@ -344,7 +351,8 @@ must be captured in `handbook/content/` (no BC names) — the next step after th
 | critical-output-vs-working-document; graduation | **surfaces have disciplines (canonical/working) + a graduation gate** | a concept page + `06-analytics` (the loop) |
 | `bindings.yaml`, ambient index | **external-reference resolution = ambient pointer + overlay binding** | `02-graph-spec` (external refs) + `04-harness-spec` (binding) |
 | handbook/roadmap/marketing/risk as surfaces + curators | the **canon-surface + curator family** pattern | `05-maintenance-skill` or a new canon page; D40 |
-| scoped view / composed view / generated CLAUDE.md | **per-directory composition is generated** | `04-harness-spec` (D12 — make concrete) |
+| one org-root CLAUDE.md (no per-child generation); composed view only where needed | **minimise CLAUDE.md; navigate via graph + references; per-directory composition generated only on demand** | `04-harness-spec` (D12 — make concrete) |
+| `bindings` is a reference, not a Claude slot | **non-recognised `.claude/` paths are inert (on-demand only); only the standard slots auto-load** | `03`/runtime page (the loading contract) |
 | the verified native mechanics | **the runtime loading/discovery contract** | a new `03`/runtime page (so the spec records what we rely on) |
 | functions as arcs / lenses / packs | **a function is a process = arc(s)/lens(es) over the graph** | `01-concepts` (arcs) + `07-decomposition` |
 | no per-dir skill scoping (orientation only) | **scoped view is advisory, not enforcement** | `04-harness-spec` (state the limit) |
