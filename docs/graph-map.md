@@ -73,7 +73,7 @@ not a file.
 | `optimise` | skill | generate impl variants → benchmark each → select winner | build (perf-critical); standalone | the generate-measure-select shape; composes worktree + benchmark |
 | `ship` | skill | tests→coverage→version→commit→PR (ends at PR) | land; standalone | |
 | `deploy` | skill | merge → deploy → wait | land | modes: staging-first/prod-direct/staging-only |
-| `canary` | agent | post-deploy health on live prod | land; standalone | **crystallizing (D35)** — builds product-specific post-deploy canary assets, can't be a fixed factory script; uses browse; modes: quick/full |
+| `canary` | agent | post-deploy health on live prod | land; standalone | **crystallizing (D35)** — builds product-specific post-deploy canary references + scripts, can't be a fixed factory script; uses browse; modes: quick/full |
 | `scrape` | skill | read-only data extraction | standalone (peripheral) | uses browse |
 
 ## Lens family (shared; D27)
@@ -125,8 +125,8 @@ side of the context axis, not the isolated agent shape the lenses take.
 | `link-validator` | agent | validate cross-references + `related[]` links across pages | handbook-curator (integrate) |
 | `setup-browser-cookies` | skill | import auth cookies (JIT precondition) | qa, design-review |
 | `design-consultation` | skill | create DESIGN.md from scratch | design-review (loads, prerequisite) |
-| `benchmark` | agent | measure perf (load, web-vitals, bundle) vs baseline; before/after + trend — **crystallizing (D35)**, builds product-specific perf assets | review (perf lens), land, optimise, debrief |
-| `health` | agent | composite code-quality score + trend (types/lint/tests/dead-code) — **crystallizing (D35)**, builds product-specific quality-check assets | review, debrief |
+| `benchmark` | agent | measure perf (load, web-vitals, bundle) vs baseline; before/after + trend — **crystallizing (D35)**, builds product-specific perf references + scripts | review (perf lens), land, optimise, debrief |
+| `health` | agent | composite code-quality score + trend (types/lint/tests/dead-code) — **crystallizing (D35)**, builds product-specific quality-check references + scripts | review, debrief |
 
 `explore` modes (body branches of the one `explore` node, not separate nodes — D34): `repo` / `learnings` / `framework-docs` / `web` / `best-practices`.
 
@@ -138,7 +138,7 @@ handbook + repo). The factory self-applies the same pattern via `tooling/sg-hand
 
 | id | primitive | goal | fleet / refs |
 |---|---|---|---|
-| `handbook-curator` | skill | maintain the curated-canon home; modes (body branches, D34): `sweep` / `raise` / `integrate` / `refresh-index` | invokes `drift-detector`, `pr-author`, `queue-checker`, `consistency-checker`, `link-validator`; references `what-belongs` / `pr-description-shape` / `bundling-rules` / `integrator-checklist`; bundles the `refresh-index` script (co-located operational asset) |
+| `handbook-curator` | skill | maintain the curated-canon home; modes (body branches, D34): `sweep` / `raise` / `integrate` / `refresh-index` | invokes `drift-detector`, `pr-author`, `queue-checker`, `consistency-checker`, `link-validator`; references `what-belongs` / `pr-description-shape` / `bundling-rules` / `integrator-checklist`; bundles the `refresh-index` script (co-located operational script) |
 
 **The arc (cyclic — the canon analogue of `reconcile`(open) → `land`(gate)):**
 
@@ -178,14 +178,15 @@ Three shapes recur across the graph — author them once and reuse, rather than 
   stored baseline, emit a trend point — *measurement, not judgment*. Instances: `benchmark` (perf),
   `canary` (post-deploy health), `health` (code quality). All are browse/tool-driven, feed the
   relevant lens + `debrief`'s trends, and are deterministic in shape.
-- **Crystallization (compounding assets) (D35).** A product-dependent node is an **agent** that
-  crystallizes generative reasoning into reusable, co-located, **harness-local assets** (scripts /
-  configs / checklists) behind a **stable `references` edge to an asset manifest** — so the node
-  **body never changes**; later runs load and reuse the assets deterministically and reason
-  generatively only about what is new or has drifted, so the **generative fraction declines per
-  run**; new/changed assets are gated at `reconcile`. Instances: `benchmark` / `health` / `canary`
-  (perf / quality / post-deploy assets), `qa` (test flows), `design-review` / `security`
-  (DESIGN.md / threat model). **`explore` is *not* here (D38)** — its "asset" was product
+- **Crystallization (compounding references + scripts) (D35, refined D42).** A product-dependent
+  node is an **agent** that crystallizes generative reasoning into reusable, **harness-local
+  references + scripts** (the canonical primitives, not a separate "assets" kind) behind a **stable
+  `references` edge to a manifest** + `invokes` edges to scripts — so the node **body never
+  changes**; later runs load and reuse them deterministically and reason generatively only about
+  what is new or has drifted, so the **generative fraction declines per run**; new/changed ones are
+  gated at `reconcile`. Instances: `benchmark` / `health` / `canary` (perf / quality / post-deploy),
+  `qa` (test flows), `design-review` / `security` (DESIGN.md / threat model). **`explore` is *not*
+  here (D38)** — its output was product
   *knowledge*, which lives in the substrate homes (code-map / recall / canon), so explore
   *consumes* the substrate rather than crystallizing a co-located manifest.
 

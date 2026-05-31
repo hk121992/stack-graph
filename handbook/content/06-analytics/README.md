@@ -84,18 +84,18 @@ harness loop — defined in [`devops`](../08-devops/README.md).
 
 A product-dependent node does not only get improved by the PR loop above — it **improves
 itself as it runs**. On early runs it reasons generatively to work out the specific product;
-it **crystallizes** that into reusable **assets** (product-specific scripts, configs,
-checklists) co-located in the node's own directory and kept harness-local
-([`harness-spec`](../04-harness-spec/README.md)). Later runs load those assets, reuse them
-deterministically, and reason only about what is new or has drifted — so the **generative
-fraction declines** with use and the node grows cheaper and more consistent. The body never
-changes: it carries a stable `references` edge to an asset **manifest** (what the node has, how
-to operate on this product); only the manifest and assets grow. New assets are gated at
-`reconcile`, like any other change. This is the loop one level down and on a faster clock — the
-PR loops improve a node's *definition*; crystallization improves its *effectiveness within a
-harness*, automatically. It is **measurable**: a falling generative fraction per run is the node
-compounding; a fraction that never falls means the node is not building reusable assets — itself
-an earns-keep signal.
+it **crystallizes** that into reusable **references and scripts** — the canonical `.claude`
+primitives ([`graph-spec`](../02-graph-spec/README.md)), not a separate kind — kept harness-local
+([`harness-spec`](../04-harness-spec/README.md)). Later runs load those references, run those
+scripts, and reason only about what is new or has drifted — so the **generative fraction
+declines** with use and the node grows cheaper and more consistent. The body never changes: it
+carries a stable `references` edge to a **manifest** (what the node has, how to operate on this
+product) and `invokes` edges to its scripts; only the manifest and scripts grow. New ones are
+gated at `reconcile`, like any other change. This is the loop one level down and on a faster
+clock — the PR loops improve a node's *definition*; crystallization improves its *effectiveness
+within a harness*, automatically. It is **measurable**: a falling generative fraction per run is
+the node compounding; a fraction that never falls means the node is not building reusable
+references/scripts — itself an earns-keep signal.
 
 ## The knowledge substrate
 
@@ -109,8 +109,8 @@ Knowledge lives in four homes, routed by what it *is*:
   authored.
 - **Recall** — the surrounding reasoning and transcripts, retrieved semantically
   ([`recall-substrate`](01-recall-substrate.md)). Derived, not canonical.
-- **Operational references** — executable assets a node runs (scripts, configs, checklists),
-  co-located with the node ([`graph-spec`](../02-graph-spec/README.md)).
+- **Operational references and scripts** — the references a node reads and the scripts it runs
+  (checklists, configs, executables), harness-local ([`graph-spec`](../02-graph-spec/README.md)).
 
 Curation, extraction, and recall are different jobs; all are kept. Analytics feeds recall; the
 canon records what the loop concludes.
