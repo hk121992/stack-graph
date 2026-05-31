@@ -35,7 +35,7 @@ a vendored node body must be *authored* to do it (not magic).
 | Live-edit watching | all scopes reload on `SKILL.md` edit without restart | native | authoring/iteration is immediate at any level |
 | Trust gate | a project `.claude`'s `allowed-tools` needs the workspace-trust dialog; user/plugin auto-trusted | native | the user-scope vendored graph is auto-trusted; a project overlay's tool pre-approvals wait on trust |
 | Build pipeline | place refs → strip graph keys → place by primitive → index | **built** | refs single-sourced into bundles; the flat plugin is a build output |
-| Composed view (agents/hooks/settings) | these **do not nest** natively | **built** | stack-graph generates the composed agent/hook/settings view per directory |
+| Composed view (agents/hooks/settings) | these **do not nest** natively; launch-dir-scoped | **not needed (one `.claude`)** | with the single org-root `.claude` holding all local agents/hooks/settings and always launching there, there is nothing to merge — the composed view is avoided |
 | Per-directory `CLAUDE.md` | not native to *generate*; cascade IS native | **built (only if needed)** | we do **not** generate a per-child `CLAUDE.md` by default — the org-root one cascades in; a local one (or a composed agent/hook view) is added only where a directory needs it |
 | External-reference resolution (`handbook`/`code-map`/`assets`) | a vendored node finds the path by **reading the ambient pointer / `bindings.yaml`** | **convention** | the node body must be **authored** to read its binding, then navigate — it is not resolved for us |
 | Crystallisation · instrumentation · event log · code-map | none are native | **built** | all are stack-graph mechanisms layered onto Claude |
@@ -57,7 +57,7 @@ Roles, realised in a tree with **one `CLAUDE.md`** (at the org root), a **docs-o
 | **User scope** | `~/.claude/` | the vendored, generic stack-graph graph + machinery (read-only) |
 | **Org root** | `~/be-civic/` | the **single project `CLAUDE.md`** (navigation) + the overlay + the references we author (handbook index, `bindings`, navigation material) |
 | **Workspace** | `~/be-civic/workspace/` | **docs / output ONLY** — the rendered critical documents (handbook, roadmap, marketing plan, risk register, design system, …), one navigable space |
-| **Function directories** | `~/be-civic/<function>/` | each function's **working space**: engineering (the products), product (PM working), marketing (campaigns), legal (matters) |
+| **Function directories** | `~/be-civic/<function>/` | each function's **working space** (working files + source only; **no `.claude`** — local graph elements live in the org `.claude`): engineering (the products), product (PM working), marketing (campaigns), legal (matters) |
 
 **One `CLAUDE.md`, at the org root — we do not proliferate them.** The workspace gets none; function
 directories get none to start. The single project `CLAUDE.md` + the **graph** (ambient skill metadata,
@@ -86,16 +86,18 @@ right default:
   and the user-scope vendored **plugin** (whose skills *and* agents are global); a child product's
   *local* agents/hooks/settings do **not** auto-activate.
 
-That last point is exactly why the **composed view** exists: to make the agents/hooks/settings that
-*should* apply available from the single org-root entry point, stack-graph generates a merged set
-there (vendored + org overlay + the relevant children). The alternative for deep work in one product
-is to launch Claude *inside* it (you keep all ancestor CLAUDE.md/skills by cascade, and take that
-product's own agents/hooks).
+**Decision — one `.claude`, at the org root.** Because agents/hooks/settings are launch-dir-scoped
+and we always launch at `~/be-civic/`, there is exactly **one** `.claude` — `~/be-civic/.claude/` —
+and **every locally-authored graph element lands there** (local skills, agents, hooks, settings,
+crystallised assets, the bindings reference), product/function-specific or not. Function and product
+directories hold **working files + source only; no `.claude`**.
 
-A working directory needs **no `CLAUDE.md` of its own** for its local `.claude/skills` and
-`.claude/agents` to be found — `.claude/` is scanned independently of `CLAUDE.md`. Children may
-freely carry local skills/agents (and they should); a child `CLAUDE.md` is *optional orientation*,
-never a navigation requirement.
+This **dissolves the composed-view problem**: all local agents/hooks/settings already sit in the
+launch directory, so they are natively active alongside the global vendored **plugin** — there are
+no child `.claude` directories to merge. (The composed/scoped-view machinery would only return if we
+later chose to give a child its own `.claude`; we are not, for now.) Discovery is still independent
+of `CLAUDE.md` — `.claude/` is scanned regardless — so the single `.claude` needs no `CLAUDE.md`
+ceremony beyond the org-root one.
 
 **Correction to earlier drafts:** CLAUDE.md *does* cascade (ancestors load, even across git repos);
 agents/hooks/settings do *not* (they follow the launch directory). "Always start in `be-civic/`" is
@@ -240,15 +242,17 @@ single-sourced `_preamble.md` (instrumentation, `load: import`); built cells als
 │
 ├── be-civic/                                           ORG ROOT — the one CLAUDE.md; cascade anchor
 │   ├── CLAUDE.md                                       navigation: handbook-index pointer + how to use the graph + references
-│   ├── .claude/                                        harness overlay (committed)
-│   │   ├── settings.json                               harness settings + generated composed agent/hook view
-│   │   ├── skills/
+│   ├── .claude/                                        THE single local .claude — ALL locally-authored graph elements live here (committed)
+│   │   ├── settings.json                               one settings.json governs the whole launch
+│   │   ├── skills/                                      every local skill (any product/function) — flat here, not in child dirs
 │   │   │   ├── bc-corpus-creator/
 │   │   │   │   └── SKILL.md                             bc-only local node (authors the product corpus)
-│   │   │   └── bc-onboard/
-│   │   │       └── SKILL.md                             entry node → `overlay` edge into vendored align-context
-│   │   ├── agents/
-│   │   │   └── bmd-curator.md                           bc-only local node (business-model discovery)
+│   │   │   ├── bc-onboard/
+│   │   │   │   └── SKILL.md                             entry node → `overlay` edge into vendored align-context
+│   │   │   └── <product/function-specific local skills>
+│   │   ├── agents/                                      every local agent (any product/function) — flat here
+│   │   │   ├── bmd-curator.md                           bc-only local node (business-model discovery)
+│   │   │   └── <product/function-specific local agents>
 │   │   ├── stack-graph/
 │   │   │   └── bindings.yaml                            a reference (on-demand), NOT a Claude slot
 │   │   └── assets/                                      crystallised assets — committed (D35 manifest binds here)
@@ -267,9 +271,9 @@ single-sourced `_preamble.md` (instrumentation, `load: import`); built cells als
 │   │           └── checks.json
 │   ├── .stack-graph/                                   generated/local, gitignored
 │   │   ├── graph-record.json
-│   │   └── analytics/
-│   ├── .gbrain/                                        RECALL substrate — local, gitignored; prose/reasoning/decisions; queried via MCP, capability-gated (D31/D39)
-│   │   └── .gbrain-source                              the workspace's one registered gbrain source
+│   │   ├── code-map/                                   per-product (AST: repo-map + ast-grep, D39)
+│   │   └── analytics/                                  event log + rollups
+│   ├── .gbrain-source                                  registers this workspace as a SOURCE in the one host brain (recall; MCP scopes by --source; capability-gated, D31/D39)
 │   │
 │   ├── workspace/                                      DOCS / OUTPUT ONLY — rendered as one space; no CLAUDE.md
 │   │   ├── handbook/
@@ -288,21 +292,11 @@ single-sourced `_preamble.md` (instrumentation, `load: import`); built cells als
 │   │   ├── portal/                                     unified UI ("one space, many apps")
 │   │   └── .workspace-build/                           render machinery (workspace UI build)
 │   │
-│   ├── engineering/                                    FUNCTION DIRECTORY — the products (each its own repo)
-│   │   ├── plugin/                                     the Belgian-admin agent product (no CLAUDE.md — inherits org root)
-│   │   │   ├── .claude/
-│   │   │   │   ├── skills/                             child-local overlay nodes (usually none)
-│   │   │   │   ├── agents/                             child-local overlay nodes (usually none)
-│   │   │   │   ├── assets/
-│   │   │   │   │   └── <node-id>/                      product-specific crystallised assets (committed)
-│   │   │   │   └── stack-graph/
-│   │   │   │       └── bindings.yaml                   OPTIONAL product-local overrides (a reference, on-demand)
+│   ├── engineering/                                    FUNCTION DIRECTORY — the products (each its own repo; SOURCE ONLY, no .claude)
+│   │   ├── plugin/                                     the Belgian-admin agent product (graph elements live in the org .claude)
 │   │   │   ├── skills/                                 the product source (the corpus)
 │   │   │   ├── data/
-│   │   │   ├── working/                                drafts, alternates, archives (NON-critical)
-│   │   │   └── .stack-graph/                           generated/local, gitignored
-│   │   │       ├── code-map/
-│   │   │       └── events.jsonl
+│   │   │   └── working/                                drafts, alternates, archives (NON-critical)
 │   │   ├── knowledge-graph/
 │   │   ├── taxcalc/
 │   │   ├── landing/
@@ -318,10 +312,10 @@ single-sourced `_preamble.md` (instrumentation, `load: import`); built cells als
 │       └── working/
 │
 └── founder-ops/                                        PEER WORKSPACE (TODO) — the operator's own ops; exec-assistant Claude
-    ├── CLAUDE.md                                       navigation (own org root)
-    ├── .claude/                                        own overlay: exec-assistant entry node, personal-context nodes, bindings
-    ├── .gbrain/                                        own RECALL substrate (personal; separate source from be-civic)
+    ├── CLAUDE.md                                       own org root (launched separately)
+    ├── .claude/                                        own single local .claude (exec-assistant entry node, personal-context nodes, bindings)
     ├── .stack-graph/                                   generated/local, gitignored
+    ├── .gbrain-source                                  own SOURCE in the same host brain (personal recall; separate from be-civic)
     └── workspace/                                      personal docs/output (calendar, comms, decisions, …) — design later
 ```
 
@@ -396,10 +390,12 @@ node to a vendored one); **`bindings`** resolve an `external: true` reference to
 **Crystallised assets -> `.claude/assets/<node-id>/` (committed).** A vendored node's stable manifest
 reference binds here — it can't write into its own read-only user-scope bundle.
 
-**One `CLAUDE.md` (org root); none per child by default.** A working directory inherits the org-root
-`CLAUDE.md` by cascade and navigates via the graph + references. We do not generate a per-child
-`CLAUDE.md`; a local one (or a generated composed agent/hook view) is added only where a directory
-genuinely needs it (e.g. local agents, which don't nest natively).
+**One `.claude` and one `CLAUDE.md`, both at the org root.** Every locally-authored graph element
+(skills, agents, hooks, settings, crystallised assets, the bindings reference) lives in
+`~/be-civic/.claude/`; function and product directories carry none. A working directory inherits the
+org-root `CLAUDE.md` by cascade and the org `.claude` is the launch dir, so all local nodes are
+active. No per-child `.claude`, no composed/scoped view — that machinery only returns if we ever
+give a child its own `.claude` (not planned).
 
 **`.claude/` is authored/committed; `.stack-graph/` is machine output** (code-map, event log,
 graph-record), gitignored and regenerable.
@@ -490,14 +486,15 @@ must be captured in `handbook/content/` (no BC names) — the next step after th
   where the operator runs their own operations with an **exec-assistant** Claude. **Vendored
   equally** (same user-scope plugin). Key open design: how it **interacts with `be-civic/`'s
   product and functions — especially injecting personal context** into them (and the trust/scope
-  boundary that crosses, given agents/settings are launch-dir-scoped). Its own `.gbrain` (personal
-  recall), own workspace (calendar/comms/decisions). Design later; recorded here as a graph backlog
-  item.
-- **gbrain placement (added).** Each workspace registers **one** gbrain source (`.gbrain/`,
-  local/gitignored) — the recall substrate (prose/reasoning/decisions, D31/D39), queried via MCP
-  and capability-gated. `founder-ops/` gets its own, separate source. Open: whether a node can read
-  *across* sources (e.g. exec-assistant reading be-civic recall) or only its own — default is
-  own-only (locality), crossing is an explicit, gated exception.
-- **Composed view scope.** Since agents/hooks/settings are launch-dir-scoped, define exactly what
-  the org-root composed view must merge (vendored-plugin agents are already global; org overlay +
-  which children?) and when it regenerates.
+  boundary that crosses, given agents/settings are launch-dir-scoped). Its own `.gbrain-source`
+  (personal recall — separate **source**, same host brain), own workspace (calendar/comms/decisions).
+  Design later; recorded here as a graph backlog item.
+- **gbrain — resolved: one host brain, many sources.** A brain is a single-writer DB; running
+  several is lock contention + MCP brain-switching, so we do **not**. Each workspace registers a
+  **source** (`.gbrain-source`) against the **one host brain**; the `mcp__gbrain__*` server stays a
+  single connection and every call scopes by `--source`. `be-civic` and `founder-ops` are two
+  sources. Open: cross-source reads (e.g. exec-assistant reading be-civic recall) — default own-only
+  (locality); crossing is an explicit, gated exception.
+- **Composed view — resolved: not needed.** With one `.claude` at the org root and always launching
+  there, all local agents/hooks/settings are at the launch dir; nothing to merge. The composed/scoped
+  view only returns if we later give a child its own `.claude` (not planned).
