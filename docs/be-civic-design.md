@@ -93,6 +93,125 @@ A **child** is any working project dir — a code product, a marketing campaign,
 matter. Its scoped graph surfaces the function pack(s) relevant to it + the spine. Its critical
 output graduates up to the matching workspace surface; its drafts/alternates/archives stay local.
 
+## What is actually in `.claude` — the three levels in detail
+
+Legend: ✓ = already built in `graph/`; · = designed (graph-map); ◦ = future function pack.
+
+### 1. User scope — `~/.claude/plugins/stack-graph/` (vendored, read-only)
+
+Flat by primitive (03-plugin-spec). References are **single-sourced into each consumer's
+bundle** by the build (copy/symlink), so a skill bundle co-locates the refs it `@`-imports.
+
+```
+~/.claude/plugins/stack-graph/
+  .claude-plugin/plugin.json, marketplace.json
+  skills/
+    # spine (engineering & design)
+    align-context/SKILL.md · · ·  design/  specify/  plan/  build/  reconcile/  land/  debrief/
+    review/                                  ✓ the built cell
+      SKILL.md
+      findings-schema.md  severity-scale.md  confidence-anchors.md   (load: import — bundled, @-imported)
+      lens-dispatch.md                                                (load: on-demand — bundled, pointed-at)
+      _preamble.md                                                    (instrumentation, import — in EVERY bundle)
+    # design sub-arcs
+    debug/  code-review/  qa/  design-review/  plan-design-lens/  design-shotgun/  design-implement/  optimise/  ship/  deploy/  scrape/
+    # curator family
+    handbook-curator/                        ✓
+      SKILL.md  what-belongs.md  pr-description-shape.md  bundling-rules.md   (on-demand)
+    roadmap-curator/SKILL.md  ◦   marketing-curator/SKILL.md  ◦
+  agents/
+    # review lens family
+    lens-correctness.md ✓  lens-security.md ✓  lens-tests.md ✓  lens-maintainability.md ✓
+    lens-adversarial.md ·  lens-performance.md ·  lens-dx.md ·  lens-runtime.md ·  lens-external.md ·
+    lens-legal-risk.md  ◦                    (legal & risk pack — the gate lens)
+    # shared sub-nodes
+    explore.md ✓  pr-author.md ✓  drift-detector.md ✓  queue-checker.md ✓
+    investigate-probe.md ·  spec-diff.md ·  measure-outcomes.md ·  capture-learnings.md ·  log-decision.md ·
+    consistency-checker.md ·  link-validator.md ·        (curator integrate fleet)
+    # measurement (crystallising)
+    benchmark.md ·  health.md ·  canary.md ·  security.md ·
+  hooks/
+    instrumentation.json          node-enter/-exit companion to _preamble (D37)
+    session-end-sweep.json        triggers a curator-raise prompt on a dirty session
+  lib/
+    refresh-index.mjs  code-map.mjs (repo-map + ast-grep, D39)  analytics-rollup.mjs
+```
+
+### 2. Workspace — `~/be-civic/.claude/` (overlay, committed)
+
+```
+~/be-civic/
+  CLAUDE.md                       thin: orientation + "read handbook/content/index.json at task start" (cascades down)
+  .claude/
+    settings.json                 workspace settings + generated composed agent/hook view
+    stack-graph/
+      bindings.yaml               external-reference resolution (the binding mechanism — see below)
+    skills/
+      bc-corpus-creator/SKILL.md  bc-only local node (authors the product corpus)
+      bc-onboard/SKILL.md         entry node → carries an `overlay` edge into vendored align-context
+    agents/
+      bmd-curator.md              bc-only local node (business-model discovery surface)
+    assets/                       crystallised assets — COMMITTED, harness-local (the D35 manifest binds here)
+      benchmark/  manifest.md + perf baselines + scripts
+      qa/         manifest.md + bc test flows
+      security/   manifest.md + bc threat model
+      canary/     manifest.md + post-deploy checks
+```
+
+`bindings.yaml` is the concrete answer to "how does a vendored node find this product's
+handbook":
+
+```yaml
+bindings:                          # external-reference id  →  where the overlay points it
+  handbook:  { path: ./handbook/content, index: ./handbook/content/index.json,
+               repo: hk121992/be-civic-workspace, label: handbook }
+  roadmap:   { path: ./roadmap, label: roadmap }
+  marketing: { path: ./marketing, label: marketing }
+  risk:      { path: ./risk }
+  assets:    { path: ./.claude/assets }          # crystallisation manifests
+  code-map:  { path: ./.stack-graph/code-map }   # per-child overridden
+```
+
+Two distinct overlay mechanisms: **`overlay` edges** live in local node frontmatter (attach a
+local node to a vendored one); **bindings** live in `bindings.yaml` (resolve an `external: true`
+reference to a path). Different jobs.
+
+### 3. Child — e.g. `~/be-civic/plugin/.claude/` (per-product)
+
+```
+~/be-civic/plugin/               the Belgian-admin agent product
+  CLAUDE.md                      GENERATED thin scoped pointer (regenerable from the scoped view)
+  .claude/
+    stack-graph/
+      bindings.yaml              child overrides only (code-map → ./.stack-graph/code-map);
+                                 inherits the workspace handbook/roadmap bindings by cascade
+      scoped-view.md             GENERATED: vendored graph + workspace overlay + this child's overlay
+    skills/  agents/             child-local overlay nodes (usually none)
+    assets/<node-id>/            child-specific crystallised assets
+  skills/ data/ …                the product source (the corpus)
+  working/                       drafts, alternates, archives (NON-critical, stays local)
+  .stack-graph/                  generated/local (gitignored): code-map/, events.jsonl, graph-record.json
+```
+
+### The non-obvious files, explained
+
+- **`_preamble.md` in every bundle** — the instrumentation reference (`load: import`, D37),
+  single-sourced into every node so each emits `node-enter`/`-exit`; its companion
+  `hooks/instrumentation.json` catches what the body can't.
+- **Refs inside bundles** — `findings-schema.md` etc. live *inside* `skills/review/` because the
+  build placed the one canonical source there and made `SKILL.md` `@`-import it. One source,
+  many bundles, via symlink/copy.
+- **`bindings.yaml`** — resolves the `handbook` (and roadmap/assets/code-map) external references
+  to workspace paths. This is the harness "wiring," and it is the *only* thing that differs
+  between two harnesses on the same vendored graph.
+- **`.claude/assets/<node-id>/`** — committed crystallised assets; a vendored node's stable
+  manifest reference binds here (it can't write into its own read-only user-scope bundle).
+- **`scoped-view.md` + generated `CLAUDE.md`** — a child doesn't hand-author its context; the
+  scoped view (vendored + ancestor overlays + own) is generated, and the thin `CLAUDE.md` is its
+  pointer. No fat hand-maintained chain.
+- **`.stack-graph/`** — everything generated and regenerable (code-map, event log, graph-record),
+  gitignored. `.claude/` is authored/committed; `.stack-graph/` is machine output.
+
 ## Open / next
 
 - **Graduation gate per surface.** The handbook has raise/integrate; roadmap/marketing/risk need
