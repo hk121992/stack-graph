@@ -1,6 +1,6 @@
 ---
 title: Decision log
-status: v0.12.0 — 2026-05-31
+status: v0.13.0 — 2026-05-31
 ---
 
 # Decision log
@@ -471,3 +471,29 @@ explore's, retired by D38) now leads with `handbook`. Re-adds an external refere
 `explore` — the *correct* shared locator, not the killed bespoke `product-map-manifest`.
 *Queues amendment:* `02-graph-spec` (done), `04-harness-spec` (overlay binds handbook),
 `graph-map.md`. *Status:* Accepted.
+
+## Directory topology & runtime
+
+**D42 — One `.claude` at the org root; the directory topology; verified Claude loading behaviour.**
+A consuming workspace lays out as: the **vendored plugin at user scope** (general, read-only); an
+**org root** = the single launch directory holding **one `CLAUDE.md`** and **one `.claude/`**
+overlay; a **docs-only `workspace/`** (the handbook + per-function output surfaces, rendered as one
+space); **function directories** holding working files (incl. product source); generated data in
+`.stack-graph/`; recall via a `.gbrain-source` (one host brain, many sources). The discriminator is
+**scope by ownership + mutability** (user = general/vendored; org-root-and-below = workspace-
+specific). *Operating assumption:* **always launch Claude at the org root.**
+- **Verified loading behaviour (empirical, 2026-05-31):** skills + `CLAUDE.md` cascade (up to the
+  launch dir, lazily down) and skills hot-reload; **agents/hooks/settings are launch-directory-
+  scoped** — no cascade, no lazy-load, no hot-reload (a subdir agent never activates; a new agent
+  needs a relaunch). Recorded in `~/.claude/references/claude-directory-behavior.md`.
+- **Consequence:** ALL local nodes (skills *and* agents) live in the one org-root `.claude/`;
+  function/product dirs carry no `.claude`. **No composed/scoped view is generated** — nothing to
+  merge. *Refines D12* (the composed/scoped view is deferred; the global analytics record stays).
+- **Crystallized outputs are references + scripts** (canonical primitives), not a separate "assets"
+  kind/dir — a vendored node grows them in the overlay via an `external: true` reference + invokes.
+  *Refines D35* (drops the "assets" framing; the crystallization loop is unchanged).
+- **Bindings are a convention, not a resolver:** a node is authored to read its binding (a
+  reference) on demand; there is no runtime resolver in v1.
+- **Harness = consuming workspace** (may span products/functions), not a single product.
+*Queues amendment:* `04-harness-spec` (Composition, Bindings, Crystallized, new `01-directory-topology`
+page) — done. *Status:* Accepted.

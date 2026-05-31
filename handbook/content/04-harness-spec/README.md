@@ -2,21 +2,24 @@
 title: Harness specification
 type: spec
 read-when: Defining how a consuming workspace customises the vendored graph.
-related: [plugin-spec, graph-spec, analytics]
+related: [plugin-spec, graph-spec, analytics, harness-spec/directory-topology]
 ---
 
 # Harness specification
 
 A **harness** is a consuming workspace's specialising layer over the vendored, general
-stack-graph. It is where a product puts its own instructions, nodes, and arcs. The factory
-stays general; everything product-specific lives in a harness, never in this repo.
+stack-graph. It is where the **workspace** puts its own instructions, nodes, and arcs — a
+workspace may span several products and functions, so "harness-local" means specific to that
+workspace, not to a single product. The factory stays general; everything workspace-specific
+lives in a harness, never in this repo. The concrete on-disk layout is the
+[directory topology](01-directory-topology.md).
 
 ## What lives where
 
 | In the factory (vendored) | In the harness (local) |
 |---|---|
-| General nodes, edges, and the loop machinery | Product-specific nodes and arcs |
-| The build, the graph model, the maintainer | The product's `CLAUDE.md` and instructions |
+| General nodes, edges, and the loop machinery | Workspace-specific nodes and arcs (per product/function) |
+| The build, the graph model, the maintainer | The workspace's `CLAUDE.md` and instructions |
 | Namespaced `stack-graph:*` | Local entry nodes + edges into the vendored graph |
 
 ## The additive overlay model
@@ -39,9 +42,10 @@ into vendored branches.
 A canon-centric vendored node (the curator, the drift detector, a context-gathering or design
 node) depends on the **handbook** through a `handbook` `external: true` reference
 ([`graph-spec`](../02-graph-spec/README.md)). The factory ships only the pointer; the **overlay
-binds it** to this product's canon root + page index (handbook + decisions). This is config the
-harness supplies — a path/index the node navigates on-demand — never a body edit. The vendored
-node stays untouched; the overlay carries the binding.
+supplies the target** — the workspace's canon root + page index (handbook + decisions). There is
+**no runtime resolver** in v1: the node body is authored to **read its binding and navigate** on
+demand; the overlay just provides the path/index as config (the binding is itself a reference,
+not a Claude-resolved setting). The vendored node stays untouched.
 
 ## Extend-only
 
@@ -60,18 +64,16 @@ files. Updates to the vendored graph arrive through native plugin-update
 ([`plugin-spec`](../03-plugin-spec/README.md)) and never collide with overlays, because
 overlays only add and the vendored ids are namespaced apart.
 
-## Crystallized assets
+## Crystallized outputs
 
-A product-dependent node accumulates product-specific **assets** as it runs — scripts, configs,
-reference checklists ([`analytics`](../06-analytics/README.md)). These are **harness-local and
-co-located** with the node, in the node's own directory (the native skill/agent bundle). The
-node body stays general and unchanged: it carries a stable `references` edge to an asset
-**manifest** that records what the node has and how to operate on this product, and only the
-manifest and assets grow. The directory becomes tailored to the exact product over time — that
-is expected; no general asset-management layer is built at this stage. New or changed assets are
-gated at `reconcile`, like any other change. (A vendored node is read-only, so the stable body +
-manifest pointer are the vendored part while the manifest and assets are the harness-local grown
-part; the exact mechanism for a vendored node carrying a harness-growing asset area is deferred.)
+A product-dependent node accumulates workspace-specific outputs as it runs
+([`analytics`](../06-analytics/README.md)). These are **not a new kind** — they are
+**references** (a checklist or manifest the node reads) and **scripts** (executables the node
+invokes), the canonical `.claude` primitives ([`graph-spec`](../02-graph-spec/README.md)). They
+are **harness-local**: a local node carries them in its own bundle; a **vendored** (read-only)
+node grows them in the harness overlay and reaches them by a stable `external: true` `references`
+edge (the manifest) and `invokes` edges (scripts) — so the node body never changes, only the
+manifest and scripts grow. New or changed ones are gated at `reconcile`, like any other change.
 
 ## Namespacing
 
@@ -82,19 +84,20 @@ distinct node with its own id; the operator chooses which to invoke.
 
 ## Composition across a tree
 
-Claude's cascade is **partial**, so composition rides it where it works and generates a
-view where it does not:
+Claude's cascade is **partial**, and the split is **verified against real behaviour**:
 
-- **Skills and `CLAUDE.md` cascade natively** — up the tree, and lazily down. No generation
-  needed.
-- **Agents, hooks, and settings do not nest.** For these, stack-graph **generates a
-  composed view**.
-- The **scoped view** — what a given directory sees: the vendored graph **+** its ancestors'
-  overlays **+** its own — is generated at a **runtime preamble**, because it depends on the
-  working directory.
-- A single **global record** across all `.claude` directories is generated for
-  administration and analytics ([`analytics`](../06-analytics/README.md)) only — not for
-  runtime resolution.
+- **Skills and `CLAUDE.md` cascade** — up the tree to the launch directory, and **lazily down**:
+  a subdirectory's skills and `CLAUDE.md` load when the agent reads a file there, and skills
+  hot-reload without a restart.
+- **Agents, hooks, and settings are launch-directory-scoped** — they do **not** cascade or
+  lazy-load. Only those present at the **launch directory** (or user/plugin scope) **at startup**
+  are active; a subdirectory's agents never activate, and a newly-authored agent needs a relaunch.
+- Therefore a harness keeps **one `.claude` at the launch directory**, always launched there, and
+  **all** local nodes — skills *and* agents — live in it. There is **no generated composed or
+  scoped view**: with everything at the single launch directory there is nothing to merge. (A
+  multi-directory-overlay mode, and the composition it would require, is deferred.)
+- A single **global record** across `.claude` directories is still generated for administration
+  and analytics ([`analytics`](../06-analytics/README.md)) only — not for runtime resolution.
 
 ## The workspace
 

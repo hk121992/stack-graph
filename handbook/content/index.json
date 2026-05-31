@@ -1,15 +1,162 @@
 [
-  { "slug": "analytics", "title": "Analytics & instrumentation", "type": "spec", "read-when": "Specifying or implementing how usage, outcomes, and arc-conformance are measured.", "related": ["graph-spec", "devops", "concepts", "plugin-spec", "harness-spec", "analytics/recall-substrate"] },
-  { "slug": "analytics/recall-substrate", "title": "Recall substrate (gbrain)", "type": "spec", "read-when": "Specifying or implementing the gbrain recall integration — config, reads/writes, compatibility.", "related": ["analytics", "concepts"] },
-  { "slug": "concepts", "title": "Concepts", "type": "reference", "read-when": "You need the shared mental model before reading any spec.", "related": ["graph-spec", "decomposition", "harness-spec", "overview"] },
-  { "slug": "decomposition", "title": "Decomposition principles", "type": "reference", "read-when": "Deciding how to break an arc into nodes, edges, inline, and references — and choosing the primitive (skill vs reference vs agent vs rule vs hook), 1:1 with what renders.", "related": ["graph-spec", "maintenance-skill", "concepts"] },
-  { "slug": "devops", "title": "DevOps — how stack-graph develops itself", "type": "procedure", "read-when": "Working on stack-graph itself — branching, PRs, or the improvement loops.", "related": ["overview", "overview/maintenance", "analytics", "maintenance-skill"] },
-  { "slug": "graph-spec", "title": "Graph specification", "type": "spec", "read-when": "Defining or implementing the node/edge model, the node schema, or storage.", "related": ["concepts", "decomposition", "plugin-spec"] },
-  { "slug": "harness-spec", "title": "Harness specification", "type": "spec", "read-when": "Defining how a consuming workspace customises the vendored graph.", "related": ["plugin-spec", "graph-spec", "analytics"] },
-  { "slug": "maintenance-skill", "title": "Maintenance skill (sg-graph-maintainer)", "type": "spec", "read-when": "Specifying or building the skill that authors and maintains the graph.", "related": ["graph-spec", "decomposition", "devops", "overview/agent-surfaces"] },
-  { "slug": "overview", "title": "stack-graph handbook", "type": "index", "read-when": "Orienting to stack-graph — what it is and how this handbook is organised.", "related": ["concepts", "graph-spec", "devops"] },
-  { "slug": "overview/agent-surfaces", "title": "Writing node instructions", "type": "reference", "read-when": "Authoring or amending a node body — the skill or agent instructions a node renders into.", "related": ["overview/authoring", "maintenance-skill"] },
-  { "slug": "overview/authoring", "title": "Authoring handbook pages", "type": "reference", "read-when": "Writing or editing a stack-graph handbook page.", "related": ["overview", "overview/maintenance", "overview/agent-surfaces"] },
-  { "slug": "overview/maintenance", "title": "Maintenance — the forcing rule", "type": "procedure", "read-when": "You hit drift, ambiguity, or a missing page while working in stack-graph.", "related": ["overview", "devops"] },
-  { "slug": "plugin-spec", "title": "Plugin specification", "type": "spec", "read-when": "Packaging the plugin or building the handbook→plugin pipeline.", "related": ["graph-spec", "harness-spec", "analytics", "overview"] }
+  {
+    "slug": "analytics",
+    "title": "Analytics & instrumentation",
+    "type": "spec",
+    "read-when": "Specifying or implementing how usage, outcomes, and arc-conformance are measured.",
+    "related": [
+      "graph-spec",
+      "devops",
+      "concepts",
+      "plugin-spec",
+      "harness-spec",
+      "analytics/recall-substrate"
+    ]
+  },
+  {
+    "slug": "analytics/recall-substrate",
+    "title": "Recall substrate (gbrain)",
+    "type": "spec",
+    "read-when": "Specifying or implementing the gbrain recall integration — config, reads/writes, compatibility.",
+    "related": [
+      "analytics",
+      "concepts"
+    ]
+  },
+  {
+    "slug": "concepts",
+    "title": "Concepts",
+    "type": "reference",
+    "read-when": "You need the shared mental model before reading any spec.",
+    "related": [
+      "graph-spec",
+      "decomposition",
+      "harness-spec",
+      "overview"
+    ]
+  },
+  {
+    "slug": "decomposition",
+    "title": "Decomposition principles",
+    "type": "reference",
+    "read-when": "Deciding how to break an arc into nodes, edges, inline, and references — and choosing the primitive (skill vs reference vs agent vs rule vs hook), 1:1 with what renders.",
+    "related": [
+      "graph-spec",
+      "maintenance-skill",
+      "concepts"
+    ]
+  },
+  {
+    "slug": "devops",
+    "title": "DevOps — how stack-graph develops itself",
+    "type": "procedure",
+    "read-when": "Working on stack-graph itself — branching, PRs, or the improvement loops.",
+    "related": [
+      "overview",
+      "overview/maintenance",
+      "analytics",
+      "maintenance-skill"
+    ]
+  },
+  {
+    "slug": "graph-spec",
+    "title": "Graph specification",
+    "type": "spec",
+    "read-when": "Defining or implementing the node/edge model, the node schema, or storage.",
+    "related": [
+      "concepts",
+      "decomposition",
+      "plugin-spec"
+    ]
+  },
+  {
+    "slug": "harness-spec",
+    "title": "Harness specification",
+    "type": "spec",
+    "read-when": "Defining how a consuming workspace customises the vendored graph.",
+    "related": [
+      "plugin-spec",
+      "graph-spec",
+      "analytics",
+      "harness-spec/directory-topology"
+    ]
+  },
+  {
+    "slug": "harness-spec/directory-topology",
+    "title": "Directory topology",
+    "type": "spec",
+    "read-when": "Laying out a consuming workspace on disk — where the vendored graph, the overlay, the canon, working files, and generated data live.",
+    "related": [
+      "harness-spec",
+      "plugin-spec",
+      "graph-spec",
+      "analytics"
+    ]
+  },
+  {
+    "slug": "maintenance-skill",
+    "title": "Maintenance skill (sg-graph-maintainer)",
+    "type": "spec",
+    "read-when": "Specifying or building the skill that authors and maintains the graph.",
+    "related": [
+      "graph-spec",
+      "decomposition",
+      "devops",
+      "overview/agent-surfaces"
+    ]
+  },
+  {
+    "slug": "overview",
+    "title": "stack-graph handbook",
+    "type": "index",
+    "read-when": "Orienting to stack-graph — what it is and how this handbook is organised.",
+    "related": [
+      "concepts",
+      "graph-spec",
+      "devops"
+    ]
+  },
+  {
+    "slug": "overview/agent-surfaces",
+    "title": "Writing node instructions",
+    "type": "reference",
+    "read-when": "Authoring or amending a node body — the skill or agent instructions a node renders into.",
+    "related": [
+      "overview/authoring",
+      "maintenance-skill"
+    ]
+  },
+  {
+    "slug": "overview/authoring",
+    "title": "Authoring handbook pages",
+    "type": "reference",
+    "read-when": "Writing or editing a stack-graph handbook page.",
+    "related": [
+      "overview",
+      "overview/maintenance",
+      "overview/agent-surfaces"
+    ]
+  },
+  {
+    "slug": "overview/maintenance",
+    "title": "Maintenance — the forcing rule",
+    "type": "procedure",
+    "read-when": "You hit drift, ambiguity, or a missing page while working in stack-graph.",
+    "related": [
+      "overview",
+      "devops"
+    ]
+  },
+  {
+    "slug": "plugin-spec",
+    "title": "Plugin specification",
+    "type": "spec",
+    "read-when": "Packaging the plugin or building the handbook→plugin pipeline.",
+    "related": [
+      "graph-spec",
+      "harness-spec",
+      "analytics",
+      "overview"
+    ]
+  }
 ]
