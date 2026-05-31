@@ -71,6 +71,36 @@ free — so a child inherits it without having its own.)
 raise/integrate, working surfaces = lighter) where they are rendered. Drafts, alternates, and
 archives stay in the function directory.
 
+## Operating model (verified): always launch Claude at the org root
+
+You **launch Claude in `~/be-civic/`** (the org root) — that is the entry point, and the topology
+assumes it. Verified Claude behavior (claude-code-guide vs the docs, 2026-05-31) makes this the
+right default:
+
+- **CLAUDE.md, `.claude/rules/`, and skills cascade** — they load up the tree to the filesystem
+  root (**crossing `.git` boundaries**) and lazy-load *down* into subdirectories as you read files
+  there. From the org root you get the org-root `CLAUDE.md`; each function/product's own
+  `CLAUDE.md` + local skills load lazily as you work into them.
+- **`.claude/settings.json`, agents, and hooks do NOT cascade** — they are scoped to the
+  **launch directory** only. From the org root you get the org-root overlay's agents/hooks/settings
+  and the user-scope vendored **plugin** (whose skills *and* agents are global); a child product's
+  *local* agents/hooks/settings do **not** auto-activate.
+
+That last point is exactly why the **composed view** exists: to make the agents/hooks/settings that
+*should* apply available from the single org-root entry point, stack-graph generates a merged set
+there (vendored + org overlay + the relevant children). The alternative for deep work in one product
+is to launch Claude *inside* it (you keep all ancestor CLAUDE.md/skills by cascade, and take that
+product's own agents/hooks).
+
+A working directory needs **no `CLAUDE.md` of its own** for its local `.claude/skills` and
+`.claude/agents` to be found — `.claude/` is scanned independently of `CLAUDE.md`. Children may
+freely carry local skills/agents (and they should); a child `CLAUDE.md` is *optional orientation*,
+never a navigation requirement.
+
+**Correction to earlier drafts:** CLAUDE.md *does* cascade (ancestors load, even across git repos);
+agents/hooks/settings do *not* (they follow the launch directory). "Always start in `be-civic/`" is
+the correct assumption, and the composed view is what surfaces non-cascading agents/hooks there.
+
 ## The four functions
 
 | Function | Attaches as | Workspace surface(s) (critical, rendered) | Curator | Children (working) |
@@ -208,82 +238,91 @@ single-sourced `_preamble.md` (instrumentation, `load: import`); built cells als
 │               ├── code-map.mjs                        repo-map + ast-grep (D39)
 │               └── analytics-rollup.mjs
 │
-└── be-civic/                                           ORG ROOT — the one CLAUDE.md; cascade anchor
-    ├── CLAUDE.md                                       navigation: handbook-index pointer + how to use the graph + references
-    ├── .claude/                                        harness overlay (committed)
-    │   ├── settings.json                               harness settings + generated composed agent/hook view
-    │   ├── skills/
-    │   │   ├── bc-corpus-creator/
-    │   │   │   └── SKILL.md                             bc-only local node (authors the product corpus)
-    │   │   └── bc-onboard/
-    │   │       └── SKILL.md                             entry node → `overlay` edge into vendored align-context
-    │   ├── agents/
-    │   │   └── bmd-curator.md                           bc-only local node (business-model discovery)
-    │   ├── stack-graph/
-    │   │   └── bindings.yaml                            a reference (on-demand), NOT a Claude slot
-    │   └── assets/                                      crystallised assets — committed (D35 manifest binds here)
-    │       ├── benchmark/
-    │       │   ├── manifest.md
-    │       │   ├── baseline.json
-    │       │   └── run.sh
-    │       ├── qa/
-    │       │   ├── manifest.md
-    │       │   └── flows/
-    │       ├── security/
-    │       │   ├── manifest.md
-    │       │   └── threat-model.md
-    │       └── canary/
-    │           ├── manifest.md
-    │           └── checks.json
+├── be-civic/                                           ORG ROOT — the one CLAUDE.md; cascade anchor
+│   ├── CLAUDE.md                                       navigation: handbook-index pointer + how to use the graph + references
+│   ├── .claude/                                        harness overlay (committed)
+│   │   ├── settings.json                               harness settings + generated composed agent/hook view
+│   │   ├── skills/
+│   │   │   ├── bc-corpus-creator/
+│   │   │   │   └── SKILL.md                             bc-only local node (authors the product corpus)
+│   │   │   └── bc-onboard/
+│   │   │       └── SKILL.md                             entry node → `overlay` edge into vendored align-context
+│   │   ├── agents/
+│   │   │   └── bmd-curator.md                           bc-only local node (business-model discovery)
+│   │   ├── stack-graph/
+│   │   │   └── bindings.yaml                            a reference (on-demand), NOT a Claude slot
+│   │   └── assets/                                      crystallised assets — committed (D35 manifest binds here)
+│   │       ├── benchmark/
+│   │       │   ├── manifest.md
+│   │       │   ├── baseline.json
+│   │       │   └── run.sh
+│   │       ├── qa/
+│   │       │   ├── manifest.md
+│   │       │   └── flows/
+│   │       ├── security/
+│   │       │   ├── manifest.md
+│   │       │   └── threat-model.md
+│   │       └── canary/
+│   │           ├── manifest.md
+│   │           └── checks.json
+│   ├── .stack-graph/                                   generated/local, gitignored
+│   │   ├── graph-record.json
+│   │   └── analytics/
+│   ├── .gbrain/                                        RECALL substrate — local, gitignored; prose/reasoning/decisions; queried via MCP, capability-gated (D31/D39)
+│   │   └── .gbrain-source                              the workspace's one registered gbrain source
+│   │
+│   ├── workspace/                                      DOCS / OUTPUT ONLY — rendered as one space; no CLAUDE.md
+│   │   ├── handbook/
+│   │   │   ├── content/
+│   │   │   │   ├── 00-overview/
+│   │   │   │   │   └── README.md
+│   │   │   │   ├── NN-<section>/
+│   │   │   │   │   └── README.md
+│   │   │   │   └── index.json
+│   │   │   └── .renderer/                              handbook renderer (good — keep/adopt)
+│   │   ├── roadmap/
+│   │   ├── marketing-plan/
+│   │   ├── risk-register/
+│   │   ├── design-system/
+│   │   ├── product-canvas/
+│   │   ├── portal/                                     unified UI ("one space, many apps")
+│   │   └── .workspace-build/                           render machinery (workspace UI build)
+│   │
+│   ├── engineering/                                    FUNCTION DIRECTORY — the products (each its own repo)
+│   │   ├── plugin/                                     the Belgian-admin agent product (no CLAUDE.md — inherits org root)
+│   │   │   ├── .claude/
+│   │   │   │   ├── skills/                             child-local overlay nodes (usually none)
+│   │   │   │   ├── agents/                             child-local overlay nodes (usually none)
+│   │   │   │   ├── assets/
+│   │   │   │   │   └── <node-id>/                      product-specific crystallised assets (committed)
+│   │   │   │   └── stack-graph/
+│   │   │   │       └── bindings.yaml                   OPTIONAL product-local overrides (a reference, on-demand)
+│   │   │   ├── skills/                                 the product source (the corpus)
+│   │   │   ├── data/
+│   │   │   ├── working/                                drafts, alternates, archives (NON-critical)
+│   │   │   └── .stack-graph/                           generated/local, gitignored
+│   │   │       ├── code-map/
+│   │   │       └── events.jsonl
+│   │   ├── knowledge-graph/
+│   │   ├── taxcalc/
+│   │   ├── landing/
+│   │   └── renderer-core/
+│   │
+│   ├── product/                                        FUNCTION DIRECTORY — PM working → graduates to roadmap, product-canvas
+│   │   └── working/
+│   │
+│   ├── marketing/                                      FUNCTION DIRECTORY — campaigns → graduates to marketing-plan
+│   │   └── working/
+│   │
+│   └── legal/                                          FUNCTION DIRECTORY — matters → graduates to risk-register
+│       └── working/
+│
+└── founder-ops/                                        PEER WORKSPACE (TODO) — the operator's own ops; exec-assistant Claude
+    ├── CLAUDE.md                                       navigation (own org root)
+    ├── .claude/                                        own overlay: exec-assistant entry node, personal-context nodes, bindings
+    ├── .gbrain/                                        own RECALL substrate (personal; separate source from be-civic)
     ├── .stack-graph/                                   generated/local, gitignored
-    │   ├── graph-record.json
-    │   └── analytics/
-    │
-    ├── workspace/                                      DOCS / OUTPUT ONLY — rendered as one space; no CLAUDE.md
-    │   ├── handbook/
-    │   │   ├── content/
-    │   │   │   ├── 00-overview/
-    │   │   │   │   └── README.md
-    │   │   │   ├── NN-<section>/
-    │   │   │   │   └── README.md
-    │   │   │   └── index.json
-    │   │   └── .renderer/                              handbook renderer (good — keep/adopt)
-    │   ├── roadmap/
-    │   ├── marketing-plan/
-    │   ├── risk-register/
-    │   ├── design-system/
-    │   ├── product-canvas/
-    │   ├── portal/                                     unified UI ("one space, many apps")
-    │   └── .workspace-build/                           render machinery (workspace UI build)
-    │
-    ├── engineering/                                    FUNCTION DIRECTORY — the products (each its own repo)
-    │   ├── plugin/                                     the Belgian-admin agent product (no CLAUDE.md — inherits org root)
-    │   │   ├── .claude/
-    │   │   │   ├── skills/                             child-local overlay nodes (usually none)
-    │   │   │   ├── agents/                             child-local overlay nodes (usually none)
-    │   │   │   ├── assets/
-    │   │   │   │   └── <node-id>/                      product-specific crystallised assets (committed)
-    │   │   │   └── stack-graph/
-    │   │   │       └── bindings.yaml                   OPTIONAL product-local overrides (a reference, on-demand)
-    │   │   ├── skills/                                 the product source (the corpus)
-    │   │   ├── data/
-    │   │   ├── working/                                drafts, alternates, archives (NON-critical)
-    │   │   └── .stack-graph/                           generated/local, gitignored
-    │   │       ├── code-map/
-    │   │       └── events.jsonl
-    │   ├── knowledge-graph/
-    │   ├── taxcalc/
-    │   ├── landing/
-    │   └── renderer-core/
-    │
-    ├── product/                                        FUNCTION DIRECTORY — PM working → graduates to roadmap, product-canvas
-    │   └── working/
-    │
-    ├── marketing/                                      FUNCTION DIRECTORY — campaigns → graduates to marketing-plan
-    │   └── working/
-    │
-    └── legal/                                          FUNCTION DIRECTORY — matters → graduates to risk-register
-        └── working/
+    └── workspace/                                      personal docs/output (calendar, comms, decisions, …) — design later
 ```
 
 The **workspace holds only docs/output**; the **functions work in their own directories** beside it.
@@ -447,3 +486,18 @@ must be captured in `handbook/content/` (no BC names) — the next step after th
   PM/marketing/legal are packs).
 - **`product/` vs Be Civic's current `bmd/`** — `bmd` (hypotheses/assessments/findings) is the
   discovery working layer; `product/` is the settled strategy/canvas it graduates into.
+- **TODO — `founder-ops/` peer workspace.** A workspace peer to `be-civic/` (`~/founder-ops/`)
+  where the operator runs their own operations with an **exec-assistant** Claude. **Vendored
+  equally** (same user-scope plugin). Key open design: how it **interacts with `be-civic/`'s
+  product and functions — especially injecting personal context** into them (and the trust/scope
+  boundary that crosses, given agents/settings are launch-dir-scoped). Its own `.gbrain` (personal
+  recall), own workspace (calendar/comms/decisions). Design later; recorded here as a graph backlog
+  item.
+- **gbrain placement (added).** Each workspace registers **one** gbrain source (`.gbrain/`,
+  local/gitignored) — the recall substrate (prose/reasoning/decisions, D31/D39), queried via MCP
+  and capability-gated. `founder-ops/` gets its own, separate source. Open: whether a node can read
+  *across* sources (e.g. exec-assistant reading be-civic recall) or only its own — default is
+  own-only (locality), crossing is an explicit, gated exception.
+- **Composed view scope.** Since agents/hooks/settings are launch-dir-scoped, define exactly what
+  the org-root composed view must merge (vendored-plugin agents are already global; org overlay +
+  which children?) and when it regenerates.
