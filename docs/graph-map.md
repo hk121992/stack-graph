@@ -156,6 +156,12 @@ handbook + repo). The factory self-applies the same pattern via `tooling/sg-hand
 `explore`) proposes → `raise` PR → queue → `integrate` → handbook/decisions. The curator owns the
 **curated-canon** home; code-map and recall homes have their own writers.
 
+**Reaching the canon (D41).** Canon-centric nodes (`handbook-curator`, `drift-detector`,
+`explore`, later `design`/`specify`) reach the product canon through a shared `product-canon`
+`external: true` reference (`load: on-demand`) — overlay-resolved to the product's handbook +
+decisions root/index, navigated on-demand. A locator, never vendored content; not in the factory
+`_refs` (external), so it shows as an edge but not a reference artefact.
+
 **Two loops, one cell.** Factory-loop `raise` targets `stack-graph`; harness-loop `raise` targets
 the product repo — same node, repo/label/handbook-root differ by overlay (D40, [`08-devops`]).
 

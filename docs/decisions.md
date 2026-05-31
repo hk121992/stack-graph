@@ -1,6 +1,6 @@
 ---
 title: Decision log
-status: v0.11.0 — 2026-05-30
+status: v0.12.0 — 2026-05-31
 ---
 
 # Decision log
@@ -440,3 +440,34 @@ unverified, and freshness-unsolved; revisit per the triggers in `docs/knowledge-
 traceability proving insufficient). All substrates stay **optional, capability-gated, local-first,
 consume-don't-fork** (the D31 posture). *Why + evidence (incl. AST-beats-LLM for code structure):*
 `docs/knowledge-substrate.md`. *Status:* Accepted (revisit triggers recorded).
+
+**D41 — A node references the product canon via an overlay-resolved `external: true` locator,
+never vendored content.** How a node reaches the curated-canon home (D38) at runtime.
+
+- **Two handbooks; only one is a runtime reference.** stack-graph's **own** handbook is
+  *compiled into* each node body at build (research-report → canonical); a node never reads the
+  factory handbook at runtime. The **harness's product canon** (its own handbook + decisions) is
+  what canon-centric nodes read at runtime — and it is the harness's, not the factory's to ship.
+- **Mechanism: a shared `product-canon` `external: true` reference (`load: on-demand`).** The
+  factory ships only the pointer; the harness **overlay** resolves it to that product's canon
+  root + page index; the node navigates pages at the step of need. This reuses the existing
+  external-reference pattern ([`02-graph-spec`]) — validation/build skip it.
+- **Overlay resolution, not injection.** The body carries a stable "follow your `product-canon`
+  reference"; the overlay binds what it points at (a path / index). This is harness config (the
+  "variable path"), **not** a `{{token}}` body splice (D33 banned that).
+- **Not vendored content.** Copying the handbook into vendored `_refs` is rejected: it would
+  duplicate a *living, curated* tree (single-source violation), drift the instant the curator
+  edits it, and ship a harness's canon from the factory. Reference-as-**locator**, never
+  reference-as-content-copy.
+- **Scope: canon-centric nodes only.** `handbook-curator`, `drift-detector`, `explore` (domain
+  read), and later `design`/`specify` carry the edge — so the dependency is first-class and
+  analyzable (D38 authored traceability). A node that merely glances at one page stays ambient
+  (the harness `CLAUDE.md` + page index), so the edge stays meaningful, not spam.
+- **Factory self-use.** `tooling/sg-handbook-curator` uses the fixed in-repo path `handbook/` —
+  it operates on the factory itself, un-vendored, so no overlay binding is needed.
+
+*Reframes:* the `02-graph-spec` `external: true` example (was the crystallization manifest —
+explore's, retired by D38) now leads with `product-canon`. Re-adds an external reference to
+`explore` — the *correct* shared locator, not the killed bespoke `product-map-manifest`.
+*Queues amendment:* `02-graph-spec` (done), `04-harness-spec` (overlay binds product-canon),
+`graph-map.md`. *Status:* Accepted.

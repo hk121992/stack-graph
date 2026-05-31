@@ -9,11 +9,14 @@ when-to-use: A stage needs scoped, isolated context (repo / learnings / framewor
 mode: autonomous
 determinism: generative
 # edges — the graph (scanned from here into the record)
-# No structural edges yet: explore reads the knowledge substrate (code-map, gbrain
-# recall, handbook/decisions canon) inline via read-only tools — substrate access is
-# not a graph edge (D38). Its `composes-into` edges to the stages that fan it out
-# (align-context / design / plan / build) are deferred until those stage nodes exist (F7).
-edges: {}
+# Code-map and gbrain recall are reached by inline read-only tools — not graph edges (D38).
+# The curated-canon home IS a first-class dependency: a `product-canon` external reference
+# (D41), overlay-resolved to this product's handbook + decisions. `composes-into` edges to the
+# stages that fan explore out (align-context / design / plan / build) are deferred until those
+# stage nodes exist (F7).
+edges:
+  references:
+    - { id: product-canon, load: on-demand, external: true }
 # analytics — the loop
 goals:
   - outcome: The consuming stage starts work with the relevant context already in hand and does not re-explore the same ground.
@@ -28,7 +31,7 @@ goals:
   - outcome: Context stays bounded — a digest never blows the consuming stage's context window.
     metric: digest size vs the token budget (~500 sparse / ~1000 typical / cap ~1500); truncation/overflow incidents.
     earns-keep: digests stay within budget; overflow is rare and flagged, not silent.
-status: v0.2.0 — 2026-05-30
+status: v0.3.0 — 2026-05-31
 ---
 
 # Explore (context-gathering agent)
@@ -63,8 +66,9 @@ recorded:
   codebase by hand.
 - **Recall (gbrain)** — prior reasoning, transcripts, and decisions as prose. The `learnings`
   mode queries it (capability-gated).
-- **Curated canon** — the handbook (spec / domain) and the decisions store
-  (`docs/decisions.md`): authored, reviewed truth. Read it for settled intent and rationale.
+- **Curated canon** — the handbook (spec / domain) and the decisions store: authored, reviewed
+  truth. Navigate it through your `product-canon` reference (the overlay binds it to this
+  product's canon root + page index). Read it for settled intent and rationale.
 
 Explore **generatively only what the substrate does not yet cover, or where present evidence
 contradicts a recorded finding** — and when present evidence conflicts with a recorded home,
