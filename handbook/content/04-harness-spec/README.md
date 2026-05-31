@@ -96,6 +96,28 @@ view where it does not:
   administration and analytics ([`analytics`](../06-analytics/README.md)) only — not for
   runtime resolution.
 
+## The workspace
+
+A harness's **workspace** is a dedicated top-level directory holding the consuming venture's
+**canonical and critical documents** — the handbook plus each function's critical-output surface —
+rendered as **one navigable space**, so an operator finds the most important information in a single
+place. Product and working-project directories sit **beside** the workspace, not inside it; they
+hold working files and reference the workspace's canon. Working content **graduates** into a
+workspace surface through that surface's curator.
+
+This sets the deployment topology: the vendored graph at **user scope**; an **org-root** directory
+as the cascade anchor (it carries the ambient handbook-index pointer, which reaches the workspace
+and every sibling child — a sibling could not); the **workspace**; and the **product / working
+children**.
+
+The render that presents the workspace's surfaces as one space is **build machinery**, kept out of
+the content in a dedicated build directory.
+
+**Open — owned here:** whether and how the **factory builds and vendors the workspace render** (so
+a consumer receives the unified-space build from the factory rather than maintaining its own) is
+not settled. Current posture is a **harness-provided** render; standardising it into the vendored
+surface is a parked responsibility, not a near-term one.
+
 ## Vendoring posture
 
 A harness lives in its own consuming workspace, never in this repo. The current posture is
