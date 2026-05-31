@@ -86,25 +86,160 @@ plan, risk register). The split is by canonicity/churn.
 
 ## The directory (fresh user)
 
+Status markers: ✓ built · · designed · ◦ future pack. Every skill bundle carries `SKILL.md` plus a
+single-sourced `_preamble.md` (instrumentation, `load: import`); built cells also carry their refs.
+
 ```
 ~/
-├── .claude/                                    USER SCOPE — vendored, read-only (full contents: Section 1)
+├── .claude/                                            USER SCOPE — vendored stack-graph plugin (read-only)
 │   └── plugins/
 │       └── stack-graph/
 │           ├── .claude-plugin/
+│           │   ├── plugin.json
+│           │   └── marketplace.json
 │           ├── skills/
+│           │   ├── align-context/
+│           │   │   ├── SKILL.md
+│           │   │   └── _preamble.md
+│           │   ├── design/
+│           │   │   ├── SKILL.md
+│           │   │   └── _preamble.md
+│           │   ├── specify/
+│           │   │   ├── SKILL.md
+│           │   │   └── _preamble.md
+│           │   ├── plan/
+│           │   │   ├── SKILL.md
+│           │   │   └── _preamble.md
+│           │   ├── build/
+│           │   │   ├── SKILL.md
+│           │   │   └── _preamble.md
+│           │   ├── review/                             ✓ built (the lens cell)
+│           │   │   ├── SKILL.md
+│           │   │   ├── _preamble.md
+│           │   │   ├── findings-schema.md              (load: import)
+│           │   │   ├── severity-scale.md               (load: import)
+│           │   │   ├── confidence-anchors.md           (load: import)
+│           │   │   └── lens-dispatch.md                (load: on-demand)
+│           │   ├── reconcile/
+│           │   │   ├── SKILL.md
+│           │   │   └── _preamble.md
+│           │   ├── land/
+│           │   │   ├── SKILL.md
+│           │   │   └── _preamble.md
+│           │   ├── debrief/
+│           │   │   ├── SKILL.md
+│           │   │   └── _preamble.md
+│           │   ├── debug/
+│           │   │   ├── SKILL.md
+│           │   │   └── _preamble.md
+│           │   ├── code-review/
+│           │   │   ├── SKILL.md
+│           │   │   └── _preamble.md
+│           │   ├── qa/
+│           │   │   ├── SKILL.md
+│           │   │   └── _preamble.md
+│           │   ├── design-review/
+│           │   │   ├── SKILL.md
+│           │   │   └── _preamble.md
+│           │   ├── plan-design-lens/
+│           │   │   ├── SKILL.md
+│           │   │   └── _preamble.md
+│           │   ├── design-shotgun/
+│           │   │   ├── SKILL.md
+│           │   │   └── _preamble.md
+│           │   ├── design-implement/
+│           │   │   ├── SKILL.md
+│           │   │   └── _preamble.md
+│           │   ├── optimise/
+│           │   │   ├── SKILL.md
+│           │   │   └── _preamble.md
+│           │   ├── ship/
+│           │   │   ├── SKILL.md
+│           │   │   └── _preamble.md
+│           │   ├── deploy/
+│           │   │   ├── SKILL.md
+│           │   │   └── _preamble.md
+│           │   ├── scrape/
+│           │   │   ├── SKILL.md
+│           │   │   └── _preamble.md
+│           │   ├── handbook-curator/                   ✓ built (the curator cell)
+│           │   │   ├── SKILL.md
+│           │   │   ├── _preamble.md
+│           │   │   ├── what-belongs.md                 (load: on-demand)
+│           │   │   ├── pr-description-shape.md          (load: on-demand)
+│           │   │   └── bundling-rules.md               (load: on-demand)
+│           │   ├── roadmap-curator/                    ◦ future (product-mgmt pack)
+│           │   │   ├── SKILL.md
+│           │   │   └── _preamble.md
+│           │   └── marketing-curator/                  ◦ future (marketing pack)
+│           │       ├── SKILL.md
+│           │       └── _preamble.md
 │           ├── agents/
+│           │   ├── lens-correctness.md                 ✓ built
+│           │   ├── lens-security.md                    ✓ built
+│           │   ├── lens-tests.md                        ✓ built
+│           │   ├── lens-maintainability.md             ✓ built
+│           │   ├── lens-adversarial.md                 · designed
+│           │   ├── lens-performance.md                 · designed
+│           │   ├── lens-dx.md                          · designed
+│           │   ├── lens-runtime.md                     · designed
+│           │   ├── lens-external.md                    · designed
+│           │   ├── lens-legal-risk.md                  ◦ future (legal & risk gate lens)
+│           │   ├── explore.md                          ✓ built
+│           │   ├── pr-author.md                        ✓ built
+│           │   ├── drift-detector.md                   ✓ built
+│           │   ├── queue-checker.md                    ✓ built
+│           │   ├── investigate-probe.md                · designed
+│           │   ├── spec-diff.md                        · designed
+│           │   ├── measure-outcomes.md                 · designed
+│           │   ├── capture-learnings.md                · designed
+│           │   ├── log-decision.md                     · designed
+│           │   ├── consistency-checker.md              · designed (integrate fleet)
+│           │   ├── link-validator.md                   · designed (integrate fleet)
+│           │   ├── benchmark.md                        · designed (crystallising)
+│           │   ├── health.md                           · designed (crystallising)
+│           │   ├── canary.md                           · designed (crystallising)
+│           │   └── security.md                         · designed (crystallising)
 │           ├── hooks/
+│           │   ├── instrumentation.json                node-enter/-exit companion to _preamble (D37)
+│           │   └── session-end-sweep.json              triggers a curator-raise prompt on a dirty session
 │           └── lib/
+│               ├── refresh-index.mjs
+│               ├── code-map.mjs                        repo-map + ast-grep (D39)
+│               └── analytics-rollup.mjs
 │
-└── be-civic/                                   ORG ROOT — the one CLAUDE.md; cascade anchor
-    ├── CLAUDE.md                               navigation: handbook-index pointer + how to use the graph + references
-    ├── .claude/                                harness overlay (full contents: Section 2)
-    ├── .stack-graph/                           generated/local, gitignored
+└── be-civic/                                           ORG ROOT — the one CLAUDE.md; cascade anchor
+    ├── CLAUDE.md                                       navigation: handbook-index pointer + how to use the graph + references
+    ├── .claude/                                        harness overlay (committed)
+    │   ├── settings.json                               harness settings + generated composed agent/hook view
+    │   ├── skills/
+    │   │   ├── bc-corpus-creator/
+    │   │   │   └── SKILL.md                             bc-only local node (authors the product corpus)
+    │   │   └── bc-onboard/
+    │   │       └── SKILL.md                             entry node → `overlay` edge into vendored align-context
+    │   ├── agents/
+    │   │   └── bmd-curator.md                           bc-only local node (business-model discovery)
+    │   ├── stack-graph/
+    │   │   └── bindings.yaml                            a reference (on-demand), NOT a Claude slot
+    │   └── assets/                                      crystallised assets — committed (D35 manifest binds here)
+    │       ├── benchmark/
+    │       │   ├── manifest.md
+    │       │   ├── baseline.json
+    │       │   └── run.sh
+    │       ├── qa/
+    │       │   ├── manifest.md
+    │       │   └── flows/
+    │       ├── security/
+    │       │   ├── manifest.md
+    │       │   └── threat-model.md
+    │       └── canary/
+    │           ├── manifest.md
+    │           └── checks.json
+    ├── .stack-graph/                                   generated/local, gitignored
     │   ├── graph-record.json
     │   └── analytics/
     │
-    ├── workspace/                              DOCS / OUTPUT ONLY — rendered as one space; no CLAUDE.md
+    ├── workspace/                                      DOCS / OUTPUT ONLY — rendered as one space; no CLAUDE.md
     │   ├── handbook/
     │   │   ├── content/
     │   │   │   ├── 00-overview/
@@ -112,29 +247,42 @@ plan, risk register). The split is by canonicity/churn.
     │   │   │   ├── NN-<section>/
     │   │   │   │   └── README.md
     │   │   │   └── index.json
-    │   │   └── .renderer/                      handbook renderer (good — keep/adopt)
+    │   │   └── .renderer/                              handbook renderer (good — keep/adopt)
     │   ├── roadmap/
     │   ├── marketing-plan/
     │   ├── risk-register/
     │   ├── design-system/
     │   ├── product-canvas/
-    │   ├── portal/                             unified UI ("one space, many apps")
-    │   └── .workspace-build/                   render machinery (workspace UI build)
+    │   ├── portal/                                     unified UI ("one space, many apps")
+    │   └── .workspace-build/                           render machinery (workspace UI build)
     │
-    ├── engineering/                            FUNCTION DIRECTORY — the products (each its own repo; Section 3)
-    │   ├── plugin/
+    ├── engineering/                                    FUNCTION DIRECTORY — the products (each its own repo)
+    │   ├── plugin/                                     the Belgian-admin agent product (no CLAUDE.md — inherits org root)
+    │   │   ├── .claude/
+    │   │   │   ├── skills/                             child-local overlay nodes (usually none)
+    │   │   │   ├── agents/                             child-local overlay nodes (usually none)
+    │   │   │   ├── assets/
+    │   │   │   │   └── <node-id>/                      product-specific crystallised assets (committed)
+    │   │   │   └── stack-graph/
+    │   │   │       └── bindings.yaml                   OPTIONAL product-local overrides (a reference, on-demand)
+    │   │   ├── skills/                                 the product source (the corpus)
+    │   │   ├── data/
+    │   │   ├── working/                                drafts, alternates, archives (NON-critical)
+    │   │   └── .stack-graph/                           generated/local, gitignored
+    │   │       ├── code-map/
+    │   │       └── events.jsonl
     │   ├── knowledge-graph/
     │   ├── taxcalc/
     │   ├── landing/
     │   └── renderer-core/
     │
-    ├── product/                                FUNCTION DIRECTORY — PM working → graduates to roadmap, product-canvas
+    ├── product/                                        FUNCTION DIRECTORY — PM working → graduates to roadmap, product-canvas
     │   └── working/
     │
-    ├── marketing/                              FUNCTION DIRECTORY — campaigns → graduates to marketing-plan
+    ├── marketing/                                      FUNCTION DIRECTORY — campaigns → graduates to marketing-plan
     │   └── working/
     │
-    └── legal/                                  FUNCTION DIRECTORY — matters → graduates to risk-register
+    └── legal/                                          FUNCTION DIRECTORY — matters → graduates to risk-register
         └── working/
 ```
 
@@ -163,192 +311,37 @@ content tree with its own renderer.
   stack-graph first (the good parts), and transfer/replace the rest later. This is parked, not
   urgent.
 
-## What is actually in `.claude` — the three levels in detail
+## Notes on the tree
 
-Legend: ✓ = already built in `graph/`; · = designed (graph-map); ◦ = future function pack.
+**The plugin is flat by primitive (03-plugin-spec).** References are single-sourced into each
+consumer's bundle by the build (copy/symlink), so a bundle co-locates the refs it `@`-imports — e.g.
+`skills/review/` holds `findings-schema.md` and `lens-dispatch.md` beside its `SKILL.md`. Agents are
+flat files.
 
-### 1. User scope — `~/.claude/plugins/stack-graph/` (vendored, read-only)
+**`_preamble.md` in every bundle** — the instrumentation reference (`load: import`, D37),
+single-sourced into every node so each emits `node-enter`/`-exit`; its companion
+`hooks/instrumentation.json` catches what the body can't.
 
-Flat by primitive (03-plugin-spec). References are **single-sourced into each consumer's
-bundle** by the build (copy/symlink), so a skill bundle co-locates the refs it `@`-imports.
+**Resolving "where is this product's X" — two layers.**
 
-Every skill is a bundle directory containing `SKILL.md` and a single-sourced `_preamble.md`
-(the instrumentation reference, `load: import`, in EVERY bundle); bundles that depend on other
-references also carry those files. Agents are flat files. Status: ✓ built · · designed · ◦ future pack.
+- The **handbook index path is ambient via the cascading `CLAUDE.md`** (native, load-bearing): the
+  org-root `CLAUDE.md` says "read `./workspace/handbook/content/index.json` at task start", and that
+  reaches the workspace and every child for free. This is the guaranteed path; it is how Be Civic
+  already works.
+- **`bindings` carries the structured rest** (per-surface repo/label, the code-map and assets paths)
+  for the nodes that need more than the ambient pointer — the curator (repo+label to open PRs),
+  `explore`/code-map (the code-map path), crystallising nodes (the assets path). A **convention**:
+  those node bodies are authored to read it, and it is the only thing that differs between two
+  harnesses on the same vendored graph.
 
-```
-~/.claude/plugins/stack-graph/
-├── .claude-plugin/
-│   ├── plugin.json
-│   └── marketplace.json
-├── skills/
-│   ├── align-context/
-│   │   ├── SKILL.md
-│   │   └── _preamble.md
-│   ├── design/
-│   │   ├── SKILL.md
-│   │   └── _preamble.md
-│   ├── specify/
-│   │   ├── SKILL.md
-│   │   └── _preamble.md
-│   ├── plan/
-│   │   ├── SKILL.md
-│   │   └── _preamble.md
-│   ├── build/
-│   │   ├── SKILL.md
-│   │   └── _preamble.md
-│   ├── review/                             ✓ built (the lens cell)
-│   │   ├── SKILL.md
-│   │   ├── _preamble.md
-│   │   ├── findings-schema.md              (load: import)
-│   │   ├── severity-scale.md               (load: import)
-│   │   ├── confidence-anchors.md           (load: import)
-│   │   └── lens-dispatch.md                (load: on-demand)
-│   ├── reconcile/
-│   │   ├── SKILL.md
-│   │   └── _preamble.md
-│   ├── land/
-│   │   ├── SKILL.md
-│   │   └── _preamble.md
-│   ├── debrief/
-│   │   ├── SKILL.md
-│   │   └── _preamble.md
-│   ├── debug/
-│   │   ├── SKILL.md
-│   │   └── _preamble.md
-│   ├── code-review/
-│   │   ├── SKILL.md
-│   │   └── _preamble.md
-│   ├── qa/
-│   │   ├── SKILL.md
-│   │   └── _preamble.md
-│   ├── design-review/
-│   │   ├── SKILL.md
-│   │   └── _preamble.md
-│   ├── plan-design-lens/
-│   │   ├── SKILL.md
-│   │   └── _preamble.md
-│   ├── design-shotgun/
-│   │   ├── SKILL.md
-│   │   └── _preamble.md
-│   ├── design-implement/
-│   │   ├── SKILL.md
-│   │   └── _preamble.md
-│   ├── optimise/
-│   │   ├── SKILL.md
-│   │   └── _preamble.md
-│   ├── ship/
-│   │   ├── SKILL.md
-│   │   └── _preamble.md
-│   ├── deploy/
-│   │   ├── SKILL.md
-│   │   └── _preamble.md
-│   ├── scrape/
-│   │   ├── SKILL.md
-│   │   └── _preamble.md
-│   ├── handbook-curator/                   ✓ built (the curator cell)
-│   │   ├── SKILL.md
-│   │   ├── _preamble.md
-│   │   ├── what-belongs.md                 (load: on-demand)
-│   │   ├── pr-description-shape.md          (load: on-demand)
-│   │   └── bundling-rules.md               (load: on-demand)
-│   ├── roadmap-curator/                    ◦ future (product-mgmt pack)
-│   │   ├── SKILL.md
-│   │   └── _preamble.md
-│   └── marketing-curator/                  ◦ future (marketing pack)
-│       ├── SKILL.md
-│       └── _preamble.md
-├── agents/
-│   ├── lens-correctness.md                 ✓ built
-│   ├── lens-security.md                    ✓ built
-│   ├── lens-tests.md                        ✓ built
-│   ├── lens-maintainability.md             ✓ built
-│   ├── lens-adversarial.md                 · designed
-│   ├── lens-performance.md                 · designed
-│   ├── lens-dx.md                          · designed
-│   ├── lens-runtime.md                     · designed
-│   ├── lens-external.md                    · designed
-│   ├── lens-legal-risk.md                  ◦ future (legal & risk pack — the gate lens)
-│   ├── explore.md                          ✓ built
-│   ├── pr-author.md                        ✓ built
-│   ├── drift-detector.md                   ✓ built
-│   ├── queue-checker.md                    ✓ built
-│   ├── investigate-probe.md                · designed
-│   ├── spec-diff.md                        · designed
-│   ├── measure-outcomes.md                 · designed
-│   ├── capture-learnings.md                · designed
-│   ├── log-decision.md                     · designed
-│   ├── consistency-checker.md              · designed (curator integrate fleet)
-│   ├── link-validator.md                   · designed (curator integrate fleet)
-│   ├── benchmark.md                        · designed (crystallising)
-│   ├── health.md                           · designed (crystallising)
-│   ├── canary.md                           · designed (crystallising)
-│   └── security.md                         · designed (crystallising)
-├── hooks/
-│   ├── instrumentation.json                node-enter/-exit companion to _preamble (D37)
-│   └── session-end-sweep.json              triggers a curator-raise prompt on a dirty session
-└── lib/
-    ├── refresh-index.mjs
-    ├── code-map.mjs                        repo-map + ast-grep (D39)
-    └── analytics-rollup.mjs
-```
-
-### 2. Org root — `~/be-civic/.claude/` (the harness overlay, committed)
-
-The overlay lives at the **org root** (so it cascades to the workspace *and* every product child).
-The company docs themselves live in `workspace/` (Section 2b), not here.
-
-```
-~/be-civic/
-├── CLAUDE.md                              navigation: "read ./workspace/handbook/content/index.json at task start" (cascades to ALL below)
-└── .claude/
-    ├── settings.json                      harness settings + generated composed agent/hook view
-    ├── skills/
-    │   ├── bc-corpus-creator/
-    │   │   └── SKILL.md                    bc-only local node (authors the product corpus)
-    │   └── bc-onboard/
-    │       └── SKILL.md                    entry node → carries an `overlay` edge into vendored align-context
-    ├── agents/
-    │   └── bmd-curator.md                  bc-only local node (business-model discovery surface)
-    ├── stack-graph/
-    │   └── bindings.yaml                   a reference (on-demand), NOT a Claude slot — read by the nodes that need it
-    └── assets/                            crystallised assets — committed, harness-local (D35 manifest binds here)
-        ├── benchmark/
-        │   ├── manifest.md
-        │   ├── baseline.json
-        │   └── run.sh
-        ├── qa/
-        │   ├── manifest.md
-        │   └── flows/
-        ├── security/
-        │   ├── manifest.md
-        │   └── threat-model.md
-        └── canary/
-            ├── manifest.md
-            └── checks.json
-```
-
-Two layers resolve "where is this product's X", and the split matters for reliability:
-
-- **The handbook index path is ambient via the cascading `CLAUDE.md`** (native, load-bearing) —
-  the **org-root** `CLAUDE.md` says "read `./workspace/handbook/content/index.json` at task start",
-  and that reaches the workspace and every child for free. This is the *guaranteed* path; it's how
-  Be Civic already works.
-- **`bindings` carries the structured rest** (per-surface repo/label, the code-map and assets
-  paths) for the nodes that need more than the ambient pointer — the curator (repo+label to open
-  PRs), `explore`/code-map (the code-map path), crystallising nodes (the assets path). This is a
-  **convention**: those node bodies are authored to read it, and it is the only thing that differs
-  between two harnesses on the same vendored graph.
-
-  **`bindings` is a *reference*, not a Claude-native config.** `.claude/` only auto-loads
-  `skills/`/`agents/`/`commands/`/`rules/`/`CLAUDE.md`/`settings.json` — an arbitrary path like
-  `.claude/stack-graph/bindings.yaml` gets **no special treatment**; it is inert until a node
-  `Read`s it. So it behaves exactly like any reference (on-demand), pointed at from the one
-  `CLAUDE.md`. It could live anywhere; under `.claude/` is just tidy. Don't mistake it for a
-  config Claude resolves for us.
+**`bindings` is a *reference*, not a Claude-native config.** `.claude/` only auto-loads
+`skills/`/`agents/`/`commands/`/`rules/`/`CLAUDE.md`/`settings.json` — an arbitrary path like
+`.claude/stack-graph/bindings.yaml` gets no special treatment; it is inert until a node `Read`s it.
+So it behaves exactly like any reference (on-demand), pointed at from the one `CLAUDE.md`. It could
+live anywhere; under `.claude/` is just tidy.
 
 ```yaml
-bindings:                          # external-reference id  →  where the overlay points it (org-root relative)
+bindings:                          # external-reference id  ->  where the overlay points it (org-root relative)
   handbook:  { path: ./workspace/handbook/content, index: ./workspace/handbook/content/index.json,
                repo: hk121992/be-civic-workspace, label: handbook }
   roadmap:   { path: ./workspace/roadmap, label: roadmap }
@@ -358,56 +351,20 @@ bindings:                          # external-reference id  →  where the overl
   code-map:  { path: ./.stack-graph/code-map }   # per-child overridden
 ```
 
-Two distinct overlay mechanisms: **`overlay` edges** live in local node frontmatter (attach a
-local node to a vendored one); **bindings** live in `bindings.yaml` (resolve an `external: true`
-reference to a path). Different jobs.
+Two distinct overlay mechanisms: **`overlay` edges** live in local node frontmatter (attach a local
+node to a vendored one); **`bindings`** resolve an `external: true` reference to a path. Different jobs.
 
-### 3. A product directory — e.g. `~/be-civic/engineering/plugin/` (per-product)
+**Crystallised assets -> `.claude/assets/<node-id>/` (committed).** A vendored node's stable manifest
+reference binds here — it can't write into its own read-only user-scope bundle.
 
-**No `CLAUDE.md` of its own to start** — it inherits the org-root one by cascade. It carries only
-what is genuinely product-local:
+**One `CLAUDE.md` (org root); none per child by default.** A working directory inherits the org-root
+`CLAUDE.md` by cascade and navigates via the graph + references. We do not generate a per-child
+`CLAUDE.md`; a local one (or a generated composed agent/hook view) is added only where a directory
+genuinely needs it (e.g. local agents, which don't nest natively).
 
-```
-~/be-civic/engineering/plugin/              the Belgian-admin agent product (no CLAUDE.md — inherits org root)
-├── .claude/
-│   ├── skills/                             child-local overlay nodes (usually none)
-│   ├── agents/                             child-local overlay nodes (usually none)
-│   ├── assets/
-│   │   └── <node-id>/                      product-specific crystallised assets (committed)
-│   └── stack-graph/
-│       └── bindings.yaml                   OPTIONAL: product-local overrides only (e.g. code-map path); a reference, on-demand
-├── skills/                                 the product source (the corpus)
-│   └── ...
-├── data/
-├── working/                                drafts, alternates, archives (NON-critical)
-└── .stack-graph/                           generated/local, gitignored
-    ├── code-map/
-    └── events.jsonl
-```
+**`.claude/` is authored/committed; `.stack-graph/` is machine output** (code-map, event log,
+graph-record), gitignored and regenerable.
 
-A per-product `CLAUDE.md`, or a generated composed view, is added **only if needed** — agents/hooks
-don't nest, so *if* a product relies on local agents we generate their composed view there;
-otherwise nothing. The default is: org-root `CLAUDE.md` cascades in, graph + references do the rest.
-
-### The non-obvious files, explained
-
-- **`_preamble.md` in every bundle** — the instrumentation reference (`load: import`, D37),
-  single-sourced into every node so each emits `node-enter`/`-exit`; its companion
-  `hooks/instrumentation.json` catches what the body can't.
-- **Refs inside bundles** — `findings-schema.md` etc. live *inside* `skills/review/` because the
-  build placed the one canonical source there and made `SKILL.md` `@`-import it. One source,
-  many bundles, via symlink/copy.
-- **`bindings.yaml`** — resolves the `handbook` (and roadmap/assets/code-map) external references
-  to workspace paths. This is the harness "wiring," and it is the *only* thing that differs
-  between two harnesses on the same vendored graph.
-- **`.claude/assets/<node-id>/`** — committed crystallised assets; a vendored node's stable
-  manifest reference binds here (it can't write into its own read-only user-scope bundle).
-- **One `CLAUDE.md` (org root); none per child by default** — a working directory inherits the
-  org-root `CLAUDE.md` by cascade and navigates via the graph + references. We do **not** generate
-  a per-child `CLAUDE.md`. A local `CLAUDE.md` or a generated composed agent/hook view is added
-  only where a directory genuinely needs it (e.g. local agents, which don't nest natively).
-- **`.stack-graph/`** — everything generated and regenerable (code-map, event log, graph-record),
-  gitignored. `.claude/` is authored/committed; `.stack-graph/` is machine output.
 
 ## Lifecycle flows (behavior-grounded)
 
