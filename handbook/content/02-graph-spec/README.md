@@ -101,12 +101,22 @@ process); its *values* are domain. A carrier records:
 | `transition_history[]` | append-only log of `lifecycle_state` transitions (from → to, who, when, why) |
 
 This structure is what makes loops, re-entry, skipped stages, decomposition, and abandonment
-representable — a scalar "stage" represents none of them. A **gate** advances `lifecycle_state`
-and writes a `gate_decisions` entry; gate rigour is set by the **maturity × tier dial**
-([concepts](../01-concepts/)). A carrier is **not a node** — it is an instance flowing through
-the graph; a node (a curator) maintains the carrier surface and syncs `current_stage` as the arc
-progresses (a **state mechanism**, not a `composes-into` edge). What the lifecycle states, stages,
-and gates *are* is a domain concern — a delivery process's roadmap item is one carrier.
+representable — a scalar "stage" represents none of them. The carrier's fields are updated by **three
+different mechanisms, not one writer**:
+
+- **`current_stage` + `transition_history` are projected from the observed traversal.** As work moves
+  through the arc, each stage emits node-enter/-exit events ([analytics](../06-analytics/)); tagged with
+  the carrier, those events *project* onto it — `current_stage` is the latest stage event, the history the
+  sequence. Nobody writes them (the operator may override); they are **derived**, exactly as the graph
+  record is derived from frontmatter. The stages that traverse a carrier hold **no write-edge** to it.
+- **A gate** advances `lifecycle_state` and records a `gate_decisions` entry — a deliberate, lightweight
+  decision at a stage boundary; gate rigour is set by the **maturity × tier dial** ([concepts](../01-concepts/)).
+- **Content** (the carrier's identity, priority, body) is maintained by a **curator** through the gated
+  raise → integrate path — the heavyweight, reviewed changes.
+
+A carrier is **not a node** — it is an instance flowing through the graph, and none of the three is a
+`composes-into` edge. What the lifecycle states, stages, and gates *are* is a domain concern — a delivery
+process's roadmap item is one carrier.
 
 ## Inline
 
