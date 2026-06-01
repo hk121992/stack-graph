@@ -1,9 +1,101 @@
 {
   "generated": "2026-06-01T00:00:00Z",
-  "node_count": 12,
-  "reference_count": 10,
-  "edge_count": 46,
+  "node_count": 17,
+  "reference_count": 14,
+  "edge_count": 77,
   "nodes": {
+    "align-context": {
+      "primitive": "skill",
+      "mode": "collaborative",
+      "title": "Align context",
+      "status": "v0.1.0 — 2026-06-01",
+      "edges": {
+        "invokes": [
+          {
+            "id": "explore"
+          }
+        ],
+        "composes-into": [
+          {
+            "id": "dev-sprint",
+            "stage": "align-context"
+          }
+        ],
+        "references": [
+          {
+            "id": "handbook",
+            "load": "on-demand",
+            "external": true
+          }
+        ],
+        "precedes": [
+          {
+            "id": "design"
+          }
+        ]
+      }
+    },
+    "design": {
+      "primitive": "skill",
+      "mode": "collaborative",
+      "title": "Design",
+      "status": "v0.1.0 — 2026-06-01",
+      "edges": {
+        "invokes": [
+          {
+            "id": "explore"
+          }
+        ],
+        "composes-into": [
+          {
+            "id": "dev-sprint",
+            "stage": "design"
+          }
+        ],
+        "references": [
+          {
+            "id": "lens-dispatch",
+            "load": "on-demand"
+          },
+          {
+            "id": "findings-schema",
+            "load": "import"
+          },
+          {
+            "id": "severity-scale",
+            "load": "import"
+          },
+          {
+            "id": "confidence-anchors",
+            "load": "import"
+          },
+          {
+            "id": "handbook",
+            "load": "on-demand",
+            "external": true
+          },
+          {
+            "id": "experience-contract-schema",
+            "load": "on-demand"
+          },
+          {
+            "id": "experience-contract",
+            "load": "on-demand",
+            "external": true
+          }
+        ],
+        "can-follow": [
+          {
+            "id": "align-context"
+          }
+        ],
+        "precedes": [
+          {
+            "id": "specify"
+          }
+        ]
+      }
+    },
     "drift-detector": {
       "primitive": "agent",
       "mode": "autonomous",
@@ -198,6 +290,74 @@
         ]
       }
     },
+    "product-dashboard-curator": {
+      "primitive": "skill",
+      "mode": "collaborative",
+      "title": "Product-dashboard curator",
+      "status": "v0.1.0 — 2026-06-01",
+      "edges": {
+        "invokes": [
+          {
+            "id": "pr-author"
+          },
+          {
+            "id": "queue-checker"
+          }
+        ],
+        "references": [
+          {
+            "id": "work-item-schema",
+            "load": "import"
+          },
+          {
+            "id": "okr-schema",
+            "load": "import"
+          },
+          {
+            "id": "bundling-rules",
+            "load": "on-demand"
+          }
+        ]
+      }
+    },
+    "product-lens": {
+      "primitive": "skill",
+      "mode": "collaborative",
+      "title": "Product lens",
+      "status": "v0.1.0 — 2026-06-01",
+      "edges": {
+        "composes-into": [
+          {
+            "id": "dev-sprint",
+            "stage": "design"
+          },
+          {
+            "id": "dev-sprint",
+            "stage": "plan"
+          }
+        ],
+        "references": [
+          {
+            "id": "four-risks",
+            "load": "import"
+          },
+          {
+            "id": "okr-schema",
+            "load": "import"
+          },
+          {
+            "id": "strategy-canvas",
+            "load": "on-demand",
+            "external": true
+          },
+          {
+            "id": "handbook",
+            "load": "on-demand",
+            "external": true
+          }
+        ]
+      }
+    },
     "queue-checker": {
       "primitive": "agent",
       "mode": "autonomous",
@@ -271,6 +431,40 @@
         ]
       }
     },
+    "specify": {
+      "primitive": "skill",
+      "mode": "collaborative",
+      "title": "Specify",
+      "status": "v0.1.0 — 2026-06-01",
+      "edges": {
+        "invokes": [
+          {
+            "id": "drift-detector"
+          },
+          {
+            "id": "pr-author"
+          }
+        ],
+        "composes-into": [
+          {
+            "id": "dev-sprint",
+            "stage": "specify"
+          }
+        ],
+        "references": [
+          {
+            "id": "handbook",
+            "load": "on-demand",
+            "external": true
+          }
+        ],
+        "can-follow": [
+          {
+            "id": "design"
+          }
+        ]
+      }
+    },
     "strategy-curator": {
       "primitive": "skill",
       "mode": "collaborative",
@@ -327,20 +521,30 @@
       "status": "v0.1.0 — 2026-05-31",
       "consumed_by": [
         "handbook-curator",
-        "strategy-curator"
+        "strategy-curator",
+        "product-dashboard-curator"
       ]
     },
     "confidence-anchors": {
       "title": "Finding contract — confidence anchors",
       "status": "v0.1.0 — 2026-05-30",
       "consumed_by": [
+        "design",
         "review"
+      ]
+    },
+    "experience-contract-schema": {
+      "title": "Experience contract — schema",
+      "status": "v0.1.0 — 2026-06-01",
+      "consumed_by": [
+        "design"
       ]
     },
     "findings-schema": {
       "title": "Finding contract — schema",
       "status": "v0.1.0 — 2026-05-30",
       "consumed_by": [
+        "design",
         "review"
       ]
     },
@@ -348,15 +552,30 @@
       "title": "The four product risks — discovery lens",
       "status": "v0.1.0 — 2026-06-01",
       "consumed_by": [
-        "strategy-curator"
+        "strategy-curator",
+        "product-lens"
       ]
     },
     "lens-dispatch": {
       "title": "Lens dispatch — fan-out, merge, triage, route",
       "status": "v0.1.0 — 2026-05-30",
       "consumed_by": [
+        "design",
         "review"
       ]
+    },
+    "okr-schema": {
+      "title": "OKR / outcome-layer schema",
+      "status": "v0.1.0 — 2026-06-01",
+      "consumed_by": [
+        "product-dashboard-curator",
+        "product-lens"
+      ]
+    },
+    "pm-methodology-provenance": {
+      "title": "PM pack — methodology provenance",
+      "status": "v0.1.0 — 2026-06-01",
+      "consumed_by": []
     },
     "pr-description-shape": {
       "title": "Canon PR description shape",
@@ -370,6 +589,7 @@
       "title": "Finding contract — severity scale",
       "status": "v0.1.0 — 2026-05-30",
       "consumed_by": [
+        "design",
         "review"
       ]
     },
@@ -388,9 +608,104 @@
         "handbook-curator",
         "pr-author"
       ]
+    },
+    "work-item-schema": {
+      "title": "Work-item schema — the carrier on the product-dashboard",
+      "status": "v0.1.0 — 2026-06-01",
+      "consumed_by": [
+        "product-dashboard-curator"
+      ]
     }
   },
   "edges": [
+    {
+      "from": "align-context",
+      "to": "explore",
+      "type": "invokes"
+    },
+    {
+      "from": "align-context",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "align-context"
+    },
+    {
+      "from": "align-context",
+      "to": "handbook",
+      "type": "references",
+      "load": "on-demand",
+      "external": true
+    },
+    {
+      "from": "align-context",
+      "to": "design",
+      "type": "precedes"
+    },
+    {
+      "from": "design",
+      "to": "explore",
+      "type": "invokes"
+    },
+    {
+      "from": "design",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "design"
+    },
+    {
+      "from": "design",
+      "to": "lens-dispatch",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "design",
+      "to": "findings-schema",
+      "type": "references",
+      "load": "import"
+    },
+    {
+      "from": "design",
+      "to": "severity-scale",
+      "type": "references",
+      "load": "import"
+    },
+    {
+      "from": "design",
+      "to": "confidence-anchors",
+      "type": "references",
+      "load": "import"
+    },
+    {
+      "from": "design",
+      "to": "handbook",
+      "type": "references",
+      "load": "on-demand",
+      "external": true
+    },
+    {
+      "from": "design",
+      "to": "experience-contract-schema",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "design",
+      "to": "experience-contract",
+      "type": "references",
+      "load": "on-demand",
+      "external": true
+    },
+    {
+      "from": "design",
+      "to": "align-context",
+      "type": "can-follow"
+    },
+    {
+      "from": "design",
+      "to": "specify",
+      "type": "precedes"
+    },
     {
       "from": "drift-detector",
       "to": "dev-sprint",
@@ -554,6 +869,72 @@
       "load": "on-demand"
     },
     {
+      "from": "product-dashboard-curator",
+      "to": "pr-author",
+      "type": "invokes"
+    },
+    {
+      "from": "product-dashboard-curator",
+      "to": "queue-checker",
+      "type": "invokes"
+    },
+    {
+      "from": "product-dashboard-curator",
+      "to": "work-item-schema",
+      "type": "references",
+      "load": "import"
+    },
+    {
+      "from": "product-dashboard-curator",
+      "to": "okr-schema",
+      "type": "references",
+      "load": "import"
+    },
+    {
+      "from": "product-dashboard-curator",
+      "to": "bundling-rules",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "product-lens",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "design"
+    },
+    {
+      "from": "product-lens",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "plan"
+    },
+    {
+      "from": "product-lens",
+      "to": "four-risks",
+      "type": "references",
+      "load": "import"
+    },
+    {
+      "from": "product-lens",
+      "to": "okr-schema",
+      "type": "references",
+      "load": "import"
+    },
+    {
+      "from": "product-lens",
+      "to": "strategy-canvas",
+      "type": "references",
+      "load": "on-demand",
+      "external": true
+    },
+    {
+      "from": "product-lens",
+      "to": "handbook",
+      "type": "references",
+      "load": "on-demand",
+      "external": true
+    },
+    {
       "from": "review",
       "to": "lens-correctness",
       "type": "invokes"
@@ -616,6 +997,34 @@
       "type": "references",
       "load": "on-demand",
       "external": true
+    },
+    {
+      "from": "specify",
+      "to": "drift-detector",
+      "type": "invokes"
+    },
+    {
+      "from": "specify",
+      "to": "pr-author",
+      "type": "invokes"
+    },
+    {
+      "from": "specify",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "specify"
+    },
+    {
+      "from": "specify",
+      "to": "handbook",
+      "type": "references",
+      "load": "on-demand",
+      "external": true
+    },
+    {
+      "from": "specify",
+      "to": "design",
+      "type": "can-follow"
     },
     {
       "from": "strategy-curator",
