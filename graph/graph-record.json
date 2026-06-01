@@ -1,8 +1,8 @@
 {
-  "generated": "2026-05-31T00:00:00Z",
-  "node_count": 10,
-  "reference_count": 7,
-  "edge_count": 36,
+  "generated": "2026-06-01T00:00:00Z",
+  "node_count": 12,
+  "reference_count": 10,
+  "edge_count": 48,
   "nodes": {
     "drift-detector": {
       "primitive": "agent",
@@ -250,14 +250,91 @@
           }
         ]
       }
+    },
+    "simulate-users": {
+      "primitive": "agent",
+      "mode": "autonomous",
+      "title": "Simulate users",
+      "status": "v0.1.0 — 2026-06-01",
+      "edges": {
+        "references": [
+          {
+            "id": "four-risks",
+            "load": "import"
+          },
+          {
+            "id": "experience-contract",
+            "load": "on-demand",
+            "external": true
+          },
+          {
+            "id": "personas",
+            "load": "on-demand",
+            "external": true
+          }
+        ]
+      }
+    },
+    "strategy-curator": {
+      "primitive": "skill",
+      "mode": "collaborative",
+      "title": "Strategy curator",
+      "status": "v0.1.0 — 2026-06-01",
+      "edges": {
+        "invokes": [
+          {
+            "id": "simulate-users"
+          },
+          {
+            "id": "explore"
+          },
+          {
+            "id": "pr-author"
+          },
+          {
+            "id": "queue-checker"
+          }
+        ],
+        "references": [
+          {
+            "id": "vpc-schema",
+            "load": "on-demand"
+          },
+          {
+            "id": "bmc-schema",
+            "load": "on-demand"
+          },
+          {
+            "id": "four-risks",
+            "load": "import"
+          },
+          {
+            "id": "bundling-rules",
+            "load": "on-demand"
+          },
+          {
+            "id": "handbook",
+            "load": "on-demand",
+            "external": true
+          }
+        ]
+      }
     }
   },
   "references": {
+    "bmc-schema": {
+      "title": "Business Model Canvas — schema",
+      "status": "v0.1.0 — 2026-06-01",
+      "consumed_by": [
+        "strategy-curator"
+      ]
+    },
     "bundling-rules": {
       "title": "Canon PR bundling rules",
       "status": "v0.1.0 — 2026-05-31",
       "consumed_by": [
-        "handbook-curator"
+        "handbook-curator",
+        "strategy-curator"
       ]
     },
     "confidence-anchors": {
@@ -272,6 +349,14 @@
       "status": "v0.1.0 — 2026-05-30",
       "consumed_by": [
         "review"
+      ]
+    },
+    "four-risks": {
+      "title": "The four product risks — discovery lens",
+      "status": "v0.1.0 — 2026-06-01",
+      "consumed_by": [
+        "simulate-users",
+        "strategy-curator"
       ]
     },
     "lens-dispatch": {
@@ -294,6 +379,13 @@
       "status": "v0.1.0 — 2026-05-30",
       "consumed_by": [
         "review"
+      ]
+    },
+    "vpc-schema": {
+      "title": "Value Proposition Canvas — schema",
+      "status": "v0.1.0 — 2026-06-01",
+      "consumed_by": [
+        "strategy-curator"
       ]
     },
     "what-belongs": {
@@ -518,6 +610,77 @@
       "to": "confidence-anchors",
       "type": "references",
       "load": "import"
+    },
+    {
+      "from": "simulate-users",
+      "to": "four-risks",
+      "type": "references",
+      "load": "import"
+    },
+    {
+      "from": "simulate-users",
+      "to": "experience-contract",
+      "type": "references",
+      "load": "on-demand",
+      "external": true
+    },
+    {
+      "from": "simulate-users",
+      "to": "personas",
+      "type": "references",
+      "load": "on-demand",
+      "external": true
+    },
+    {
+      "from": "strategy-curator",
+      "to": "simulate-users",
+      "type": "invokes"
+    },
+    {
+      "from": "strategy-curator",
+      "to": "explore",
+      "type": "invokes"
+    },
+    {
+      "from": "strategy-curator",
+      "to": "pr-author",
+      "type": "invokes"
+    },
+    {
+      "from": "strategy-curator",
+      "to": "queue-checker",
+      "type": "invokes"
+    },
+    {
+      "from": "strategy-curator",
+      "to": "vpc-schema",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "strategy-curator",
+      "to": "bmc-schema",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "strategy-curator",
+      "to": "four-risks",
+      "type": "references",
+      "load": "import"
+    },
+    {
+      "from": "strategy-curator",
+      "to": "bundling-rules",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "strategy-curator",
+      "to": "handbook",
+      "type": "references",
+      "load": "on-demand",
+      "external": true
     }
   ]
 }
