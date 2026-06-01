@@ -11,52 +11,112 @@ product maturity**. This is a BC-grounded working doc; the spec stays general (n
 `handbook/content/`). The method mirrors the curator cell — we **reverse-engineer the general
 pattern from Be Civic's already-working PM system**, not invent one.
 
+**PM has two faces**, and the design keeps them distinct:
+
+- **Arc A — strategy / discovery (upstream, continuous).** Develops and continually iterates the
+  strategic substrate: market & landscape, target users & segments, jobs-to-be-done, the
+  value-proposition canvas, the business model, product strategy. Done *before* delivery and
+  iterated *as evidence develops*. A genuine arc of its own.
+- **Arc B — delivery coupling (downstream, per-item).** Turns that substrate into prioritised,
+  shipped product. **Not** a separate arc — it rides the dev-sprint, whose interaction-heavy front
+  already blends PM + eng/design. Its machinery: the roadmap (carrier source), the gates, a product
+  lens into the front, the maturity dial.
+
+The two are joined by the **roadmap** (Arc A sets themes/priorities → Arc B executes items) and by
+**feedback** (`debrief` outcomes flow back to reprioritise the roadmap *and* confirm/kill Arc A's
+hypotheses).
+
 ## Spec touchpoints
 
 | Spec doc | Section | Relationship |
 |---|---|---|
-| `01-concepts` | Arcs / functions | **amend** — a function is process(es)/lens(es) over the graph; PM specifically is *artefacts + a lens into the shared front + gates*, **not** a siloed parallel arc. Introduce the **maturity ladder** concept. |
-| `02-graph-spec` | Edges, node schema | **confirm/extend** — the model must express the **carrier** (a work-item whose `stage` advances along the arc), the **gate** construct, and a product **lens** node. |
-| `04-harness-spec` | Functions, the workspace, directory topology | **amend** — PM **surfaces** (roadmap, value/BMC canvas, personas), a **curator per surface**, the **maturity stage** as harness-local per-product state, and session **orientation** instructions (the "orient" entry). |
-| `06-analytics` | The loop, outcome measurement | **amend** — `debrief` writes outcomes back to the carrier; gate evidence; maturity-aware metrics. |
-| `07-decomposition` | Choosing the primitive | **amend** — product lens = skill (D36 reasoning); user-simulation = agent; curators = skills; the gate as a stage-transition. |
-| `05-maintenance-skill` (or a new canon page) | Curator family | **extend** — the roadmap / value-prop / persona curators generalise the curator cell (D40), tuned per surface. |
+| `01-concepts` | Arcs / functions | **amend** — a function is process(es)/lens(es) over the graph; PM = an upstream **strategy/discovery arc** + a downstream **delivery coupling** (not a siloed delivery arc). Introduce the **maturity ladder**. |
+| `02-graph-spec` | Edges, node schema | **confirm/extend** — express the **carrier** (a work-item whose `stage` advances), the **gate** construct, the strategy-arc **hypothesis/evidence** entities, and a product **lens** node. |
+| `04-harness-spec` | Functions, the workspace, directory topology | **amend** — PM **surfaces** (strategy/canvas, roadmap, personas), a **curator per surface**, the **maturity stage** as harness-local per-product state, and session **orientation** instructions (the "orient" entry). |
+| `06-analytics` | The loop, outcome measurement | **amend** — `debrief` writes outcomes back to the carrier *and* to strategy hypotheses; gate evidence; maturity-aware metrics. |
+| `07-decomposition` | Choosing the primitive | **amend** — product lens = skill (D36); `simulate-users` = agent; curators = skills; the gate as a stage-transition; the evidence-first discovery loop. |
+| `05-maintenance-skill` (or a new canon page) | Curator family | **extend** — the strategy / roadmap / persona curators generalise the curator cell (D40), tuned per surface (evidence-first for strategy). |
 
 ## Stance
 
-- **Generalise BC's working system.** BC already runs a deployed, disciplined PM stack (roadmap +
-  business-model discovery + personas + user-simulation). The PM pack generalises it, exactly as
-  the curator cell was reverse-engineered from `bc-handbook-curator`.
-- **PM is not a siloed arc.** The interaction-heavy *front* of the dev-sprint (`align-context` →
-  `design`) already blends product-management and engineering/design thinking — the way gstack does
-  it (`office-hours` → `autoplan` = CEO + design + eng review). We do **not** rebuild that front as a
-  parallel PM pipeline. PM-the-function is: **(a)** maintained artefacts + their curators, **(b)** a
-  **product lens** into the shared front, **(c)** the **gates** + the **maturity dial**.
+- **Generalise BC's working system.** BC already runs a deployed, disciplined PM stack — roadmap
+  (Arc B) + business-model discovery / VPC (Arc A) + personas + user-simulation. The PM pack
+  generalises it, exactly as the curator cell was reverse-engineered from `bc-handbook-curator`.
+- **Two faces, kept distinct** (above): an upstream strategy/discovery arc, a downstream delivery
+  coupling that rides the dev-sprint rather than duplicating it.
 - **Maturity is first-class.** The same function behaves differently as a product matures
-  (founder-led discovery → first-users validation → analytics-driven scale). BC is at **discovery**;
-  the design must not force evidence-gating on a pre-launch product.
+  (founder-led discovery → first-users validation → analytics-driven scale): maturity governs the
+  **evidence source** in Arc A and the **gate rigour** in Arc B. BC is at **discovery** — the design
+  must not force evidence-gating on a pre-launch product.
 
 ## What BC already has — the prior art we generalise
 
 | BC asset (live) | Where | What it is | Generalises to |
 |---|---|---|---|
-| **Roadmap** | `bc-workspace/roadmap/` (`items/<id>.md`, `backlog.md`, `sprints/`, `manifest.json`); discipline at `handbook/.../07-workspace/05-roadmap-discipline.md` | Items on a **12-stage lifecycle** with **tiers** (T1 fast-track / T2–T3 gated), a curator, sprint history | The **carrier + the roadmap surface + the roadmap-curator** |
-| **BMD / Value-Proposition Canvas** | `bc-workspace/bmd/` (173 hypotheses, 41 findings, evidence sessions, `vpc/`); discipline at `07-workspace/04-bmd-discipline.md` | Evidence-first business-model + value-prop, post-pivot lifecycle (invalidate/supersede, never delete) | The **value/BMC-canvas surface + its curator** |
-| **Personas** | `bc-operations/docs/user-research/profiles.md` | 10 stress-test profiles + a coverage matrix; symlinked into the test harness | The **personas surface** (harness-local content; a general "maintain personas" capability) |
-| **User-simulation** | `handbook/.../06-experience/02-testing.md` (two-tier), `01-arc.md` (Experience Arc, 8 invariants), 7 failure modes, runbooks, "Imogen" replay persona | Single-agent walkthrough + three-agent judge harness, graded against a session-shape contract | The **`simulate-users` node** (the discovery-stage `validate` evidence source) |
+| **BMD / Value-Proposition Canvas** | `bc-workspace/bmd/` (173 hypotheses across BMC blocks + VPC sub-blocks, 41 findings, evidence sessions, `vpc/`, assessments); discipline at `handbook/.../07-workspace/04-bmd-discipline.md` | Evidence-first strategy/value-prop, post-pivot hypothesis lifecycle (invalidate/supersede, never delete), a curator | **Arc A** — the strategy/discovery arc + the canvas surface |
+| **Personas** | `bc-operations/docs/user-research/profiles.md` | 10 stress-test profiles + a coverage matrix; symlinked into the test harness | The **personas surface** (Arc A output) |
+| **User-simulation** | `handbook/.../06-experience/02-testing.md` (two-tier), `01-arc.md` (Experience Arc, 8 invariants), 7 failure modes, runbooks, "Imogen" replay persona | Single-agent walkthrough + three-agent judge harness, graded against a session-shape contract | The **`simulate-users` node** — the discovery-stage **evidence source** for Arc A |
+| **Roadmap** | `bc-workspace/roadmap/` (`items/<id>.md`, `backlog.md`, `sprints/`, `manifest.json`); discipline at `07-workspace/05-roadmap-discipline.md` | Items on a **12-stage lifecycle** with **tiers** (T1 fast-track / T2–T3 gated), a curator | **Arc B** — the carrier + roadmap surface + roadmap-curator |
 
-## The model
+## The two arcs at a glance
 
-### 1 — The carrier: a roadmap item travels the whole arc
+```
+  ARC A — STRATEGY / DISCOVERY  (upstream · continuous · evidence-iterated)
+  market · target users · jobs-to-be-done · value-prop (VPC) · business model · strategy
+        │   hypothesise → gather evidence → assess/synthesise → update canvas   (loop)
+        ▼   derives themes & priorities
+  ═════════ ROADMAP ═════════   (prioritised opportunities — the carrier source)
+        │   a roadmap item
+        ▼
+  ARC B — DELIVERY COUPLING  (per-item · rides the dev-sprint)
+  align-context · design ─[gate-1]─ specify · reconcile ─[gate-2]─ plan ─[gate-3]─ build · review · land · debrief
+   (front blends a PM product-lens + eng/design; reads VPC / personas / strategy)              │
+        ▲                                                                                       │
+        └──────── outcomes ──► roadmap reprioritise  +  Arc A confirm / kill hypotheses ────────┘
+```
 
-There is no "brief handed across a wall." The **roadmap item is the carrier**; its `stage` field is
-its position in the *combined* PM + dev-sprint arc. PM owns the front and the gates; engineering owns
-the middle; `debrief` closes the loop back to PM. (Left = BC's live stages; middle = our dev-sprint
-stage; right = owner.)
+Two clocks: Arc A iterates at venture cadence (or whenever evidence arrives); Arc B runs per item.
+
+## Arc A — the strategy / discovery arc (upstream)
+
+**What it produces** (the strategic substrate every downstream decision builds on):
+
+| Output | Content | BC home |
+|---|---|---|
+| Market & landscape | who the market is, competitors, positioning, defensibility | bmd assessments (YC + Helmer) |
+| Target users & segments | who we serve | BMC `customer_segments` + personas |
+| Jobs-to-be-done | the customer profile — jobs · pains · gains | VPC customer side (BC: 34 jobs / 35 pains / 18 gains) |
+| Value proposition | products, pain relievers, gain creators | VPC value-map side |
+| Business model | revenue · cost · channels · partners · resources | BMC blocks |
+| Product strategy | the synthesised direction / wedge / sequencing | bmd assessments + strategy notes |
+
+**The loop** (evidence-first, continuous): **hypothesise** (frame testable claims about market /
+users / jobs / value / model) → **gather evidence** (interviews · simulations · research) →
+**assess / synthesise** (findings; confirm / kill / supersede / pivot — never delete; update the
+canvas) → iterate. This is BC's BMD discipline, generalised; maintained by a **strategy-curator**
+(generalises `bmd-curator`).
+
+**Maturity governs the evidence source** — this is the "done before, continually iterated as
+evidence develops" the operator wants:
+
+- **Discovery** (BC now): hypotheses sourced from **founder intuition + domain understanding**;
+  evidence from **simulated users** (the `simulate-users` node) — you don't yet have real ones.
+- **Validation**: evidence from **real interviews / evidence sessions** (BC's `ES-*`).
+- **Scale**: evidence from **analytics + behavioural signal + experiments**.
+
+The canvas is *always live*; what changes with maturity is how strongly each hypothesis is evidenced.
+
+## Arc B — the delivery coupling (downstream)
+
+### The carrier: a roadmap item travels the whole arc
+
+The **roadmap item is the carrier**; its `stage` field is its position in the *combined* PM +
+dev-sprint arc. PM owns the front and the gates; engineering owns the middle; `debrief` closes the
+loop. (Left = BC's live stages; middle = our dev-sprint stage; right = owner.)
 
 | BC roadmap stage | Dev-sprint stage | Owner |
 |---|---|---|
-| idea | *(PM: an opportunity enters the roadmap)* | PM |
+| idea | *(an opportunity enters the roadmap, derived from Arc A)* | PM |
 | design | `align-context` + `design` | **shared** |
 | **gate-1** | *go/no-go: commit to spec* | **PM gate** |
 | spec-pr | `specify` | Eng |
@@ -70,153 +130,123 @@ stage; right = owner.)
 | *(feeds back)* | `debrief` → measure outcomes | Eng → PM |
 | parked | *(deferred)* | PM |
 
-The **gates** are PM-owned go/no-go transitions interspersed in the arc — the generalisation of the
-existing `land`+gate idea. *Ordering details to settle when amending the spec: BC folds
-`align-context` into "design", and positions `reconciliation` right after `spec-pr` where our arc
-puts `reconcile` after `review`. Minor; resolved at amendment.*
+The **gates** are PM-owned go/no-go transitions — the generalisation of the existing `land`+gate
+idea. *Ordering details to settle when amending the spec: BC folds `align-context` into "design",
+and positions `reconciliation` right after `spec-pr` where our arc puts `reconcile` after `review`.*
 
-### 2 — The shared front: PM leads, eng & design join
+### The shared front: PM leads, eng & design join
 
 The interaction-heavy front (`align-context` → `design`) is **already in the dev-sprint** and is
 where PM and eng/design think *together* — the gstack pattern (`office-hours` frames demand/value/
-user; `autoplan` runs CEO + design + eng review). We don't duplicate it. PM enters the front two ways:
+user; `autoplan` runs CEO + design + eng review). We don't duplicate it. PM enters two ways:
 
-- **A product lens** — the CEO/founder/strategy review (gstack's `plan-ceo-review` analogue): *is this
-  the right problem? does it serve the value proposition and the target user? where does it sit on the
-  roadmap?* Delivered **main-thread as a skill** (per D36: interaction-heavy judgment is a skill, not
-  an isolated agent-lens), invoked by `design`/`plan`. `align-context` already carries the
-  office-hours-style framing.
-- **Building on the artefacts** — the front **reads** the PM artefacts so its thinking is grounded:
-  `align-context` reads the roadmap item (the *why*) + personas (the *who*) + value-prop (the *bet*);
-  `design` and the product lens check the solution against them.
+- **A product lens** — the CEO/founder/strategy review (gstack's `plan-ceo-review` analogue):
+  *is this the right problem? does it serve the value proposition and the target user? where does it
+  sit on the roadmap?* Delivered **main-thread as a skill** (per D36), invoked by `design`/`plan`.
+- **Building on Arc A's artefacts** — the front **reads** the strategic substrate: `align-context`
+  reads the roadmap item + personas + value-prop; `design` and the product lens check the solution
+  against the VPC and strategy.
 
-So PM's "process" at the front is the dev-sprint's existing front stages, made to build on the PM
-substrate — not a new arc.
-
-### 3 — Maturity ladder = generalised tiers
+### Gates + maturity ladder = generalised tiers
 
 BC already has **tiers** (T1 fast-track / T2–T3 gated; `bc-triage` recommends, operator overrides at
-gates). Generalise that into a two-level dial: **per-product maturity** sets the default rigour and
-which evidence source feeds the gates; **per-item tier** overrides it.
+gates). Generalise into a two-level dial: **per-product maturity** sets the default gate rigour;
+**per-item tier** overrides it.
 
-| Maturity stage | Direction from | Default tier / gates | Evidence source (the `validate` step) |
+| Maturity stage | Direction from | Default tier / gates | Arc-A evidence source |
 |---|---|---|---|
-| **Discovery** (founder-led) — *BC now* | intuition + domain understanding | T1 fast-track; gates **advisory** | **simulated users** + founder conviction |
+| **Discovery** (founder-led) — *BC now* | intuition + domain understanding | T1 fast-track; gates **advisory** | simulated users + founder conviction |
 | **Validation** (first users) | observed user problems | T2; gates need qualitative signal | real interviews / evidence sessions |
 | **Scale** (mature) | analytics + behaviour | T2/T3; gates need metric movement | analytics, experiments / A-B |
 
-At discovery, the default is fast-track, simulation is the evidence, and gates are advisory — so a
-pre-launch product is **not slowed by evidence-gating**. The dial is built once; maturity only
-changes its setting. The per-item tier is the escape hatch (urgent → fast-track even at scale; risky
-→ gated even in discovery). Maturity is **harness-local per-product state** (a field a node reads via
-bindings), and may later generalise to the dev-sprint itself (maturity-appropriate QA/canary rigour)
-— noted as a generalisation candidate, out of scope now.
+At discovery, the default is fast-track, gates are advisory — so a pre-launch product is **not slowed
+by evidence-gating**. The dial is built once; maturity only changes its setting. Maturity is
+**harness-local per-product state** (a field a node reads via bindings), and may later generalise to
+the dev-sprint itself (maturity-appropriate QA/canary rigour) — a candidate, out of scope now.
 
-### 4 — Artefacts + curators (the PM substrate)
-
-PM's top-level artefacts are **workspace surfaces**, each maintained by a curator (the D40 cell tuned
-per surface) with a graduation gate sized to its churn:
-
-| Surface | Holds | Churn | Curator / gate |
-|---|---|---|---|
-| **Roadmap** | items (stage + tier), backlog, sprints | high | roadmap-curator, **light** gate |
-| **Value / BMC canvas** | value proposition, business model, strategy | low | bmd/value-curator, heavier but infrequent |
-| **Personas** | target-user profiles + coverage | low | light; mostly read |
-| **Experience contract + sims** *(discovery validate)* | session-shape invariants, scenarios, graded runs | medium | the `simulate-users` node reads it |
-
-### 5 — Entry / orientation is a harness concern, not a node
+## Entry / orientation is a harness concern, not a node
 
 "orient" is **not a graph node**. Two different things were being conflated:
 
-- **Session orientation** (per-launch): when Claude starts at the org root, how it builds context —
-  the org-root `CLAUDE.md` (handbook-index pointer + how to use the graph + bindings), the ambient
-  skill descriptions, the handbook index. This is **harness instructions**, captured in the directory
-  topology — not a node.
+- **Session orientation** (per-launch): the org-root `CLAUDE.md` (handbook-index pointer + how to
+  use the graph + bindings), the ambient skill descriptions, the handbook index. **Harness
+  instructions**, captured in the directory topology — not a node.
 - **Task context** (per-task): `align-context` — the dev-sprint node that gathers context for a
-  specific piece of work (uses `explore`). This *is* a node, and already exists.
+  specific item (uses `explore`). This *is* a node, and already exists.
 
-PM's relevance: a session typically *orients* (harness) and then enters the *interaction-heavy front*
-(`align-context`/`design`), which is where PM leads. The two stay distinct.
+## Top-level artefacts (the surfaces)
 
-## The PM loop, grounded — and what to build now
+Each is a **workspace surface** maintained by a curator (the D40 cell tuned per surface):
 
-The conceptual loop, mapped to where it actually lives (artefact-maintenance, the shared front, or
-existing nodes) and tagged for BC:
+| Surface | Holds | Arc | Churn | Curator / gate |
+|---|---|---|---|---|
+| **Strategy / canvas** | VPC (JTBD + value map), business model, market & strategy | A | low–med | strategy-curator, evidence-first |
+| **Personas** | target-user profiles + coverage | A | low | light; mostly read |
+| **Experience contract + sims** | session-shape invariants, scenarios, graded runs | A (evidence) | med | the `simulate-users` node reads it |
+| **Roadmap** | items (stage + tier), backlog, sprints | B | high | roadmap-curator, **light** gate |
 
-| Loop step | Lives in | Build status (BC) |
+## How the two arcs connect
+
+| Seam | From → To | What flows |
 |---|---|---|
-| **sense** — gather signals | artefact maintenance + `explore` | partial now (simulation + founder) |
-| **frame** — opportunities, value-prop, personas | value/persona curators + the product lens | **now** (generalise value-prop + personas) |
-| **prioritise** — items, backlog, sprints, tiers | roadmap-curator | **now** |
-| **define** — reach gate-1 (spec-ready) | the shared front (`align-context`/`design`) + gate-1 | **now** (the gate + the carrier contract) |
-| **validate** — test the bet | `simulate-users` (discovery) | **now** (simulation only) |
-| **learn** — outcomes → reprioritise / confirm-kill hypotheses | `debrief` + curator write-back | design now, light impl |
+| Strategy → roadmap | Arc A → roadmap | strategy/VPC derive **themes & priorities**; opportunities enter as items |
+| Roadmap item → front | roadmap → Arc B front | `align-context`/`design` **read** VPC / personas / strategy |
+| Gate evidence | `simulate-users` / signal → gate | the maturity-appropriate evidence informs the go/no-go |
+| Outcomes back | `debrief` → roadmap **and** Arc A | reprioritise the roadmap; **confirm / kill** strategy hypotheses; persona learnings |
 
-### Build now (BC's stated needs + the interface priority)
+## Build now vs defer (for BC)
 
-- The **roadmap-curator** + the **item lifecycle / gates / tiers** (generalised from BC).
-- The **carrier model + the dev-sprint stage mapping** — the interface, implemented (an item's stage
-  advances as it traverses the dev-sprint; `debrief` writes its outcome back).
-- The **maturity / tier dial**, defaulted to discovery.
-- Generalise **value-prop, personas, and `simulate-users`** (the `frame` + `validate` machinery).
-- The **product lens** skill into the front (CEO/strategy review), building on the artefacts.
+**Build now** (the operator's stated needs + the interface priority), by arc:
 
-### Design + TODO (deferred; edges parked per F7)
+- **Arc A:** the VPC / value-proposition definition + maintenance, **personas / JTBD**, and
+  **`simulate-users`** (the discovery-stage evidence source); the **strategy-curator** (light,
+  evidence-first).
+- **Arc B:** the **roadmap-curator** + item lifecycle / gates / tiers; the **carrier + dev-sprint
+  stage mapping** (the interface, implemented — an item's stage advances as it traverses the sprint,
+  and `debrief` writes its outcome back); the **maturity / tier dial** defaulted to discovery; the
+  **product-lens** skill into the front.
 
-- The **real-interview / evidence-session** node (validation stage).
-- **Analytics-driven iteration + experiments** (scale stage).
-- **Heavier gates**; the full **BMD-hypothesis system** as graph nodes (BC has it as content today).
-- **Maturity applied to the dev-sprint** (QA/canary rigour) — a generalisation candidate.
+**Design + TODO** (deferred; edges parked per F7):
 
-## Artefact interactions with the dev-sprint
-
-The point of "build on the artefacts" — which stage reads or writes which PM artefact:
-
-| Dev-sprint stage | Reads | Writes |
-|---|---|---|
-| `align-context` | roadmap item, personas, value-prop | — |
-| `design` (+ product lens) | value-prop, personas | refines the item |
-| gate-1/2/3 | the design, product-lens verdict, (discovery) sim results | advances/parks the item |
-| `simulate-users` (validate) | personas, experience contract | graded findings → gate / debrief |
-| `debrief` | shipped outcome, metrics | item outcome + status; confirm/kill hypotheses; persona learnings |
+- Arc A: the **real-interview / evidence-session** node (validation); **analytics-driven** discovery
+  + experiments (scale); the full **BMD hypothesis-graph** as graph nodes (BC has it as content).
+- Arc B: **heavier gates**; **maturity applied to the dev-sprint** (QA/canary rigour).
 
 ## Behaviour contract (native / built / convention)
 
-Mirrors the be-civic design's split — where "wanted" comes free vs. where we build:
-
 - **Native:** `gh` PRs + git (curators, gates as labelled PRs); skills/agents ambient; `CLAUDE.md`
   cascade (orientation); `Read` is path-agnostic (nodes read artefacts/bindings).
-- **Built:** the curators; the **carrier stage-sync** (item stage ↔ dev-sprint stage); the **gate**
-  construct; the **maturity/tier dial**; `simulate-users`; the surfaces' renderers (workspace).
-- **Convention:** nodes must be **authored** to read the roadmap item / personas / value-prop via
-  bindings; the maturity stage is a field a node reads, not magic. Verified in `validate`.
+- **Built:** the curators (strategy + roadmap + persona); the **carrier stage-sync** (item stage ↔
+  dev-sprint stage); the **gate** construct; the **maturity/tier dial**; `simulate-users`; the
+  surfaces' renderers (workspace).
+- **Convention:** nodes must be **authored** to read the roadmap item / personas / VPC / strategy via
+  bindings, and to read the maturity stage; not magic. Verified in `validate`.
 
 ## Generalisation → the general spec
 
 | BC-concrete here | General concept | Spec home (proposed) |
 |---|---|---|
-| roadmap item with a 12-stage lifecycle | a **carrier** whose `stage` advances along the arc | `01-concepts` + `02-graph-spec` (D43) |
-| gate-1/2/3 | **gates** = PM-owned go/no-go stage transitions | `01-concepts` + `07-decomposition` |
-| T1/T2/T3 tiers + founder-led posture | the **maturity ladder** (per-product) × **tier** (per-item) rigour dial | `01-concepts` + `04-harness` (D44) |
+| BMD / VPC discovery loop + bmd-curator | the **strategy/discovery arc** (Arc A) — evidence-first, curator-maintained | `01-concepts` + `07-decomposition` (**D43**) |
+| roadmap item with a 12-stage lifecycle | a **carrier** whose `stage` advances along the arc | `01-concepts` + `02-graph-spec` (**D44**) |
+| T1/T2/T3 tiers + founder-led posture | the **maturity ladder** (per-product) × **tier** (per-item) rigour dial | `01-concepts` + `04-harness` (**D45**) |
 | office-hours / CEO review feeding the front | a **product lens** (skill) into the shared front; the front blends PM + eng | `07-decomposition` + `01-concepts` |
-| roadmap / BMD / personas surfaces + curators | the **surface + curator family** (D40 tuned per surface) | `04-harness` + `05-maintenance-skill` |
+| roadmap / strategy / personas surfaces + curators | the **surface + curator family** (D40 tuned per surface) | `04-harness` + `05-maintenance-skill` |
 | two-tier simulation vs the Experience Arc | **`simulate-users`** against a harness-local experience contract + personas | `07-decomposition` (node) + `04-harness` (the contract) |
 | session-start orientation | **orientation = harness instructions** (CLAUDE.md + index + bindings), not a node | `04-harness` / directory topology |
-| `debrief` updates the roadmap + hypotheses | the **outcome write-back** closes the loop | `06-analytics` |
+| `debrief` updates roadmap + hypotheses | the **outcome write-back** closes both loops | `06-analytics` |
 
 ## Open / next
 
-- **Reconcile two ordering details** (above): `align-context` fold into "design"; `reconcile`
-  position. Decide when amending `01-concepts`/`02-graph-spec`.
-- **Product-lens node breakdown** — one skill, or PM-flavoured content inside `align-context`/`design`
-  + a `plan`-stage CEO review? Lean to a small skill (D36), but confirm at build.
-- **`simulate-users` shape** — likely a multi-agent node (persona-agent + assistant + judge); whether
-  it **crystallises** product-specific scenarios (D35) or just reads a harness contract — decide at
-  build.
-- **Curator-family generalisation** — confirm one cell parameterised per surface (repo/label/root +
-  gate weight) vs. per-surface variants.
-- **Carrier vs. the existing `composes-into dev-sprint` edges** — the carrier is the *runtime* unit
-  travelling the arc; the graph edges are the *static* structure. Make sure the spec distinguishes
-  them cleanly.
-- **founder-ops interaction** — how a peer workspace injects personal context into PM (later;
-  tracked in the be-civic design doc).
+- **Flesh out Arc A's stages/nodes** — the operator flagged "etc." here: confirm the hypothesise →
+  gather → assess loop's node breakdown, and whether market/landscape and strategy/positioning are
+  their own steps or canvas sections.
+- **Reconcile two ordering details** (above): `align-context` fold; `reconcile` position.
+- **Product-lens node breakdown** — one skill, or PM content inside `align-context`/`design` + a
+  `plan`-stage CEO review? Lean to a small skill (D36); confirm at build.
+- **`simulate-users` shape** — multi-agent (persona + assistant + judge); whether it **crystallises**
+  product-specific scenarios (D35) or just reads a harness contract.
+- **Strategy-curator vs roadmap-curator** — confirm one curator cell parameterised per surface
+  (repo/label/root + gate weight + evidence discipline) vs. per-surface variants.
+- **Carrier vs. the static `composes-into dev-sprint` edges** — the carrier is the *runtime* unit
+  travelling the arc; the edges are the *static* structure. Keep them distinct in the spec.
+- **founder-ops interaction** — how a peer workspace injects personal context into PM (later).
