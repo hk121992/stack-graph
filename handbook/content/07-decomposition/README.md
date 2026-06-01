@@ -127,6 +127,32 @@ candidate node *achieves* and how you would know it earned its keep, the boundar
 wrong place — widen or narrow it until the node has a measurable job. Boundaries chosen this
 way are the ones the loop can later evaluate, merge, or cut.
 
+## Decomposing a function
+
+A consuming workspace's **functions** (engineering, product, experience, marketing, …) are
+processes over the graph, and each decomposes as a **pack**: nodes, references, and edges that
+instantiate *that function's method* over the **method-agnostic core** (the carrier and gates,
+the reference layer, the loop). Keep the split clean — the **core** names no method; the
+**pack** carries it. A function that uses a different method is a different pack over the same
+core, never a core change. (If a core rule only makes sense for one function's method, it is
+mis-placed — move it into the pack.)
+
+Recurring shapes a pack composes from:
+
+- **A curator over a carrier.** Work that travels a process is a **carrier** — a stateful
+  work-item ([graph-spec](../02-graph-spec/)); a **curator skill** maintains the carrier surface
+  and syncs its `current_stage` as the arc progresses. Gates are **state transitions on the
+  carrier** (each recording a decision), **not** `composes-into` edges — a curator is not an
+  arc stage.
+- **A lens.** A concern that *examines* rather than traverses (a review dimension, a strategy
+  check) is a **lens**, routed by the context axis: a prompt-describable isolated examination is
+  an **agent**; one that needs the live thread, the operator, or a browser is a **skill**. A lens
+  composes into the stage(s) it serves; it does not own the arc.
+- **A thread.** A concern that spans an arc — defining an intent up front, verifying it later —
+  is a **thread**. The experience thread is the worked case: an **experience-contract** reference
+  authored at design, a verification **agent** that runs it at verify, and a fix-loop back to
+  build. Named for spanning the arc, not for being one.
+
 ## Stay process-agnostic
 
 The discriminator and the anatomy name **structure, not domain**. "Owns its own

@@ -1,6 +1,6 @@
 ---
 title: Decision log
-status: v0.13.0 — 2026-05-31
+status: v0.14.0 — 2026-06-01
 ---
 
 # Decision log
@@ -235,7 +235,9 @@ poorly with fast AI dev): a clear long-term concept, the key questions to answer
 customers love. **Product analytics is an *opening*** — a connection point that feeds idea-triage —
 deferred and likely harness-specific. *Why:* gstack/CE have strong product *parts* (office-hours,
 CEO-lens, ce-strategy) but are feature-based, not a long-term product arc; stack-graph designs the arc.
-*Design + prior art:* `docs/product-graph.md`. *Status:* Accepted (direction); design ongoing.
+*Design + prior art:* `docs/product-graph.md`. *Status:* Accepted (direction); **refined by D43/D44** —
+PM is two faces (a strategy/discovery loop + a delivery coupling that *rides* the dev-sprint, not a
+single separate arc), and the roadmap item becomes the **carrier**.
 
 ## Shared content — references, not injection
 
@@ -470,7 +472,9 @@ never vendored content.** How a node reaches the curated-canon home (D38) at run
 explore's, retired by D38) now leads with `handbook`. Re-adds an external reference to
 `explore` — the *correct* shared locator, not the killed bespoke `product-map-manifest`.
 *Queues amendment:* `02-graph-spec` (done), `04-harness-spec` (overlay binds handbook),
-`graph-map.md`. *Status:* Accepted.
+`graph-map.md`. *Status:* Accepted — **amended by D46**: the handbook is no longer merely an external
+locator the harness supplies; the factory now ships vendored **handbook-references** that render into
+the product handbook (the runtime `handbook` locator stays — it now points at the composed union).
 
 ## Directory topology & runtime
 
@@ -497,3 +501,89 @@ specific). *Operating assumption:* **always launch Claude at the org root.**
 - **Harness = consuming workspace** (may span products/functions), not a single product.
 *Queues amendment:* `04-harness-spec` (Composition, Bindings, Crystallized, new `01-directory-topology`
 page) — done. *Status:* Accepted.
+
+## Product management & the carrier
+
+**D43 — Product management = two faces (a strategy/discovery loop + a delivery coupling), grounded in
+SVPG + Strategyzer, shipped as a PM *pack*.** PM is not one separate arc. **Upstream**, a continuous
+**strategy/discovery loop** develops and iterates the strategic substrate (vision, market, target
+users/segments, jobs-to-be-done, the value-proposition canvas, the business model, product strategy)
+via an evidence-first test-and-learn cycle, maintained by a curator. **Downstream**, a **delivery
+coupling** turns that substrate into shipped product by **riding the dev-sprint** (not duplicating it):
+its machinery is the roadmap (the carrier source, D44), the gates, a **product lens** (a CEO/strategy
+review skill into the dev-sprint's shared front), and the maturity dial (D45). The two are joined by
+the **outcome layer** (vision → objectives/OKRs → north-star → KPIs; *outcome over output*) and by
+`debrief` feedback. **Personas are PM-owned** and maintained (a strategic-substrate surface), consumed
+by the experience thread (D47). **Methodology = a PM pack, not core doctrine:** SVPG (Cagan — the
+operating-model spine) + Strategyzer (Osterwalder — the BMC/VPC engine + test-and-learn) instantiate
+the function over the method-agnostic core; another PM method is a different pack over the same core.
+*Refines D32* (two faces, not a single separate arc; the roadmap becomes the carrier). *Design:*
+`docs/product-management-design.md`, `docs/pm-graph-map.md`. *Status:* Accepted (design); pack build pending.
+
+**D44 — Work travels an arc as a *carrier* — a stateful work-item, not a scalar stage.** A carrier
+records `lifecycle_state` (the work's life-phase), `current_stage` (the arc stage while in flight),
+`children` (decomposition — a parent fans out into implementation work-units, each with its own stage;
+the parent aggregates), `gate_decisions[]` (append-only; per gate: decision / owner / timestamp /
+evidence / conditions / override / confidence), and `transition_history[]`. A scalar 'stage' cannot
+represent review loops, re-entry, skipped stages, decomposition, abandonment, or post-ship measurement
+lag — the state model can. A **gate** advances `lifecycle_state` and records a decision; a curator skill
+maintains the carrier surface and syncs `current_stage` (a **state mechanism**, never a `composes-into`
+edge — a curator is not an arc stage). The carrier is **general** (the work-item of any process); its
+values / stages / gates are domain. *Why:* surfaced by the codex review of the PM design — a scalar
+stage would corrupt the timeless spec the moment a real item fans out into PRs. *Queues:* `01-concepts`
++ `02-graph-spec` — done. *Status:* Accepted.
+
+**D45 — Gate rigour = a maturity × tier dial.** A per-process **maturity** posture sets the *default*
+evidence bar at each gate; a per-item **tier** overrides it. The axes are independent: a high-risk item
+is gated hard even in an early, low-maturity process; a routine item fast-tracks even in a mature one.
+Maturity is harness-local per-product state. *Why:* the appropriate evidence/rigour changes both as a
+product matures (founder-led → first-users → data-driven) and per item risk; conflating them into one
+axis loses signal. The maturity *stage names* are pack/harness; the **dial mechanism is core**.
+*Queues:* `01-concepts` (the dial) + `04-harness` (maturity as harness state) — done. *Status:* Accepted.
+
+## The reference layer & handbook model
+
+**D46 — The handbook is the graph's reference layer: two reference kinds, the handbook as the rendered
+union, extend-only with a hard conflict gate, maintenance as a `maintains` edge.** Unifies shared
+content and the operator handbook into one **reference layer** — a single managed, reviewable home for
+canonical agent context. A reference carries a **`kind`**: a **standard reference** (operational,
+node-bound, flat in `graph/_refs/`) or a **handbook-reference** (canonical 'how the system works',
+sectioned home, *also* renders into the handbook). The **handbook is the rendered union** of
+handbook-references — the **vendored** (factory) entries + a harness's **local** entries — composed into
+one numbered, cross-referenced, ownership-badged artefact. **Numbering is computed at render** from
+document order (never in ids/slugs/cross-refs); identity is the stable slug + author-assigned **concept
+anchors** (`{#tag}`); a **fragment-lint** validates cross-refs against a build-emitted anchor manifest
+(adopting the Be Civic handbook PR-#83 design). **Ownership + `extends`:** factory entries are
+dominant/read-only; a local entry may only `extends` a vendored topic and is **adds-only** (never
+redefine a vendored anchor or contradict a normative claim) — enforced as a **hard integrate gate**
+(structural), with the curator's consistency-checker as the best-effort semantic backstop; SG wins, the
+recourse is **raise-to-SG**. **Maintenance = a `maintains` edge** (node → handbook-reference; record
+projects `maintained_by`); a vendored entry is maintained by an **external/factory maintainer** (so 'who
+maintains X' is uniformly graph-derived, never a special case). The build **adopts and tailors a renderer
+core** for the composed union. *Amends D41* (the handbook is no longer merely an external locator; the
+factory now ships vendored handbook-references that render in — the runtime locator stays, pointing at
+the composed union). *Extends D33* (references gain a `kind`; the standard-reference contract is
+unchanged). *Why:* one reviewable home for all canonical context (the handbook's original purpose) + the
+SG/harness boundary made an explicit, **enforced** property rather than a line to police. *Design:*
+`docs/reference-layer-design.md`. *Queues:* `01`/`02`/`03`/`04`/`05`/`06` — done; stack-graph
+self-application (convert its own handbook + re-home built refs) deferred. *Status:* Accepted (design +
+core spec); self-application + renderer build pending.
+
+## Experience testing
+
+**D47 — Experience testing is a thread, distinct from PM, grading UX + AX.** Verifying that a
+*probabilistic AI product* behaves as intended is the **experience thread** — distinct from PM (what to
+build) and code review (is the code correct). It spans the dev-sprint's design→verify span (like the
+visual-design thread): an **experience-contract** reference (the intended UX — session-shape invariants
++ failure modes + AX budgets; harness-supplied) authored at design, a verification **agent**
+(`simulate-users`) that runs personas × scenarios against the live probabilistic product at verify, and
+a fix/optimise loop. It grades two dimensions: **UX** (the output vs the contract) and **AX (agent
+experience)** — the product agent's own traversal: tools used, friction, **tokens and latency to the
+outcome** (optimise: same outcome, fewer tokens, faster). **AX measurement is the product-facing instance
+of the factory's own traversal instrumentation** — the factory instruments its graph, the experience
+thread instruments the product's. `simulate-users` is **reclassified out of PM** (it is not value
+evidence); PM-owned personas are the shared spine. *Why:* the operator distinguished product/UX
+verification of a probabilistic AI product from PM discovery; resolves the codex 'simulate-users
+overclaimed as value evidence' finding by reclassification. *Design:* `docs/experience-thread-design.md`.
+*Queues:* `01-concepts` / `06-analytics` / `07-decomposition` — done; the experience-thread nodes +
+`simulate-users` re-home (build). *Status:* Accepted (design); build pending.
