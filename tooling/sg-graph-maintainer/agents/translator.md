@@ -43,7 +43,8 @@ determinism:                    # deterministic | generative
 edges:
   invokes:       []             # each entry: { id: <target-id> }
   loads:         []
-  references:    []
+  references:    []             # entry: { id: <ref-id>, load: import | on-demand }
+  maintains:     []             # entry: { id: <handbook-reference-id> }; omit if none
   composes-into: []
   can-follow:    []
   precedes:      []
@@ -122,7 +123,12 @@ summary:
       fixed input).
    h. `edges` — from research-report `## Edges`. Emit only edge type arrays that
       are non-empty. Each entry is `{ id: <target-id> }`. Edge types that have no
-      targets are omitted (not empty arrays).
+      targets are omitted (not empty arrays). A `references` entry also carries
+      `load: import | on-demand`, and its target is a **reference** (which carries a
+      `kind` — `reference` or `handbook-reference`) or a node. A node may also carry a
+      **`maintains`** edge — `{ id: <handbook-reference-id> }` — when it keeps a
+      **handbook-reference** current (never a standard `reference`); emit it when the
+      research-report records the node as a maintainer of a handbook-reference.
    i. `goals` — from research-report `## Goals`. Each entry must have `outcome`,
       `metric`, and `earns-keep`. Goals stated as activities must be rephrased as
       outcomes — do not transcribe activity-framed goals verbatim.

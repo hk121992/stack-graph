@@ -67,10 +67,18 @@ that is exactly how an arc loops.
 | `loads` | node → node / reference | structural | no |
 | `composes-into` | node → arc or parent node | structural | no |
 | `references` | node → reference (`graph/_refs/<id>.md`) or node; carries `load: import \| on-demand` (D33) | structural | no |
+| `maintains` | node → handbook-reference (or external/factory maintainer → entry, marked `external: true`) | structural | no |
 | `triggers` | event → node | binding | no |
 | `precedes` | node → node | process | yes |
 | `can-follow` | node → node | process | yes |
 | `overlay` | overlay-node → global node | composition | no |
+
+**`maintains`** records that a node keeps a **handbook-reference** current (a node →
+handbook-reference edge). `index` projects its reverse per entry as **`maintained_by`**
+(symmetric to `consumed_by` for `references`). A vendored (`owner: sg`) handbook-reference
+carries its `maintains` edge from an **external/factory maintainer**, marked `external: true`
+— so "who maintains an entry" is uniformly graph-derived, never a special case. Standard
+`reference` entries are not valid `maintains` targets.
 
 **Inline, not an edge:** one-shot MCP calls and small references that live in a node
 body. An edge appears only when the thing invoked is itself node-like.
@@ -110,3 +118,52 @@ the frontmatter and single-sources any shared **reference** the node depends on
 native `@-import`, `load: on-demand` a pointer the agent reads at the step of need (D33).
 There is no `{{token}}` injection. The graph keys are ignored by Claude at runtime; they are
 purely for the graph machinery.
+
+## References — `kind: reference` vs `kind: handbook-reference`
+
+A reference is **not a node** (no `primitive`/`mode`/`goals`/process edges). Every reference
+carries a **`kind`** that picks its storage home and frontmatter shape:
+
+| `kind:` | what it is | home | operator-facing |
+|---|---|---|---|
+| `reference` | standard shared content (a schema, a protocol, the preamble) — node-bound | `graph/_refs/<id>.md` (flat) | no |
+| `handbook-reference` | canonical "how the system works" content that *also* renders into the handbook | a sectioned home, `NN-section/<id>.md` | yes |
+
+A standard `reference` carries only `kind: reference`, `id`, `title`, `description`, `status`.
+A **`handbook-reference`** adds frontmatter over that base:
+
+```yaml
+kind: handbook-reference
+id: <slug>
+type: concept             # concept | procedure | spec | domain | index — gates the render template
+title: <title>
+section: <section>        # groups + orders the entry in the rendered handbook
+owner: sg                 # sg (vendored, dominant) | local (harness)
+read-when: <trigger>      # one sentence; agent discovery
+related: [<slug>, ...]    # the page-graph (bidirectional)
+extends: stack-graph:<id> # local-only; additive overlay onto a vendored entry
+status: vX.Y.Z — YYYY-MM-DD
+```
+
+Identity rules for a handbook-reference:
+
+- **Concept anchors `{#tag}`** in the body are the stable identity for cross-references —
+  **kebab-case, never numeric**.
+- **No `number`** — numbering is **computed at render** by the build from document order;
+  never store a number in an id, slug, or cross-reference.
+- **No `managed-by`** — maintenance is the **`maintains`** edge (the nodes that hold a
+  `maintains` edge into the entry keep it current; the record projects `maintained_by`).
+- **`extends` is local-only and adds-only** — a `local` entry that touches a vendored topic
+  declares `extends: stack-graph:<id>`; it may add anchors/sections but never redefine a
+  vendored anchor or contradict a vendored normative claim.
+
+Not every reference is a handbook entry; a standard reference is **promoted** to a
+handbook-reference when it proves to be canonical. One layer, two storage homes.
+
+## The carrier (not a node)
+
+The **carrier** (`lifecycle_state`, `current_stage`, `children`, `gate_decisions[]`,
+`transition_history[]`) is a **runtime state model** defined in
+`handbook/content/02-graph-spec/README.md#the-carrier` — the work-item that flows through an
+arc. It is **not a node** and the maintainer does **not** author carriers; a node (a curator)
+maintains the carrier surface at runtime via a state mechanism, not a `composes-into` edge.

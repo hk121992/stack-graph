@@ -14,7 +14,8 @@ determinism: generative            # deterministic | generative
 edges:
   invokes:       []   # [{ id: target-node-id }]
   loads:         []   # [{ id: target-node-id }]
-  references:    []   # [{ id: reference-id, load: import }]  # load: import | on-demand (D33)
+  references:    []   # [{ id: reference-id, load: import }]  # target kind: reference | handbook-reference; load: import | on-demand (D33)
+  # maintains:   []   # [{ id: handbook-reference-id }]  # node keeps a handbook-reference current; never a standard reference
   composes-into: []   # [{ id: arc-id, stage: stage-name }]
   can-follow:    []   # [{ id: target-node-id }]
   precedes:      []   # [{ id: target-node-id }]

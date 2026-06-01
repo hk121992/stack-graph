@@ -1,6 +1,6 @@
 ---
 name: sg-graph-maintainer
-description: Dev-time tooling for authoring and maintaining nodes in the stack-graph factory. Six modes — new (greenfield node: research-report → synthesise canonical), family (derive N near-identical siblings from a template node, in parallel), reference (author a shared graph/_refs/ reference, kind: reference), amend (update research-report first, then re-render canonical), validate (schema + judgment check against the 02-graph-spec schema), index (scan edge frontmatter across all node files, regenerate the global graph record). Reads as instructions to Claude inside a Claude Code session. Use when authoring or maintaining graph nodes in the authoring workspace at graph/<id>/. NOT a runtime skill shipped to product end-users.
+description: Dev-time tooling for authoring and maintaining nodes in the stack-graph factory. Six modes — new (greenfield node: research-report → synthesise canonical), family (derive N near-identical siblings from a template node, in parallel), reference (author a shared reference — a standard graph/_refs/ reference or a handbook-reference that renders into the handbook), amend (update research-report first, then re-render canonical), validate (schema + judgment check against the 02-graph-spec schema, incl. references/maintains edges, handbook-reference + extends discipline, orphan-maintains sweep), index (scan edge frontmatter across all node files, regenerate the global graph record + handbook-reference page-graph). Reads as instructions to Claude inside a Claude Code session. Use when authoring or maintaining graph nodes in the authoring workspace at graph/<id>/. NOT a runtime skill shipped to product end-users.
 ---
 
 # sg-graph-maintainer
@@ -74,7 +74,7 @@ block below, walk the operator through the decision tree, then ask via
 ### Orientation block (print verbatim, lightly adapted)
 
 > sg-graph-maintainer is the dev-time skill for authoring and maintaining nodes in
-> the stack-graph factory graph. Four modes:
+> the stack-graph factory graph. Six modes:
 >
 > - **new** — greenfield node: no prior research-report, no prior canonical. Researcher
 >   gathers source-material → writes research-report → translator synthesises the node
@@ -83,18 +83,22 @@ block below, walk the operator through the decision tree, then ask via
 >   template node (e.g. the review lens family from `lens-correctness`). One author per
 >   sibling, in parallel; each mirrors the template's shape and edges, differing only in its
 >   dimension content. Far cheaper than N `new` walks for a parameterised family.
-> - **reference** — author a shared **reference** (a `graph/_refs/<id>.md` artefact,
->   `kind: reference`, D33): single-source shared content a node depends on via a
->   `references` edge with `load: import | on-demand`. A reference is not a node (no
->   `goals`, no process edges) — lighter than `new`, and needs no research-report.
+> - **reference** — author a shared reference, in one of two **kinds**: a standard
+>   **`reference`** (`graph/_refs/<id>.md`, flat — node-bound shared content a node depends on
+>   via a `references` edge with `load: import | on-demand`) or a **`handbook-reference`**
+>   (canonical "how the system works" content that renders into the handbook; sectioned home,
+>   extra frontmatter + concept anchors). Neither is a node (no `goals`, no process edges);
+>   needs no research-report.
 > - **amend** — edit an existing node: update the research-report first, then
 >   re-render the canonical. Never edit the canonical without the research-report
 >   reflecting the change.
 > - **validate** — mechanical + judgment check of one node or all nodes: frontmatter
->   schema conformance, `primitive:`↔`mode:` agreement, edge target resolution,
->   goals present.
-> - **index** — scan edge frontmatter across all node files, regenerate the global
->   graph record and note the per-directory scoped view.
+>   schema conformance, `primitive:`↔`mode:` agreement, edge target resolution (incl.
+>   `references` + `maintains`), handbook-reference + `extends` discipline, orphan-maintains
+>   sweep, goals present.
+> - **index** — scan edge frontmatter across all node files; regenerate the global graph
+>   record (projecting `consumed_by` + `maintained_by`) and the handbook-reference page-graph.
+>   No scoped/composed view — per D42 there is none.
 
 ### Decision tree
 
@@ -111,7 +115,8 @@ Ask, one step at a time:
    - Author a new, novel node → `new <id>`.
    - Author several near-identical siblings from an existing template node → `family
      <ids> --from <template-id>` (the parameterised-family path; cheaper than N `new` walks).
-   - Author a shared reference (single-source shared content, `graph/_refs/`) → `reference <id>`.
+   - Author a shared reference — a standard `reference` (`graph/_refs/`) or a
+     `handbook-reference` (sectioned, rendered into the handbook) → `reference <id>`.
    - Edit an existing node (content change, edge update, goals revision) → `amend <id>`.
    - Check a node or all nodes for schema conformance → `validate [<id>|all]`.
    - Rebuild the graph record after edits → `index`.
@@ -234,43 +239,75 @@ It only avoids re-deriving the shared framing.
 
 ### Mode: reference
 
-**One-liner.** Author a shared **reference** — a `graph/_refs/<id>.md` artefact (`kind:
-reference`, D33): single-source shared content that one or more nodes depend on via a
-`references` edge carrying a `load: import | on-demand` dial. A reference is a first-class
-graph artefact but **not a node** — it owns no control flow, declares no `goals` and no
-process edges. It is a native `.claude` artefact; the build single-sources it into each
-consumer (`import` → `@-import`; `on-demand` → a pointer the agent reads at the step of
-need), never by `{{token}}` injection.
+**One-liner.** Author a shared **reference** — single-source content a node depends on, in one
+of **two kinds**: a standard **`reference`** (`graph/_refs/<id>.md`, flat — node-bound, not
+operator-facing) or a **`handbook-reference`** (canonical "how the system works" content that
+*also* renders into the handbook, in a **sectioned** home). Neither is a node — both own no
+control flow, declare no `goals` and no process edges. A standard reference is consumed via a
+`references` edge carrying `load: import | on-demand`; the build single-sources it into each
+consumer (`import` → `@-import`; `on-demand` → a pointer read at the step of need), never by
+`{{token}}` injection.
 
 **When to use.** Several primitives need the same content (a schema, a severity scale, a
-shared protocol, the instrumentation preamble). Author it once as a reference and depend on
-it via a `references` edge rather than inlining it per consumer.
+shared protocol, the instrumentation preamble) → standard `reference`. Canonical, top-level
+"how the system works" content that an operator reviews and that renders into the handbook →
+`handbook-reference`. A standard reference is **promoted** to a handbook-reference when it
+proves to be canonical.
 
 **Args.** `<id>` (required, kebab-case). Optional: a second positional source/scope hint.
 
 **Sequence.**
 
-1. **Preflight.** Run preflight checks (id kebab-case; `graph/` exists). Ensure
-   `graph/_refs/` exists; create it if absent. If `graph/_refs/<id>.md` already exists,
-   route to `amend`-style overwrite only with explicit confirmation (back up to `.bak` first).
-2. **Gather source (optional).** If the reference generalises existing material (e.g. a
+1. **Preflight.** Run preflight checks (id kebab-case; `graph/` exists).
+2. **Choose the kind.** Ask via AskUserQuestion: "Standard `reference` (node-bound, flat in
+   `graph/_refs/`) or `handbook-reference` (canonical, rendered into the handbook, sectioned)?"
+   The answer selects the frontmatter shape and the storage home for the steps below.
+3. **Gather source (optional).** If the reference generalises existing material (e.g. a
    product's schema), lift it for reference. A reference does **not** require a
    research-report — it is single-source curated content, not a synthesised node. For a
    substantive reference, you may dispatch one opus author agent to synthesise the body from
    source; for a simple reference, author it directly.
-3. **Author `graph/_refs/<id>.md`.** Frontmatter: `kind: reference`, `id`, `title`,
-   `description`, `status` (no `primitive`, `mode`, `goals`, or `edges`). Body: the shared
-   content in the voice it will carry inside its hosts (imperative if it is procedure; a
-   contract if it is a schema). A reference may itself depend on another reference via a
-   `references` edge in its own frontmatter.
-4. **Reference-validate.** Confirm: `kind: reference` + required reference frontmatter present;
-   body non-empty; any `references` edge target resolves to an existing `graph/_refs/<id>.md`
-   (with `load` one of `import`/`on-demand` if present); no node-only keys
-   (`primitive`/`mode`/`goals`/`edges`) present.
-5. **Final report.** Reference authored at `graph/_refs/<id>.md`; note its expected consumers
-   (the `references` edges `index` will record once a node depends on it).
+4. **Author the file.**
 
-**Output artefacts.** `graph/_refs/<id>.md` (+ optional `source-material/` reference lift).
+   - **Standard `reference`** → `graph/_refs/<id>.md`. Ensure `graph/_refs/` exists; create
+     it if absent. If the file already exists, route to `amend`-style overwrite only with
+     explicit confirmation (back up to `.bak` first). Frontmatter: `kind: reference`, `id`,
+     `title`, `description`, `status` (no `primitive`, `mode`, `goals`, or `edges`). Body: the
+     shared content in the voice it will carry inside its hosts (imperative if procedure; a
+     contract if a schema). A reference may itself depend on another reference via a
+     `references` edge in its own frontmatter.
+
+   - **`handbook-reference`** → the sectioned handbook-reference home, **provisionally
+     `graph/_handbook/<NN-section>/<id>.md`** (a sectioned sibling to the flat `graph/_refs/`).
+     Prompt for the extra frontmatter the kind requires: `type` (concept | procedure | spec |
+     domain | index — gates the render template), `section`, `owner` (`sg` | `local`),
+     `read-when`, `related[]`, and — for a local entry that touches a vendored topic —
+     `extends: stack-graph:<id>` (adds-only). Then frontmatter is `kind: handbook-reference`
+     plus those fields plus `id`, `title`, `status`. Author **concept anchors `{#tag}`**
+     (kebab-case, never numeric) on the body headings that other entries will cross-reference.
+     Author **no `number`** (numbering is render-computed) and **no `managed-by`** (maintenance
+     is the `maintains` edge — a node holding a `maintains` edge into this entry keeps it
+     current; a vendored `owner: sg` entry is maintained by the external/factory maintainer).
+     Create the `<NN-section>/` directory if absent; back up to `.bak` before overwriting an
+     existing entry.
+
+   > **Provisional home — flag in the final report.** The `graph/_handbook/<NN-section>/`
+   > location is provisional and an operator-governed decision (see the report).
+
+5. **Reference-validate.** Dispatch `agents/validator.md` against the authored file (or check
+   inline). For a standard reference: `kind: reference` + required reference frontmatter
+   present; body non-empty; any `references` edge target resolves (with `load` one of
+   `import`/`on-demand` if present); no node-only keys (`primitive`/`mode`/`goals`/`edges`).
+   For a handbook-reference: the `handbook-reference`-kind check (required fields; `type`
+   allowed; anchors kebab-case + non-numeric; no `number`/`managed-by`) and, for a local
+   entry, the `extends` adds-only check.
+6. **Final report.** Reference authored at its path; note its expected consumers (the
+   `references` edges `index` records once a node depends on it) and — for a handbook-reference
+   — that it needs an incoming `maintains` edge (else `index`/`validate` will flag it as an
+   orphan). **Flag the provisional `graph/_handbook/` home.**
+
+**Output artefacts.** `graph/_refs/<id>.md` **or** `graph/_handbook/<NN-section>/<id>.md`
+(+ optional `source-material/` reference lift).
 
 ---
 
@@ -320,7 +357,8 @@ prior canonical.
 ### Mode: validate
 
 **One-liner.** Check one node or all nodes: frontmatter schema conformance,
-`primitive:`↔`mode:` agreement, edge target resolution, goals present.
+`primitive:`↔`mode:` agreement, edge target resolution (incl. `references` and `maintains`),
+handbook-reference + `extends` discipline, orphan-maintains sweep, goals present.
 
 **When to use.** After any authoring pass; before indexing; as a periodic sweep; as a
 CI-style gate before vendoring the graph.
@@ -331,7 +369,8 @@ CI-style gate before vendoring the graph.
 
 1. **Preflight.** Resolve node scope: if `<id>`, confirm `graph/<id>/<id>.md`
    exists. If `all`, enumerate `graph/*/` directories that contain a `<dirname>.md`
-   node file.
+   node file, **and** enumerate the reference homes (`graph/_refs/*.md` and the sectioned
+   handbook-reference home, provisionally `graph/_handbook/<NN-section>/*.md`).
 2. **For each node in scope**, run the following checks. Dispatch
    `agents/validator.md` (sonnet — mechanical) with `{ id, node_path }`. Collect
    the per-node result.
@@ -349,10 +388,14 @@ CI-style gate before vendoring the graph.
       `composes-into` is skipped (its target is an **arc** — a traversal derived from
       edges, not a node file).
    d2. **`references` edge targets resolve (D33).** For each entry in the `references` edge
-      array, verify the target resolves — a shared reference at `graph/_refs/<target>.md`
+      array, verify the target resolves — a standard reference at `graph/_refs/<target>.md`
       (`kind: reference`) or, where the reference is itself a node, `graph/<target>/<target>.md`.
       An unresolved target is a hard failure. If an entry carries `load:`, its value must be
       one of `import` or `on-demand`; any other value is a hard failure.
+   d3. **`maintains` edge targets resolve.** For each entry in the `maintains` edge array, the
+      target must resolve to an existing **handbook-reference** (`kind: handbook-reference`);
+      a standard `reference` is not a valid target (hard failure). Edges marked `external: true`
+      (the factory-maintainer case for `owner: sg` entries) are structurally valid and skipped.
    e. **`goals:` well-formed.** At least one goal, each with `outcome`, `metric`, and
       `earns-keep` populated. Empty goals arrays, or a goal missing any of the three,
       are hard failures.
@@ -363,10 +406,27 @@ CI-style gate before vendoring the graph.
       sense for what the body describes? Does at least one goal read as an outcome
       (not an activity)? This is the LLM-judgment layer of validate.
 
-3. **Surface results.** For each node: print a pass/fail line. For failures,
-   surface the specific failed checks. If `all` mode and multiple failures exist,
+   **For each handbook-reference in scope** (the maintainer may also dispatch the validator
+   against a handbook-reference file directly): the `handbook-reference`-kind check (required
+   fields present; `type` an allowed value — concept | procedure | spec | domain | index;
+   concept anchors `{#tag}` kebab-case + non-numeric; no `number`/`managed-by`) and, for an
+   `owner: local` entry, the `extends` adds-only check (vendored slug exists; no anchor
+   collision with the vendored entry — collisions and undeclared vendored-slot overlaps are
+   hard failures).
+
+3. **Orphan-maintains sweep (`all` scope only).** Once per `all` run, dispatch the validator
+   with `{ scope: all, handbook_reference_paths: [...] }` (or run the cross-file check inline):
+   every `handbook-reference` must have ≥1 incoming `maintains` edge — a local node's edge, or
+   an `external: true` edge for `owner: sg` entries. Entries with none are flagged as orphans.
+4. **Surface results.** For each node and handbook-reference: print a pass/fail line. For
+   failures, surface the specific failed checks. If `all` mode and multiple failures exist,
    print a summary table first, then per-node details.
-4. **No commit.** Validate is terminal — it does not write or amend any node file.
+5. **Boundary — NOT validate's job.** The in-body **fragment-lint** (cross-refs resolved
+   against the build's anchor manifest) and rendered **numbering** are the **plugin-build's**
+   responsibility at render (`handbook/content/03-plugin-spec/`). Validate checks the authoring
+   discipline only (anchors well-formed; `extends` adds-only; `maintains`/orphan) — it does not
+   resolve cross-references or assign numbers.
+6. **No commit.** Validate is terminal — it does not write or amend any node file.
    Failures are surfaced; remediation is a follow-up `amend` call.
 
 **Output artefacts.** Validation report printed to chat. Nothing written to disk.
@@ -376,7 +436,9 @@ CI-style gate before vendoring the graph.
 ### Mode: index
 
 **One-liner.** Scan `edges:` frontmatter across all node files; regenerate the global
-graph record. Deterministic.
+graph record (projecting `consumed_by` from `references` and `maintained_by` from
+`maintains`) and the handbook-reference page-graph `index.json`. Deterministic. No
+scoped/composed view (per D42 there is none).
 
 **When to use.** After any authoring pass that adds or changes edges; before vendoring;
 when the graph record is stale.
@@ -389,19 +451,25 @@ when the graph record is stale.
    node file. Announce count.
 2. **Collect edge declarations.** Read the frontmatter `edges:` block of every node
    file — the graph lives in frontmatter, never in body tokens. Parse the typed arrays:
-   `invokes`, `loads`, `composes-into`, `references`, `precedes`, `can-follow`, `overlay`.
-   Build the directed edge list in memory; a `references` edge carries its `load`
+   `invokes`, `loads`, `composes-into`, `references`, `maintains`, `precedes`, `can-follow`,
+   `overlay`. Build the directed edge list in memory; a `references` edge carries its `load`
    (`import`/`on-demand`) into the record, and a `composes-into` edge carries its
    `stage` into the record (so a node that composes into the same arc at several
    stages — e.g. a lens composing into `dev-sprint` at `review`, `design`, and
-   `plan` — emits three **distinct** edge rows, not identical duplicates). Also enumerate `graph/_refs/*.md`
-   (`kind: reference` artefacts) so shared references appear in the record alongside nodes.
+   `plan` — emits three **distinct** edge rows, not identical duplicates). Enumerate both
+   reference homes so references appear in the record alongside nodes: `graph/_refs/*.md`
+   (`kind: reference`) **and** the sectioned handbook-reference home (provisionally
+   `graph/_handbook/<NN-section>/*.md`, `kind: handbook-reference`).
 3. **Check edge targets.** For every declared edge target, verify the target exists — a node
-   file `graph/<id>/<id>.md`, or for a `references` edge a shared reference
-   `graph/_refs/<id>.md`. Collect unresolved targets as warnings (not hard failures at index
-   time — validate catches them; index reports them). `composes-into` targets (arcs) are not
-   resolved.
-4. **Write the global graph record.** Write `graph/graph-record.json` with the
+   file `graph/<id>/<id>.md`; for a `references` edge a standard reference `graph/_refs/<id>.md`;
+   for a `maintains` edge a handbook-reference in the sectioned home. Collect unresolved targets
+   as warnings (not hard failures at index time — validate catches them; index reports them).
+   `composes-into` targets (arcs) and `external: true` edges are not resolved.
+4. **Project the reverse edges.** Scan all `references` edges → project **`consumed_by`** per
+   reference. Scan all `maintains` edges → project **`maintained_by`** per handbook-reference
+   (symmetric to `consumed_by`); an `external: true` maintains edge into an `owner: sg` entry
+   contributes the factory maintainer to that entry's `maintained_by`.
+5. **Write the global graph record.** Write `graph/graph-record.json` with the
    shape:
 
    ```json
@@ -409,27 +477,40 @@ when the graph record is stale.
      "generated": "<ISO timestamp>",
      "node_count": <int>,
      "reference_count": <int>,
+     "handbook_reference_count": <int>,
      "edge_count": <int>,
      "nodes": { "<id>": { "primitive", "mode", "title", "status", "edges" } },
-     "references": { "<id>": { "title", "status", "consumed_by": ["<id>", ...] } },
-     "edges": [{ "from", "to", "type", "load", "stage" }, ...]
+     "references": { "<id>": { "kind", "title", "status", "consumed_by": ["<id>", ...] } },
+     "handbook_references": {
+       "<id>": { "type", "title", "section", "owner", "read-when", "related",
+                 "status", "maintained_by": ["<id>", ...] }
+     },
+     "edges": [{ "from", "to", "type", "load", "stage", "external" }, ...]
    }
    ```
 
-   `load` is present only on `references` edges (`import`/`on-demand`); `stage` is
-   present only on `composes-into` edges (the stage of the arc the node composes into);
-   omit each elsewhere. A `composes-into` edge row **must** carry its `stage` so that a
-   node composing into one arc at multiple stages yields distinct rows rather than silent
-   duplicates.
+   `load` is present only on `references` edges (`import`/`on-demand`); `stage` only on
+   `composes-into` edges (the arc stage); `external: true` only on edges so marked; omit each
+   elsewhere. A `composes-into` edge row **must** carry its `stage` so that a node composing
+   into one arc at multiple stages yields distinct rows rather than silent duplicates.
+   Handbook-references carry **no `number`** (render-computed) and **no `managed-by`**
+   (maintenance is `maintained_by`, projected from `maintains` edges).
+6. **Generate the agent-facing page-graph for handbook-references.** From the
+   handbook-reference frontmatter (`section`, `title`, `type`, `read-when`, `related`),
+   regenerate a page-graph `index.json` in the handbook-reference home — an agent-discovery
+   listing of every entry with its `read-when` hint and `related[]` edges (the same shape as
+   `handbook/content/index.json`). This is the **authoring/agent-navigation** index; the
+   **rendered** handbook artefact + the **anchor manifest** are the **plugin-build's** output
+   at render time (`handbook/content/03-plugin-spec/`), not `index`'s.
+7. **Report.** Print: node count, reference count, handbook-reference count, edge count,
+   unresolved targets (if any), any handbook-reference with empty `maintained_by` (an orphan —
+   flag for `validate`/`amend`), and the paths written (`graph/graph-record.json` + the
+   page-graph `index.json`).
 
-5. **Note the per-directory scoped view.** Announce: "The scoped view (runtime
-   preamble) is generated at runtime by the harness from the vendored graph and the
-   consuming workspace's overlays. The global record above is the administration +
-   analytics view only." Do not write per-directory files — that is the harness's job.
-6. **Report.** Print: node count, edge count, unresolved targets (if any), path to
-   `graph/graph-record.json`.
-
-**Output artefacts.** `graph/graph-record.json` (overwritten each run, deterministic).
+**Output artefacts.** `graph/graph-record.json` (overwritten each run, deterministic) and the
+handbook-reference page-graph `index.json`. **No** per-directory scoped/composed view is
+generated — per D42 there is no scoped or composed view; `index` regenerates only the global
+graph-record (administration + analytics) and the page-graph.
 
 ---
 
@@ -551,10 +632,12 @@ validator result is missing required fields):
   describe the behaviour in the body prose; wire them in with `amend` once the neighbour
   exists. Prefer authoring backbone stages in arc order. Authoring a process edge to a
   non-existent node is a hard validate failure, not a forward reference.
-- **MUST keep references out of the node contract.** A reference (`graph/_refs/<id>.md`,
-  `kind: reference`) has no `primitive`/`mode`/`goals`/process edges. A node consumes a
-  reference only via a `references` edge carrying `load: import | on-demand` (never an injected
-  `{{token}}`); the build single-sources the one file into each consumer. There is no
+- **MUST keep references out of the node contract.** A reference — `kind: reference`
+  (`graph/_refs/<id>.md`, flat) or `kind: handbook-reference` (sectioned home) — has no
+  `primitive`/`mode`/`goals`/process edges. A node consumes a standard reference only via a
+  `references` edge carrying `load: import | on-demand` (never an injected `{{token}}`); the
+  build single-sources the one file into each consumer. A node keeps a **handbook-reference**
+  current via a **`maintains`** edge (the record projects `maintained_by`). There is no
   `uses-block` edge and no build-time injection primitive — shared content is a native
   `.claude` artefact.
 
@@ -570,7 +653,9 @@ validator result is missing required fields):
   - `agents/family-author.md` — `family` mode; derives one sibling node (report +
     canonical) from a template node, dispatched once per sibling in parallel.
   - `agents/validator.md` (validate mode only) — mechanical + judgment checks per
-    the 02-graph-spec schema, including `references` edge-target resolution.
+    the 02-graph-spec schema, including `references` and `maintains` edge-target
+    resolution, the handbook-reference kind + `extends` adds-only discipline, and the
+    orphan-maintains sweep.
 
 - **References** (authoring-facing shape docs):
   - `references/node-schema.md` — terse summary of the 02 node schema and edge
