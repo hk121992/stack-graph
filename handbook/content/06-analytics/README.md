@@ -65,6 +65,29 @@ the schema events resolve against. Binding is by id:
 - **Outcome measurement** = a node's declared `goals.metric` computed from its events plus
   the baseline (e.g. count of a recorded artefact per session; cost per traversal).
 
+### Reference-layer conformance
+
+The curator's **integrate** gate runs three structural conformance checks against the
+reference layer ([`plugin-spec`](../03-plugin-spec/README.md),
+[`harness-spec`](../04-harness-spec/README.md)):
+
+- **Fragment-lint** — every in-body anchor cross-reference (`[Concept](slug#anchor)`) is
+  validated against the build's **anchor manifest** (the set of authored `{#anchor}` ids
+  the build emits). A link to a non-existent anchor **fails integrate**; links cannot
+  drift silently.
+- **Bidirectional `related` validation** (link-validator) — every `related` edge in a
+  handbook-reference's frontmatter must have a reciprocal entry in the target. An
+  asymmetric page-graph edge fails integrate. This keeps the agent index consistent.
+- **Structural conflict gate** — an undeclared vendored-slot overlap (a local entry whose
+  id or anchor collides with a vendored sg entry without an explicit `extends` declaration)
+  or an `extends` that redefines an existing sg anchor both **fail integrate**. These are
+  hard gates, not warnings; the tooling enforces them before merge.
+
+The **consistency-checker** is the best-effort **semantic backstop** that runs after the
+structural gate has passed — it flags subtler contradiction (a local entry restating or
+logically contradicting an sg claim). It is a quality signal, not a gate; the three
+structural checks above are the conformance mechanism.
+
 ## Earns-its-keep
 
 Every node declares `goals` as **outcomes, not activities**, each with a metric and an
@@ -72,6 +95,13 @@ earns-keep threshold ([`graph-spec`](../02-graph-spec/README.md)). The metric is
 from events; a node whose outcome metric never moves over the threshold window is flagged
 for cut or merge. This is the loop's evidence — the reason a reviewer-node that never
 changes a result is visible rather than assumed valuable.
+
+**Outcome-over-output at the carrier level.** The node-level goals principle generalises
+to the work-item. The arc's **debrief/close** stage measures shipped outcomes against the
+**declared objectives** the carrier was opened to serve — not output volume (artefacts
+produced, stages passed). The gap between declared objective and measured outcome is what
+the loop reprioritises on. A carrier that ships artefacts but moves no objective is as
+visible as a node that never moves its metric.
 
 ## The improvement loop
 
@@ -96,6 +126,26 @@ clock — the PR loops improve a node's *definition*; crystallization improves i
 within a harness*, automatically. It is **measurable**: a falling generative fraction per run is
 the node compounding; a fraction that never falls means the node is not building reusable
 references/scripts — itself an earns-keep signal.
+
+## Experience-thread measurement
+
+A product built inside the factory is itself an **agent operating environment**
+([`concepts`](../01-concepts/README.md) — Experience). Verifying it behaves as intended
+is therefore the same kind of measurement problem the factory solves for itself.
+
+**AX (agent experience) measurement is the product-facing instance of the factory's own
+traversal instrumentation.** The factory instruments how agents traverse *its* graph —
+tokens-to-outcome, latency and steps, tool-path, friction, measured against a baseline.
+The experience thread points that same instrumentation at the *product*: it runs persona ×
+scenario, captures the product agent's real traversal from the transcript, and emits the
+same measure-vs-baseline shape (tokens, latency, inference steps, tool-path, friction
+points). The optimisation target is the same outcome for fewer tokens, faster.
+
+**UX conformance** grades the product's *output* against the harness-supplied **experience
+contract** — the invariants, named failure modes, and success criteria the product must
+satisfy. This is distinct from AX: AX measures the traversal (how the agent got there);
+UX conformance grades the result (what the user received). Both are deterministic checks
+against declared specifications.
 
 ## The knowledge substrate
 

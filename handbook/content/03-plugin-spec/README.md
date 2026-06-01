@@ -1,7 +1,7 @@
 ---
 title: Plugin specification
 type: spec
-read-when: Packaging the plugin or building the handbook→plugin pipeline.
+read-when: Packaging the plugin, building the handbook→plugin pipeline, or understanding how the handbook is rendered.
 related: [graph-spec, harness-spec, analytics, overview, harness-spec/directory-topology]
 ---
 
@@ -13,13 +13,16 @@ the plugin is **built from them**, not authored separately.
 
 ## What the build must do
 
-The build does two things node files cannot do for themselves:
+The build does three things node files cannot do for themselves:
 
 - **Bake disk-loadable primitives.** Claude Code loads skills and agents from disk; the
   files must be present in the packaged plugin.
 - **Single-source references.** Shared content lives in one `graph/_refs/` file; the build
   places it into each consumer (copy/symlink) and resolves the host's `@-import` or
   on-demand pointer, so one source serves all consumers (no content is spliced as tokens).
+- **Render the handbook.** The build renders the composed union of handbook-references into
+  the operator-facing handbook artefact and emits the agent-facing `index.json` page-graph.
+  Detail in [Handbook rendering](#handbook-rendering) below.
 
 The graph frontmatter keys need no handling at load time — Claude ignores them — so the
 build strips them for cleanliness rather than necessity (see the pipeline below).
@@ -64,6 +67,62 @@ unchanged source is byte-identical, and the build flags any committed output tha
 from what its source would now produce. Built output cannot silently diverge from the node
 files.
 
+## Handbook rendering
+
+In addition to projecting node files to native primitives, the build renders the
+**operator-facing handbook** — the composed union of all handbook-references
+([`graph-spec`](../02-graph-spec/README.md)) — and emits the agent-facing
+**`index.json`** page-graph.
+
+### What renders
+
+Only entries with `kind: handbook-reference` render into the handbook. Standard
+references (`kind: reference`) are node-bound operational content; they do not appear in
+the rendered artefact.
+
+### Composed union
+
+The handbook artefact is the **composed union** of vendored (factory, `owner: sg`) entries
+and the harness's local entries, including declared `extends` overlays. Vendored entries
+are dominant and read-only; a local entry that touches a vendored topic must declare
+`extends`, and that extension is **adds-only** — it may add anchors and sections, never
+redefine a vendored anchor or contradict a normative vendored claim. The renderer composes
+sg core + local extension per topic and shows **ownership badges** (`sg` / `local`) so the
+operator sees at a glance what is the factory's and what is theirs.
+
+### Numbering, anchors, and cross-references
+
+Numbering is **computed at render** from document order (section + position) — it is never
+stored in an id, slug, or cross-reference. Insert or reorder an entry and everything
+renumbers automatically.
+
+Identity is the **stable slug** plus **author-assigned concept anchors** (`{#tag}`,
+kebab-case, never numeric). The build emits an **anchor manifest** (`{ slug → heading ids
+}` from those anchors), and a **fragment-lint** validates every in-body
+`[text](slug#anchor)` cross-reference against the manifest. A broken fragment fails the
+build.
+
+### Agent-facing index
+
+The build also emits the **`index.json`** page-graph — one entry per handbook-reference,
+derived from frontmatter (`read-when`, `related`, `type`, `section`) — for agent
+discovery. This is a separate output from the rendered handbook and is not numbered.
+
+### Renderer core
+
+The factory adopts and **tailors** a shared renderer core that handles filesystem-driven
+nav, computed numbering, the anchor manifest and fragment-lint, and DSL resolver tags.
+The tailoring is specifically for the composed vendored-plus-local union — a single-origin
+renderer does not handle it. Key adaptations:
+
+- **Compose the union** — sg-vendored entries + local entries + `extends` overlays rendered
+  into one artefact (not one origin's content).
+- **Ownership badges** — every entry and section shows `sg` vs `local` provenance.
+- **Kind filter** — only `kind: handbook-reference` renders; standard references do not.
+
+The output is one numbered, cross-referenced, ownership-badged handbook artefact plus the
+`index.json` page-graph.
+
 ## References — single-sourced, not spliced
 
 The shared content several primitives need — the finding contract (`findings-schema`,
@@ -101,8 +160,8 @@ the builder keeps the native group and drops the graph group:
 | `model`, `allowed-tools` / `tools`, `argument-hint` | passed through verbatim |
 | *(dropped)* | `edges`, `mode`, `determinism`, `goals`, `status`, `title` |
 
-`title` and the graph keys serve the renderer and the index, not the runtime primitive, so
-the built file omits them.
+`title` and the graph keys serve the graph lens, the index, and (for handbook-references)
+the handbook renderer — not the runtime primitive — so the built primitive file omits them.
 
 ## Verification
 

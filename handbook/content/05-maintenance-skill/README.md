@@ -34,13 +34,26 @@ The node file is the deliverable — a valid `.claude` primitive with graph fron
 added ([`graph-spec`](../02-graph-spec/README.md)). The research-report is the durable
 curation record the canonical is synthesised from.
 
+The reference layer has **two kinds** and **two storage homes**:
+
+| Kind | Home | Operator-facing |
+|---|---|---|
+| `reference` (standard) | `graph/_refs/<id>.md` (flat) | no — node-bound only |
+| `handbook-reference` | `NN-section/<id>.md` (sectioned, for render order) | yes — rendered into the handbook |
+
+A `handbook-reference` adds `type`, `owner`, `section`, `read-when`, `related`, and
+optionally `extends` to the reference base; see the schema in
+[`graph-spec`](../02-graph-spec/README.md#handbook-references). Standard references
+need none of those fields. The maintainer handles both kinds — the mode table below
+distinguishes the authoring path for each.
+
 ## Modes
 
 | Mode | Does |
 |---|---|
 | `new` | Greenfield node: researcher gathers source-material and writes the research-report; translator synthesises the canonical per the [`graph-spec`](../02-graph-spec/README.md) schema; validate runs inline. |
 | `family` | Author N near-identical sibling nodes by deriving each from a **template** node — one `family-author` per sibling, dispatched in parallel; each mirrors the template's edge model and goal shape, differing only in dimension content. The parameterised-family path (e.g. the review lenses from `lens-correctness`); cheaper than N `new` walks. |
-| `reference` | Author a shared **reference** — a `graph/_refs/<id>.md` artefact (`kind: reference`) a node depends on via a `references` edge carrying `load: import \| on-demand`. Not a node (no `goals`/process edges); no research-report required. |
+| `reference` | Author a shared **reference** — either a standard `reference` (`graph/_refs/<id>.md`) or a `handbook-reference` (a sectioned entry, `NN-section/<id>.md`, with `type`/`owner`/`section`/`read-when`/`related` and optional `extends`). Neither is a node (no `goals`/process edges); no research-report required. The mode prompts for `kind` and, if `handbook-reference`, the required extra fields (`type`, `section`, `owner`, concept anchors). |
 | `amend` | Update the research-report first, then re-render the canonical from it (`.bak` backup before any overwrite). |
 | `validate` | Check one node or all nodes against the schema — mechanical + one judgment pass. No writes. |
 | `index` | Scan `edges:` frontmatter across all node files (and enumerate `graph/_refs/` references); regenerate `graph/graph-record.json` (nodes, references, and edges — `references` edges carry their `load`). Deterministic. |
@@ -88,6 +101,23 @@ agreement (`skill`↔`collaborative`, `agent`↔`autonomous`); `determinism` val
 marked `external: true`; every `references` edge target resolves to a `graph/_refs/<id>.md`
 reference (or node) with `load` (if present) one of `import`/`on-demand`; at least one
 `goals:` entry, each carrying `outcome`, `metric`, and `earns-keep`; body non-empty.
+
+**`maintains` edges** — for each `maintains` edge on a node: the target must resolve to a
+`handbook-reference` file (standard `reference` entries are not valid targets); edges
+marked `external: true` represent the factory-maintainer case (an external/factory node
+maintaining a vendored `owner: sg` entry) and are structurally valid but not resolved to
+a local file. The graph record projects `maintained_by` per entry (symmetric to
+`consumed_by` for `references` edges). Validate also performs the **orphan sweep**:
+every `handbook-reference` file in the workspace is checked for at least one incoming
+`maintains` edge — either a local node edge or an `external: true` edge for `owner: sg`
+entries; entries with none are flagged as orphans (no writes; surface for `amend`).
+
+**`extends` rule** — for every local (`owner: local`) `handbook-reference` that carries
+`extends`: the referenced vendored slug must exist; the local body must not define a
+concept anchor (`{#tag}`) that already appears in the vendored entry's anchor manifest.
+Any anchor collision is flagged as a hard failure (redefining a vendored anchor is
+prohibited; local entries may only add new anchors). A local entry whose `id` or anchors
+overlap an `owner: sg` entry without an explicit `extends` declaration is also flagged.
 
 **Judgment** (one LLM pass): does `mode` match the node's observable collaborative/autonomous
 character; is `primitive` sensible for what the body describes; does at least one goal read

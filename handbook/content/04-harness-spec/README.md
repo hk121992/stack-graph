@@ -37,15 +37,20 @@ A harness customises by **adding**, in the same node-file format as the factory:
 The result is one traversable graph: a traversal can start in a local entry node and cross
 into vendored branches.
 
-### Binding the handbook
+### The handbook — vendored + local composition
 
-A canon-centric vendored node (the curator, the drift detector, a context-gathering or design
-node) depends on the **handbook** through a `handbook` `external: true` reference
-([`graph-spec`](../02-graph-spec/README.md)). The factory ships only the pointer; the **overlay
-supplies the target** — the workspace's canon root + page index (handbook + decisions). There is
-**no runtime resolver** in v1: the node body is authored to **read its binding and navigate** on
-demand; the overlay just provides the path/index as config (the binding is itself a reference,
-not a Claude-resolved setting). The vendored node stays untouched.
+The **handbook is the rendered union** of factory-vendored handbook-references (dominant,
+read-only) plus the harness's own local handbook-references, composed and ownership-badged
+by the build ([`plugin-spec`](../03-plugin-spec/README.md)). Factory entries render their
+content *into* the product handbook — they are not merely pointers to external content.
+A harness extends this by adding local handbook-references alongside.
+
+A vendored node that touches the consuming product's handbook (the curator, the drift
+detector, a context-gathering or design node) depends on it through a `handbook`
+`external: true` reference ([`graph-spec`](../02-graph-spec/README.md)), carrying
+`load: on-demand`. The node reads its binding and navigates pages at the step of need; the
+overlay supplies the path and page index. The vendored node body stays untouched; the overlay
+resolves the binding — never a body splice.
 
 ## Extend-only
 
@@ -54,8 +59,26 @@ shadow, replace, or re-route a vendored node's behaviour. The vendored graph the
 behaves identically in every workspace; two consumers on the same vendored graph cannot
 diverge. (A local-override capability is a named future option, deliberately out of v1.)
 
-This is why there is **no precedence or conflict resolution** in the model: overlays never
-contend for a vendored node's slot, so there is nothing to resolve.
+The same discipline governs the **reference layer**: a local handbook-reference that touches
+a vendored topic must declare `extends: stack-graph:<id>`, and `extends` is **adds-only** —
+it may add new anchors and sections under the vendored topic, never redefine an existing
+vendored anchor or contradict a vendored normative claim.
+
+**Conflict is a hard integrate gate**, not advice. Two conditions fail integrate as structural
+checks — before merge, not as warnings:
+
+- An **undeclared vendored-slot overlap** — a local entry whose id or anchor collides with a
+  vendored entry without an explicit `extends` declaration.
+- An **`extends` that redefines a vendored anchor** — any local section whose anchor matches
+  an existing vendored anchor.
+
+The curator's **consistency-checker** is the best-effort **semantic backstop** for subtler
+duplication or logical contradiction — a quality signal run after the structural gate passes,
+not the gate itself.
+
+**The factory wins on any conflict.** The harness's governed recourse is the
+**raise-to-factory** path: propose an amendment to the factory entry, pull the updated
+vendored entry after it lands. The harness never edits a vendored entry in place.
 
 ## Never mutate
 
@@ -63,6 +86,11 @@ Vendored files are read-only to the harness. Overlays live entirely in the harne
 files. Updates to the vendored graph arrive through native plugin-update
 ([`plugin-spec`](../03-plugin-spec/README.md)) and never collide with overlays, because
 overlays only add and the vendored ids are namespaced apart.
+
+Vendored **handbook-references** follow the same rule. Each carries a `maintains` edge from
+an external/factory maintainer (recorded in the graph with `external: true` on that edge);
+`owner: sg` on the entry frontmatter is provenance. A harness never edits a vendored entry
+in place — changes to a factory entry go through raise-to-factory ([`devops`](../08-devops/README.md)).
 
 ## Crystallized outputs
 
@@ -74,6 +102,30 @@ are **harness-local**: a local node carries them in its own bundle; a **vendored
 node grows them in the harness overlay and reaches them by a stable `external: true` `references`
 edge (the manifest) and `invokes` edges (scripts) — so the node body never changes, only the
 manifest and scripts grow. New or changed ones are gated at `reconcile`, like any other change.
+
+## Harness-supplied surfaces
+
+A harness contributes several surfaces beyond nodes and edges. These are harness-local state
+and configuration that the factory graph depends on but cannot supply — they are product- or
+workspace-specific by definition.
+
+- **Personas** — a function-owned surface (typically maintained under the function's own
+  node-bundle) that the experience thread consumes to drive scenario simulation. The function
+  that owns the product's target-user definitions maintains personas; the experience thread
+  reads them as an `external: true` reference. Personas are not an experience-thread artefact
+  — they are a cross-thread input to it.
+
+- **Maturity posture** — harness-local state recording the current rigour level of the
+  process. The maturity × tier dial ([`concepts`](../01-concepts/README.md)) sets default
+  gate evidence bars; the posture value is a per-product harness configuration that feeds
+  that dial, not a factory-supplied default.
+
+- **Experience contract** — the harness-supplied intended-experience specification that the
+  experience thread grades against. It declares the UX invariants and named failure modes the
+  product must hold, plus the AX budgets (tokens, latency, intended tool-path). It is an
+  `external: true` reference consumed by the experience-thread nodes; the factory ships the
+  pointer, the harness supplies the target. Its content is product-specific and therefore
+  always local — a factory node could not author it.
 
 ## Namespacing
 
