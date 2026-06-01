@@ -619,4 +619,40 @@ manifests + closed catalogs, kept lightweight because output is advisory and hum
 *Queues:* `07-decomposition` (pack provenance manifest) + `05-maintenance-skill` (maintainer authors
 it) + `08-devops` (the grounding gate) + `CLAUDE.md` (dev-tooling) — pending;
 `tooling/sg-advisory-council/` + the PM manifest (`graph/_refs/pm-methodology-provenance.md`) — built.
+
+## Product dashboard
+
+**D49 — The roadmap is renamed and reframed as the *product-dashboard*: the operator's single strategic
+surface, record-primary, built to the anti-deferral stance.** The PM delivery surface (D43) is renamed
+**roadmap → product-dashboard** and reframed as the operator's **single strategic surface** hosting (1)
+**vision & strategy**, (2) **progress** (OKRs / north-star / strategic analytics), and (3) a **work
+ledger** — one ledger of work items (carriers, D44) rendered as two views on *different* axes: a
+**forward view** (operationally first-class — the fast-flowing active workspace where a work item matures
+idea→exploring→committed, often in days) and a **record** (durably primary — the durable memory of what
+we built, why we made the call, when, and how it ladders to the vision). **Record-primary:** the centre
+of *durable* value is the record, not a forward plan, because AI-native build makes sequencing cheap and
+a large backlog vestigial (*extends D32*). **One carrier identity, three projections** (forward workspace
+/ delivery traversal / durable record) — the surface renders facets, never forks the carrier. **Curator
+contract:** `product-dashboard-curator` (renamed from roadmap-curator) maintains **work-item content
+only**; `current_dev_stage` + `transition_history` are **projected from the dev-sprint traversal** (no
+node writes them, the curator least of all — *refines D44*'s projected-stage); gates advance
+`lifecycle_state` (operator decisions); `debrief` writes outcomes. **Three analytics streams** kept
+namespaced (product outcomes / factory conformance / carrier projection — the third consumes factory
+traversal events to derive product-side state). **Anti-deferral stance:** build buildable+needed work
+now; the only honest "later" is **input-gated** (subject data doesn't exist yet — e.g. strategic product
+analytics pre-launch) or **not-yet-needed at this maturity** (the dial keeps it light), named, never
+dressed as staging. **Naming:** roadmap→product-dashboard, roadmap-curator→product-dashboard-curator,
+roadmap-item-schema→work-item-schema, "roadmap item"→"work item" (BC's real `bc-workspace/roadmap` path +
+this decision history left). *Applies D44 (carrier), D45 (maturity dial), D38/D39 (the `outcome_link` is
+authored, not inferred). Extends D32 (strategy over backlog), D43 (the delivery-coupling surface).* *Why:*
+the operator wanted an opinionated artefact with conviction on the roadmap's role in the age of AI;
+research across SVPG / Strategyzer / the roadmap-craft canon / AI-era practice converged on
+direction-coherence + a durable record; the operator reframed it record-primary, renamed it
+product-dashboard, and insisted the forward view stay first-class (not deferred). Codex-reviewed (two-axis
+framing, projections, analytics namespacing, projected-stage contract, SVPG/Strategyzer fidelity). *Design:*
+`docs/product-dashboard-design.md` (+ `docs/pm-graph-map.md`). *Queues:* rename across PM design docs +
+dev-sprint node bodies + handbook concept lines — done (commit `e46087b`); `02-graph-spec`
+carrier-as-record framing + `07-decomposition` product-dashboard-as-PM-delivery-surface — light, pending;
+Arc B build (`product-dashboard-curator` + `product-lens` + `work-item-schema` + `okr-schema`) — pending.
+*Status:* Accepted (design + rename committed); handbook concept reconciliation + Arc B build pending.
 *Status:* Accepted (design); build in progress (product seats landed; handbook amendments pending).
