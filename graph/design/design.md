@@ -32,8 +32,6 @@ edges:
     - { id: handbook,                   load: on-demand, external: true }
     - { id: experience-contract-schema, load: on-demand }
     - { id: experience-contract,        load: on-demand, external: true }
-  can-follow:
-    - { id: align-context }
   precedes:
     - { id: specify }
 # analytics — the loop

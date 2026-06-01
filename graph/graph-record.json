@@ -1,24 +1,67 @@
 {
   "generated": "2026-06-01T00:00:00Z",
-  "node_count": 17,
-  "reference_count": 14,
-  "edge_count": 77,
+  "node_count": 28,
+  "reference_count": 15,
+  "handbook_reference_count": 0,
+  "edge_count": 109,
   "nodes": {
-    "align-context": {
-      "primitive": "skill",
-      "mode": "collaborative",
-      "title": "Align context",
-      "status": "v0.1.0 — 2026-06-01",
+    "pr-author": {
+      "primitive": "agent",
+      "mode": "autonomous",
+      "title": "PR author",
+      "status": "v0.1.0 \u2014 2026-05-31",
       "edges": {
-        "invokes": [
-          {
-            "id": "explore"
-          }
-        ],
         "composes-into": [
           {
             "id": "dev-sprint",
-            "stage": "align-context"
+            "stage": "specify"
+          },
+          {
+            "id": "dev-sprint",
+            "stage": "reconcile"
+          }
+        ],
+        "references": [
+          {
+            "id": "pr-description-shape",
+            "load": "on-demand"
+          },
+          {
+            "id": "what-belongs",
+            "load": "on-demand"
+          }
+        ]
+      }
+    },
+    "ship": {
+      "primitive": "skill",
+      "mode": "collaborative",
+      "title": "Ship",
+      "status": "v0.1.0 \u2014 2026-06-01",
+      "edges": {
+        "invokes": [],
+        "loads": [],
+        "references": [],
+        "composes-into": [],
+        "can-follow": [],
+        "precedes": []
+      }
+    },
+    "handbook-curator": {
+      "primitive": "skill",
+      "mode": "collaborative",
+      "title": "Handbook curator",
+      "status": "v0.1.0 \u2014 2026-05-31",
+      "edges": {
+        "invokes": [
+          {
+            "id": "drift-detector"
+          },
+          {
+            "id": "pr-author"
+          },
+          {
+            "id": "queue-checker"
           }
         ],
         "references": [
@@ -26,11 +69,18 @@
             "id": "handbook",
             "load": "on-demand",
             "external": true
-          }
-        ],
-        "precedes": [
+          },
           {
-            "id": "design"
+            "id": "what-belongs",
+            "load": "on-demand"
+          },
+          {
+            "id": "pr-description-shape",
+            "load": "on-demand"
+          },
+          {
+            "id": "bundling-rules",
+            "load": "on-demand"
           }
         ]
       }
@@ -39,7 +89,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Design",
-      "status": "v0.1.0 — 2026-06-01",
+      "status": "v0.1.0 \u2014 2026-06-01",
       "edges": {
         "invokes": [
           {
@@ -84,11 +134,6 @@
             "external": true
           }
         ],
-        "can-follow": [
-          {
-            "id": "align-context"
-          }
-        ],
         "precedes": [
           {
             "id": "specify"
@@ -96,16 +141,21 @@
         ]
       }
     },
-    "drift-detector": {
-      "primitive": "agent",
-      "mode": "autonomous",
-      "title": "Drift detector",
-      "status": "v0.1.0 — 2026-05-31",
+    "align-context": {
+      "primitive": "skill",
+      "mode": "collaborative",
+      "title": "Align context",
+      "status": "v0.1.0 \u2014 2026-06-01",
       "edges": {
+        "invokes": [
+          {
+            "id": "explore"
+          }
+        ],
         "composes-into": [
           {
             "id": "dev-sprint",
-            "stage": "specify"
+            "stage": "align-context"
           }
         ],
         "references": [
@@ -113,19 +163,98 @@
             "id": "handbook",
             "load": "on-demand",
             "external": true
-          },
+          }
+        ],
+        "precedes": [
           {
-            "id": "what-belongs",
-            "load": "on-demand"
+            "id": "design"
+          }
+        ],
+        "can-follow": [
+          {
+            "id": "debrief"
           }
         ]
       }
     },
-    "explore": {
+    "simulate-users": {
       "primitive": "agent",
       "mode": "autonomous",
-      "title": "Explore (context-gathering agent)",
-      "status": "v0.3.0 — 2026-05-31",
+      "title": "Simulate users",
+      "status": "v0.1.0 \u2014 2026-06-01",
+      "edges": {
+        "references": [
+          {
+            "id": "experience-contract",
+            "load": "on-demand",
+            "external": true
+          },
+          {
+            "id": "personas",
+            "load": "on-demand",
+            "external": true
+          }
+        ]
+      }
+    },
+    "land": {
+      "primitive": "skill",
+      "mode": "collaborative",
+      "title": "Land",
+      "status": "v0.1.0 \u2014 2026-06-01",
+      "edges": {
+        "invokes": [
+          {
+            "id": "ship"
+          },
+          {
+            "id": "deploy"
+          }
+        ],
+        "composes-into": [
+          {
+            "id": "dev-sprint",
+            "stage": "land"
+          }
+        ],
+        "references": [],
+        "precedes": [
+          {
+            "id": "debrief"
+          }
+        ]
+      }
+    },
+    "debrief": {
+      "primitive": "skill",
+      "mode": "collaborative",
+      "title": "Debrief",
+      "status": "v0.1.0 \u2014 2026-06-01",
+      "edges": {
+        "invokes": [
+          {
+            "id": "measure-outcomes"
+          },
+          {
+            "id": "capture-learnings"
+          },
+          {
+            "id": "log-decision"
+          }
+        ],
+        "composes-into": [
+          {
+            "id": "dev-sprint",
+            "stage": "debrief"
+          }
+        ]
+      }
+    },
+    "capture-learnings": {
+      "primitive": "agent",
+      "mode": "autonomous",
+      "title": "Capture learnings",
+      "status": "v0.1.0 \u2014 2026-06-01",
       "edges": {
         "references": [
           {
@@ -136,15 +265,29 @@
         ]
       }
     },
-    "handbook-curator": {
+    "deploy": {
       "primitive": "skill",
       "mode": "collaborative",
-      "title": "Handbook curator",
-      "status": "v0.1.0 — 2026-05-31",
+      "title": "Deploy",
+      "status": "v0.1.0 \u2014 2026-06-01",
+      "edges": {
+        "invokes": [],
+        "loads": [],
+        "references": [],
+        "composes-into": [],
+        "can-follow": [],
+        "precedes": []
+      }
+    },
+    "strategy-curator": {
+      "primitive": "skill",
+      "mode": "collaborative",
+      "title": "Strategy curator",
+      "status": "v0.1.0 \u2014 2026-06-01",
       "edges": {
         "invokes": [
           {
-            "id": "drift-detector"
+            "id": "explore"
           },
           {
             "id": "pr-author"
@@ -155,176 +298,92 @@
         ],
         "references": [
           {
+            "id": "vpc-schema",
+            "load": "on-demand"
+          },
+          {
+            "id": "bmc-schema",
+            "load": "on-demand"
+          },
+          {
+            "id": "four-risks",
+            "load": "import"
+          },
+          {
+            "id": "bundling-rules",
+            "load": "on-demand"
+          },
+          {
             "id": "handbook",
             "load": "on-demand",
             "external": true
-          },
-          {
-            "id": "what-belongs",
-            "load": "on-demand"
-          },
-          {
-            "id": "pr-description-shape",
-            "load": "on-demand"
-          },
-          {
-            "id": "bundling-rules",
-            "load": "on-demand"
           }
         ]
       }
     },
-    "lens-correctness": {
-      "primitive": "agent",
-      "mode": "autonomous",
-      "title": "Correctness lens",
-      "status": "v0.1.0 — 2026-05-30",
-      "edges": {
-        "composes-into": [
-          {
-            "id": "dev-sprint",
-            "stage": "review"
-          },
-          {
-            "id": "dev-sprint",
-            "stage": "design"
-          },
-          {
-            "id": "dev-sprint",
-            "stage": "plan"
-          }
-        ]
-      }
-    },
-    "lens-maintainability": {
-      "primitive": "agent",
-      "mode": "autonomous",
-      "title": "Maintainability lens",
-      "status": "v0.1.0 — 2026-05-30",
-      "edges": {
-        "composes-into": [
-          {
-            "id": "dev-sprint",
-            "stage": "review"
-          },
-          {
-            "id": "dev-sprint",
-            "stage": "design"
-          },
-          {
-            "id": "dev-sprint",
-            "stage": "plan"
-          }
-        ]
-      }
-    },
-    "lens-security": {
-      "primitive": "agent",
-      "mode": "autonomous",
-      "title": "Security lens",
-      "status": "v0.1.0 — 2026-05-30",
-      "edges": {
-        "composes-into": [
-          {
-            "id": "dev-sprint",
-            "stage": "review"
-          },
-          {
-            "id": "dev-sprint",
-            "stage": "design"
-          },
-          {
-            "id": "dev-sprint",
-            "stage": "plan"
-          }
-        ]
-      }
-    },
-    "lens-tests": {
-      "primitive": "agent",
-      "mode": "autonomous",
-      "title": "Tests lens",
-      "status": "v0.1.0 — 2026-05-30",
-      "edges": {
-        "composes-into": [
-          {
-            "id": "dev-sprint",
-            "stage": "review"
-          },
-          {
-            "id": "dev-sprint",
-            "stage": "design"
-          },
-          {
-            "id": "dev-sprint",
-            "stage": "plan"
-          }
-        ]
-      }
-    },
-    "pr-author": {
-      "primitive": "agent",
-      "mode": "autonomous",
-      "title": "PR author",
-      "status": "v0.1.0 — 2026-05-31",
-      "edges": {
-        "composes-into": [
-          {
-            "id": "dev-sprint",
-            "stage": "specify"
-          },
-          {
-            "id": "dev-sprint",
-            "stage": "reconcile"
-          }
-        ],
-        "references": [
-          {
-            "id": "pr-description-shape",
-            "load": "on-demand"
-          },
-          {
-            "id": "what-belongs",
-            "load": "on-demand"
-          }
-        ]
-      }
-    },
-    "product-dashboard-curator": {
+    "plan": {
       "primitive": "skill",
       "mode": "collaborative",
-      "title": "Product-dashboard curator",
-      "status": "v0.1.0 — 2026-06-01",
+      "title": "Plan",
+      "status": "v0.1.0 \u2014 2026-06-01",
       "edges": {
         "invokes": [
           {
-            "id": "pr-author"
-          },
+            "id": "explore"
+          }
+        ],
+        "composes-into": [
           {
-            "id": "queue-checker"
+            "id": "dev-sprint",
+            "stage": "plan"
           }
         ],
         "references": [
           {
-            "id": "work-item-schema",
+            "id": "IU-schema",
             "load": "import"
           },
           {
-            "id": "okr-schema",
-            "load": "import"
-          },
-          {
-            "id": "bundling-rules",
+            "id": "lens-dispatch",
             "load": "on-demand"
+          },
+          {
+            "id": "findings-schema",
+            "load": "import"
+          },
+          {
+            "id": "severity-scale",
+            "load": "import"
+          },
+          {
+            "id": "confidence-anchors",
+            "load": "import"
+          }
+        ],
+        "can-follow": [
+          {
+            "id": "build"
+          }
+        ],
+        "precedes": [
+          {
+            "id": "build"
           }
         ]
       }
+    },
+    "spec-diff": {
+      "primitive": "agent",
+      "mode": "autonomous",
+      "title": "Spec-diff",
+      "status": "v0.1.0 \u2014 2026-06-01",
+      "edges": {}
     },
     "product-lens": {
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Product lens",
-      "status": "v0.1.0 — 2026-06-01",
+      "status": "v0.1.0 \u2014 2026-06-01",
       "edges": {
         "composes-into": [
           {
@@ -358,18 +417,96 @@
         ]
       }
     },
+    "specify": {
+      "primitive": "skill",
+      "mode": "collaborative",
+      "title": "Specify",
+      "status": "v0.1.0 \u2014 2026-06-01",
+      "edges": {
+        "invokes": [
+          {
+            "id": "drift-detector"
+          },
+          {
+            "id": "pr-author"
+          }
+        ],
+        "composes-into": [
+          {
+            "id": "dev-sprint",
+            "stage": "specify"
+          }
+        ],
+        "references": [
+          {
+            "id": "handbook",
+            "load": "on-demand",
+            "external": true
+          }
+        ],
+        "precedes": [
+          {
+            "id": "plan"
+          }
+        ]
+      }
+    },
+    "log-decision": {
+      "primitive": "agent",
+      "mode": "autonomous",
+      "title": "Log decision",
+      "status": "v0.1.0 \u2014 2026-06-01",
+      "edges": {}
+    },
     "queue-checker": {
       "primitive": "agent",
       "mode": "autonomous",
       "title": "Queue checker",
-      "status": "v0.1.0 — 2026-05-31",
+      "status": "v0.1.0 \u2014 2026-05-31",
       "edges": {}
+    },
+    "lens-tests": {
+      "primitive": "agent",
+      "mode": "autonomous",
+      "title": "Tests lens",
+      "status": "v0.1.0 \u2014 2026-05-30",
+      "edges": {
+        "composes-into": [
+          {
+            "id": "dev-sprint",
+            "stage": "review"
+          },
+          {
+            "id": "dev-sprint",
+            "stage": "design"
+          },
+          {
+            "id": "dev-sprint",
+            "stage": "plan"
+          }
+        ]
+      }
+    },
+    "explore": {
+      "primitive": "agent",
+      "mode": "autonomous",
+      "title": "Explore (context-gathering agent)",
+      "status": "v0.3.0 \u2014 2026-05-31",
+      "edges": {
+        "references": [
+          {
+            "id": "handbook",
+            "load": "on-demand",
+            "external": true
+          }
+        ]
+      }
     },
     "review": {
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Review",
-      "status": "v0.1.0 — 2026-05-30",
+      "status": "v0.1.0 \u2014 2026-05-30",
       "edges": {
         "invokes": [
           {
@@ -408,38 +545,93 @@
             "id": "confidence-anchors",
             "load": "import"
           }
-        ]
-      }
-    },
-    "simulate-users": {
-      "primitive": "agent",
-      "mode": "autonomous",
-      "title": "Simulate users",
-      "status": "v0.1.0 — 2026-06-01",
-      "edges": {
-        "references": [
+        ],
+        "precedes": [
           {
-            "id": "experience-contract",
-            "load": "on-demand",
-            "external": true
-          },
-          {
-            "id": "personas",
-            "load": "on-demand",
-            "external": true
+            "id": "reconcile"
           }
         ]
       }
     },
-    "specify": {
+    "lens-security": {
+      "primitive": "agent",
+      "mode": "autonomous",
+      "title": "Security lens",
+      "status": "v0.1.0 \u2014 2026-05-30",
+      "edges": {
+        "composes-into": [
+          {
+            "id": "dev-sprint",
+            "stage": "review"
+          },
+          {
+            "id": "dev-sprint",
+            "stage": "design"
+          },
+          {
+            "id": "dev-sprint",
+            "stage": "plan"
+          }
+        ]
+      }
+    },
+    "measure-outcomes": {
+      "primitive": "agent",
+      "mode": "autonomous",
+      "title": "Measure outcomes",
+      "status": "v0.1.0 \u2014 2026-06-01",
+      "edges": {}
+    },
+    "build": {
       "primitive": "skill",
       "mode": "collaborative",
-      "title": "Specify",
-      "status": "v0.1.0 — 2026-06-01",
+      "title": "Build",
+      "status": "v0.1.0 \u2014 2026-06-01",
       "edges": {
         "invokes": [
           {
-            "id": "drift-detector"
+            "id": "explore"
+          }
+        ],
+        "composes-into": [
+          {
+            "id": "dev-sprint",
+            "stage": "build"
+          }
+        ],
+        "references": [
+          {
+            "id": "IU-schema",
+            "load": "import"
+          }
+        ],
+        "can-follow": [
+          {
+            "id": "review"
+          },
+          {
+            "id": "reconcile"
+          }
+        ],
+        "precedes": [
+          {
+            "id": "review"
+          }
+        ]
+      }
+    },
+    "reconcile": {
+      "primitive": "skill",
+      "mode": "collaborative",
+      "title": "Reconcile",
+      "status": "v0.1.0 \u2014 2026-06-01",
+      "edges": {
+        "invokes": [
+          {
+            "id": "spec-diff"
+          },
+          {
+            "id": "log-decision"
           },
           {
             "id": "pr-author"
@@ -448,7 +640,7 @@
         "composes-into": [
           {
             "id": "dev-sprint",
-            "stage": "specify"
+            "stage": "reconcile"
           }
         ],
         "references": [
@@ -460,21 +652,45 @@
         ],
         "can-follow": [
           {
-            "id": "design"
+            "id": "land"
+          }
+        ],
+        "precedes": [
+          {
+            "id": "land"
           }
         ]
       }
     },
-    "strategy-curator": {
+    "lens-correctness": {
+      "primitive": "agent",
+      "mode": "autonomous",
+      "title": "Correctness lens",
+      "status": "v0.1.0 \u2014 2026-05-30",
+      "edges": {
+        "composes-into": [
+          {
+            "id": "dev-sprint",
+            "stage": "review"
+          },
+          {
+            "id": "dev-sprint",
+            "stage": "design"
+          },
+          {
+            "id": "dev-sprint",
+            "stage": "plan"
+          }
+        ]
+      }
+    },
+    "product-dashboard-curator": {
       "primitive": "skill",
       "mode": "collaborative",
-      "title": "Strategy curator",
-      "status": "v0.1.0 — 2026-06-01",
+      "title": "Product-dashboard curator",
+      "status": "v0.1.0 \u2014 2026-06-01",
       "edges": {
         "invokes": [
-          {
-            "id": "explore"
-          },
           {
             "id": "pr-author"
           },
@@ -484,162 +700,269 @@
         ],
         "references": [
           {
-            "id": "vpc-schema",
-            "load": "on-demand"
+            "id": "work-item-schema",
+            "load": "import"
           },
           {
-            "id": "bmc-schema",
-            "load": "on-demand"
-          },
-          {
-            "id": "four-risks",
+            "id": "okr-schema",
             "load": "import"
           },
           {
             "id": "bundling-rules",
             "load": "on-demand"
-          },
+          }
+        ]
+      }
+    },
+    "drift-detector": {
+      "primitive": "agent",
+      "mode": "autonomous",
+      "title": "Drift detector",
+      "status": "v0.1.0 \u2014 2026-05-31",
+      "edges": {
+        "composes-into": [
+          {
+            "id": "dev-sprint",
+            "stage": "specify"
+          }
+        ],
+        "references": [
           {
             "id": "handbook",
             "load": "on-demand",
             "external": true
+          },
+          {
+            "id": "what-belongs",
+            "load": "on-demand"
+          }
+        ]
+      }
+    },
+    "lens-maintainability": {
+      "primitive": "agent",
+      "mode": "autonomous",
+      "title": "Maintainability lens",
+      "status": "v0.1.0 \u2014 2026-05-30",
+      "edges": {
+        "composes-into": [
+          {
+            "id": "dev-sprint",
+            "stage": "review"
+          },
+          {
+            "id": "dev-sprint",
+            "stage": "design"
+          },
+          {
+            "id": "dev-sprint",
+            "stage": "plan"
           }
         ]
       }
     }
   },
   "references": {
-    "bmc-schema": {
-      "title": "Business Model Canvas — schema",
-      "status": "v0.1.0 — 2026-06-01",
+    "confidence-anchors": {
+      "kind": "reference",
+      "title": "Finding contract \u2014 confidence anchors",
+      "status": "v0.1.0 \u2014 2026-05-30",
       "consumed_by": [
-        "strategy-curator"
+        "design",
+        "plan",
+        "review"
       ]
     },
-    "bundling-rules": {
-      "title": "Canon PR bundling rules",
-      "status": "v0.1.0 — 2026-05-31",
+    "work-item-schema": {
+      "kind": "reference",
+      "title": "Work-item schema \u2014 the carrier on the product-dashboard",
+      "status": "v0.1.0 \u2014 2026-06-01",
       "consumed_by": [
-        "handbook-curator",
-        "strategy-curator",
         "product-dashboard-curator"
       ]
     },
-    "confidence-anchors": {
-      "title": "Finding contract — confidence anchors",
-      "status": "v0.1.0 — 2026-05-30",
+    "severity-scale": {
+      "kind": "reference",
+      "title": "Finding contract \u2014 severity scale",
+      "status": "v0.1.0 \u2014 2026-05-30",
       "consumed_by": [
         "design",
-        "review"
-      ]
-    },
-    "experience-contract-schema": {
-      "title": "Experience contract — schema",
-      "status": "v0.1.0 — 2026-06-01",
-      "consumed_by": [
-        "design"
-      ]
-    },
-    "findings-schema": {
-      "title": "Finding contract — schema",
-      "status": "v0.1.0 — 2026-05-30",
-      "consumed_by": [
-        "design",
-        "review"
-      ]
-    },
-    "four-risks": {
-      "title": "The four product risks — discovery lens",
-      "status": "v0.1.0 — 2026-06-01",
-      "consumed_by": [
-        "strategy-curator",
-        "product-lens"
-      ]
-    },
-    "lens-dispatch": {
-      "title": "Lens dispatch — fan-out, merge, triage, route",
-      "status": "v0.1.0 — 2026-05-30",
-      "consumed_by": [
-        "design",
+        "plan",
         "review"
       ]
     },
     "okr-schema": {
+      "kind": "reference",
       "title": "OKR / outcome-layer schema",
-      "status": "v0.1.0 — 2026-06-01",
+      "status": "v0.1.0 \u2014 2026-06-01",
       "consumed_by": [
-        "product-dashboard-curator",
-        "product-lens"
+        "product-lens",
+        "product-dashboard-curator"
       ]
     },
     "pm-methodology-provenance": {
-      "title": "PM pack — methodology provenance",
-      "status": "v0.1.0 — 2026-06-01",
+      "kind": "reference",
+      "title": "PM pack \u2014 methodology provenance",
+      "status": "v0.1.0 \u2014 2026-06-01",
       "consumed_by": []
     },
-    "pr-description-shape": {
-      "title": "Canon PR description shape",
-      "status": "v0.1.0 — 2026-05-31",
-      "consumed_by": [
-        "handbook-curator",
-        "pr-author"
-      ]
-    },
-    "severity-scale": {
-      "title": "Finding contract — severity scale",
-      "status": "v0.1.0 — 2026-05-30",
+    "findings-schema": {
+      "kind": "reference",
+      "title": "Finding contract \u2014 schema",
+      "status": "v0.1.0 \u2014 2026-05-30",
       "consumed_by": [
         "design",
+        "plan",
         "review"
       ]
     },
-    "vpc-schema": {
-      "title": "Value Proposition Canvas — schema",
-      "status": "v0.1.0 — 2026-06-01",
+    "pr-description-shape": {
+      "kind": "reference",
+      "title": "Canon PR description shape",
+      "status": "v0.1.0 \u2014 2026-05-31",
+      "consumed_by": [
+        "pr-author",
+        "handbook-curator"
+      ]
+    },
+    "four-risks": {
+      "kind": "reference",
+      "title": "The four product risks \u2014 discovery lens",
+      "status": "v0.2.0 \u2014 2026-06-01",
+      "consumed_by": [
+        "strategy-curator",
+        "product-lens"
+      ]
+    },
+    "experience-contract-schema": {
+      "kind": "reference",
+      "title": "Experience contract \u2014 schema",
+      "status": "v0.1.0 \u2014 2026-06-01",
+      "consumed_by": [
+        "design"
+      ]
+    },
+    "bmc-schema": {
+      "kind": "reference",
+      "title": "Business Model Canvas \u2014 schema",
+      "status": "v0.1.0 \u2014 2026-06-01",
       "consumed_by": [
         "strategy-curator"
       ]
     },
     "what-belongs": {
-      "title": "What belongs in the canon — the gate principles",
-      "status": "v0.1.0 — 2026-05-31",
+      "kind": "reference",
+      "title": "What belongs in the canon \u2014 the gate principles",
+      "status": "v0.1.0 \u2014 2026-05-31",
       "consumed_by": [
-        "drift-detector",
+        "pr-author",
         "handbook-curator",
-        "pr-author"
+        "drift-detector"
       ]
     },
-    "work-item-schema": {
-      "title": "Work-item schema — the carrier on the product-dashboard",
-      "status": "v0.1.0 — 2026-06-01",
+    "IU-schema": {
+      "kind": "reference",
+      "title": "Implementation-Unit schema \u2014 the plan\u2194build field contract",
+      "status": "v0.1.0 \u2014 2026-06-01",
       "consumed_by": [
+        "plan",
+        "build"
+      ]
+    },
+    "bundling-rules": {
+      "kind": "reference",
+      "title": "Canon PR bundling rules",
+      "status": "v0.1.0 \u2014 2026-05-31",
+      "consumed_by": [
+        "handbook-curator",
+        "strategy-curator",
         "product-dashboard-curator"
+      ]
+    },
+    "lens-dispatch": {
+      "kind": "reference",
+      "title": "Lens dispatch \u2014 fan-out, merge, triage, route",
+      "status": "v0.1.0 \u2014 2026-05-30",
+      "consumed_by": [
+        "design",
+        "plan",
+        "review"
+      ]
+    },
+    "vpc-schema": {
+      "kind": "reference",
+      "title": "Value Proposition Canvas \u2014 schema",
+      "status": "v0.1.0 \u2014 2026-06-01",
+      "consumed_by": [
+        "strategy-curator"
       ]
     }
   },
+  "handbook_references": {},
   "edges": [
     {
-      "from": "align-context",
-      "to": "explore",
+      "from": "pr-author",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "specify"
+    },
+    {
+      "from": "pr-author",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "reconcile"
+    },
+    {
+      "from": "pr-author",
+      "to": "pr-description-shape",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "pr-author",
+      "to": "what-belongs",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "handbook-curator",
+      "to": "drift-detector",
       "type": "invokes"
     },
     {
-      "from": "align-context",
-      "to": "dev-sprint",
-      "type": "composes-into",
-      "stage": "align-context"
+      "from": "handbook-curator",
+      "to": "pr-author",
+      "type": "invokes"
     },
     {
-      "from": "align-context",
+      "from": "handbook-curator",
+      "to": "queue-checker",
+      "type": "invokes"
+    },
+    {
+      "from": "handbook-curator",
       "to": "handbook",
       "type": "references",
       "load": "on-demand",
       "external": true
     },
     {
-      "from": "align-context",
-      "to": "design",
-      "type": "precedes"
+      "from": "handbook-curator",
+      "to": "what-belongs",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "handbook-curator",
+      "to": "pr-description-shape",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "handbook-curator",
+      "to": "bundling-rules",
+      "type": "references",
+      "load": "on-demand"
     },
     {
       "from": "design",
@@ -698,203 +1021,196 @@
     },
     {
       "from": "design",
-      "to": "align-context",
-      "type": "can-follow"
-    },
-    {
-      "from": "design",
       "to": "specify",
       "type": "precedes"
     },
     {
-      "from": "drift-detector",
-      "to": "dev-sprint",
-      "type": "composes-into",
-      "stage": "specify"
-    },
-    {
-      "from": "drift-detector",
-      "to": "handbook",
-      "type": "references",
-      "load": "on-demand",
-      "external": true
-    },
-    {
-      "from": "drift-detector",
-      "to": "what-belongs",
-      "type": "references",
-      "load": "on-demand"
-    },
-    {
-      "from": "explore",
-      "to": "handbook",
-      "type": "references",
-      "load": "on-demand",
-      "external": true
-    },
-    {
-      "from": "handbook-curator",
-      "to": "drift-detector",
+      "from": "align-context",
+      "to": "explore",
       "type": "invokes"
     },
     {
-      "from": "handbook-curator",
+      "from": "align-context",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "align-context"
+    },
+    {
+      "from": "align-context",
+      "to": "handbook",
+      "type": "references",
+      "load": "on-demand",
+      "external": true
+    },
+    {
+      "from": "align-context",
+      "to": "design",
+      "type": "precedes"
+    },
+    {
+      "from": "align-context",
+      "to": "debrief",
+      "type": "can-follow"
+    },
+    {
+      "from": "simulate-users",
+      "to": "experience-contract",
+      "type": "references",
+      "load": "on-demand",
+      "external": true
+    },
+    {
+      "from": "simulate-users",
+      "to": "personas",
+      "type": "references",
+      "load": "on-demand",
+      "external": true
+    },
+    {
+      "from": "land",
+      "to": "ship",
+      "type": "invokes"
+    },
+    {
+      "from": "land",
+      "to": "deploy",
+      "type": "invokes"
+    },
+    {
+      "from": "land",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "land"
+    },
+    {
+      "from": "land",
+      "to": "debrief",
+      "type": "precedes"
+    },
+    {
+      "from": "debrief",
+      "to": "measure-outcomes",
+      "type": "invokes"
+    },
+    {
+      "from": "debrief",
+      "to": "capture-learnings",
+      "type": "invokes"
+    },
+    {
+      "from": "debrief",
+      "to": "log-decision",
+      "type": "invokes"
+    },
+    {
+      "from": "debrief",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "debrief"
+    },
+    {
+      "from": "capture-learnings",
+      "to": "handbook",
+      "type": "references",
+      "load": "on-demand",
+      "external": true
+    },
+    {
+      "from": "strategy-curator",
+      "to": "explore",
+      "type": "invokes"
+    },
+    {
+      "from": "strategy-curator",
       "to": "pr-author",
       "type": "invokes"
     },
     {
-      "from": "handbook-curator",
+      "from": "strategy-curator",
       "to": "queue-checker",
       "type": "invokes"
     },
     {
-      "from": "handbook-curator",
-      "to": "handbook",
-      "type": "references",
-      "load": "on-demand",
-      "external": true
-    },
-    {
-      "from": "handbook-curator",
-      "to": "what-belongs",
+      "from": "strategy-curator",
+      "to": "vpc-schema",
       "type": "references",
       "load": "on-demand"
     },
     {
-      "from": "handbook-curator",
-      "to": "pr-description-shape",
+      "from": "strategy-curator",
+      "to": "bmc-schema",
       "type": "references",
       "load": "on-demand"
     },
     {
-      "from": "handbook-curator",
+      "from": "strategy-curator",
+      "to": "four-risks",
+      "type": "references",
+      "load": "import"
+    },
+    {
+      "from": "strategy-curator",
       "to": "bundling-rules",
       "type": "references",
       "load": "on-demand"
     },
     {
-      "from": "lens-correctness",
-      "to": "dev-sprint",
-      "type": "composes-into",
-      "stage": "review"
-    },
-    {
-      "from": "lens-correctness",
-      "to": "dev-sprint",
-      "type": "composes-into",
-      "stage": "design"
-    },
-    {
-      "from": "lens-correctness",
-      "to": "dev-sprint",
-      "type": "composes-into",
-      "stage": "plan"
-    },
-    {
-      "from": "lens-maintainability",
-      "to": "dev-sprint",
-      "type": "composes-into",
-      "stage": "review"
-    },
-    {
-      "from": "lens-maintainability",
-      "to": "dev-sprint",
-      "type": "composes-into",
-      "stage": "design"
-    },
-    {
-      "from": "lens-maintainability",
-      "to": "dev-sprint",
-      "type": "composes-into",
-      "stage": "plan"
-    },
-    {
-      "from": "lens-security",
-      "to": "dev-sprint",
-      "type": "composes-into",
-      "stage": "review"
-    },
-    {
-      "from": "lens-security",
-      "to": "dev-sprint",
-      "type": "composes-into",
-      "stage": "design"
-    },
-    {
-      "from": "lens-security",
-      "to": "dev-sprint",
-      "type": "composes-into",
-      "stage": "plan"
-    },
-    {
-      "from": "lens-tests",
-      "to": "dev-sprint",
-      "type": "composes-into",
-      "stage": "review"
-    },
-    {
-      "from": "lens-tests",
-      "to": "dev-sprint",
-      "type": "composes-into",
-      "stage": "design"
-    },
-    {
-      "from": "lens-tests",
-      "to": "dev-sprint",
-      "type": "composes-into",
-      "stage": "plan"
-    },
-    {
-      "from": "pr-author",
-      "to": "dev-sprint",
-      "type": "composes-into",
-      "stage": "specify"
-    },
-    {
-      "from": "pr-author",
-      "to": "dev-sprint",
-      "type": "composes-into",
-      "stage": "reconcile"
-    },
-    {
-      "from": "pr-author",
-      "to": "pr-description-shape",
+      "from": "strategy-curator",
+      "to": "handbook",
       "type": "references",
-      "load": "on-demand"
+      "load": "on-demand",
+      "external": true
     },
     {
-      "from": "pr-author",
-      "to": "what-belongs",
-      "type": "references",
-      "load": "on-demand"
-    },
-    {
-      "from": "product-dashboard-curator",
-      "to": "pr-author",
+      "from": "plan",
+      "to": "explore",
       "type": "invokes"
     },
     {
-      "from": "product-dashboard-curator",
-      "to": "queue-checker",
-      "type": "invokes"
+      "from": "plan",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "plan"
     },
     {
-      "from": "product-dashboard-curator",
-      "to": "work-item-schema",
+      "from": "plan",
+      "to": "IU-schema",
       "type": "references",
       "load": "import"
     },
     {
-      "from": "product-dashboard-curator",
-      "to": "okr-schema",
+      "from": "plan",
+      "to": "lens-dispatch",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "plan",
+      "to": "findings-schema",
       "type": "references",
       "load": "import"
     },
     {
-      "from": "product-dashboard-curator",
-      "to": "bundling-rules",
+      "from": "plan",
+      "to": "severity-scale",
       "type": "references",
-      "load": "on-demand"
+      "load": "import"
+    },
+    {
+      "from": "plan",
+      "to": "confidence-anchors",
+      "type": "references",
+      "load": "import"
+    },
+    {
+      "from": "plan",
+      "to": "build",
+      "type": "can-follow"
+    },
+    {
+      "from": "plan",
+      "to": "build",
+      "type": "precedes"
     },
     {
       "from": "product-lens",
@@ -929,6 +1245,59 @@
     },
     {
       "from": "product-lens",
+      "to": "handbook",
+      "type": "references",
+      "load": "on-demand",
+      "external": true
+    },
+    {
+      "from": "specify",
+      "to": "drift-detector",
+      "type": "invokes"
+    },
+    {
+      "from": "specify",
+      "to": "pr-author",
+      "type": "invokes"
+    },
+    {
+      "from": "specify",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "specify"
+    },
+    {
+      "from": "specify",
+      "to": "handbook",
+      "type": "references",
+      "load": "on-demand",
+      "external": true
+    },
+    {
+      "from": "specify",
+      "to": "plan",
+      "type": "precedes"
+    },
+    {
+      "from": "lens-tests",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "review"
+    },
+    {
+      "from": "lens-tests",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "design"
+    },
+    {
+      "from": "lens-tests",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "plan"
+    },
+    {
+      "from": "explore",
       "to": "handbook",
       "type": "references",
       "load": "on-demand",
@@ -985,92 +1354,180 @@
       "load": "import"
     },
     {
-      "from": "simulate-users",
-      "to": "experience-contract",
-      "type": "references",
-      "load": "on-demand",
-      "external": true
+      "from": "review",
+      "to": "reconcile",
+      "type": "precedes"
     },
     {
-      "from": "simulate-users",
-      "to": "personas",
-      "type": "references",
-      "load": "on-demand",
-      "external": true
+      "from": "lens-security",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "review"
     },
     {
-      "from": "specify",
-      "to": "drift-detector",
+      "from": "lens-security",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "design"
+    },
+    {
+      "from": "lens-security",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "plan"
+    },
+    {
+      "from": "build",
+      "to": "explore",
       "type": "invokes"
     },
     {
-      "from": "specify",
+      "from": "build",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "build"
+    },
+    {
+      "from": "build",
+      "to": "IU-schema",
+      "type": "references",
+      "load": "import"
+    },
+    {
+      "from": "build",
+      "to": "review",
+      "type": "can-follow"
+    },
+    {
+      "from": "build",
+      "to": "reconcile",
+      "type": "can-follow"
+    },
+    {
+      "from": "build",
+      "to": "review",
+      "type": "precedes"
+    },
+    {
+      "from": "reconcile",
+      "to": "spec-diff",
+      "type": "invokes"
+    },
+    {
+      "from": "reconcile",
+      "to": "log-decision",
+      "type": "invokes"
+    },
+    {
+      "from": "reconcile",
       "to": "pr-author",
       "type": "invokes"
     },
     {
-      "from": "specify",
+      "from": "reconcile",
       "to": "dev-sprint",
       "type": "composes-into",
-      "stage": "specify"
+      "stage": "reconcile"
     },
     {
-      "from": "specify",
+      "from": "reconcile",
       "to": "handbook",
       "type": "references",
       "load": "on-demand",
       "external": true
     },
     {
-      "from": "specify",
-      "to": "design",
+      "from": "reconcile",
+      "to": "land",
       "type": "can-follow"
     },
     {
-      "from": "strategy-curator",
-      "to": "explore",
-      "type": "invokes"
+      "from": "reconcile",
+      "to": "land",
+      "type": "precedes"
     },
     {
-      "from": "strategy-curator",
+      "from": "lens-correctness",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "review"
+    },
+    {
+      "from": "lens-correctness",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "design"
+    },
+    {
+      "from": "lens-correctness",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "plan"
+    },
+    {
+      "from": "product-dashboard-curator",
       "to": "pr-author",
       "type": "invokes"
     },
     {
-      "from": "strategy-curator",
+      "from": "product-dashboard-curator",
       "to": "queue-checker",
       "type": "invokes"
     },
     {
-      "from": "strategy-curator",
-      "to": "vpc-schema",
-      "type": "references",
-      "load": "on-demand"
-    },
-    {
-      "from": "strategy-curator",
-      "to": "bmc-schema",
-      "type": "references",
-      "load": "on-demand"
-    },
-    {
-      "from": "strategy-curator",
-      "to": "four-risks",
+      "from": "product-dashboard-curator",
+      "to": "work-item-schema",
       "type": "references",
       "load": "import"
     },
     {
-      "from": "strategy-curator",
+      "from": "product-dashboard-curator",
+      "to": "okr-schema",
+      "type": "references",
+      "load": "import"
+    },
+    {
+      "from": "product-dashboard-curator",
       "to": "bundling-rules",
       "type": "references",
       "load": "on-demand"
     },
     {
-      "from": "strategy-curator",
+      "from": "drift-detector",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "specify"
+    },
+    {
+      "from": "drift-detector",
       "to": "handbook",
       "type": "references",
       "load": "on-demand",
       "external": true
+    },
+    {
+      "from": "drift-detector",
+      "to": "what-belongs",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "lens-maintainability",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "review"
+    },
+    {
+      "from": "lens-maintainability",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "design"
+    },
+    {
+      "from": "lens-maintainability",
+      "to": "dev-sprint",
+      "type": "composes-into",
+      "stage": "plan"
     }
   ]
 }

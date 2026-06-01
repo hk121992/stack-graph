@@ -31,6 +31,8 @@ edges:
     - { id: handbook, load: on-demand, external: true }
   precedes:
     - { id: design }
+  can-follow:
+    - { id: debrief }
 # analytics — the loop
 goals:
   - outcome: Intent and constraints are shared and correct before design begins — the front builds on a true statement of what the item is, not a mis-stated one.
@@ -203,10 +205,10 @@ pass; it does not author the amendment (that is `specify`).
   the reusable context digest forward to `design`, which resolves the item's load-bearing design
   questions on that basis and does not re-explore the same ground. `design` carries the reciprocal
   `can-follow align-context`.
-- **← `debrief`** (`can-follow`, deferred — F7): the dev-sprint closes by looping back to alignment
-  to seed the next sprint — `debrief --can-follow→ align-context`. `debrief` does not exist yet, so
-  the edge is **not declared**; the behaviour holds in prose — align-context is re-entered when a
-  debrief seeds the next sprint — and the edge is wired in via `amend` once `debrief` is authored.
+- **← `debrief`** (`can-follow`, wired — backbone wiring pass wave 1c): the dev-sprint closes by
+  looping back to alignment to seed the next sprint — `align-context can-follow debrief`. The edge
+  is now declared in the frontmatter; align-context is re-entered when a debrief seeds the next
+  sprint.
 
 ## Output
 

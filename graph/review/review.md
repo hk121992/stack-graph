@@ -22,6 +22,8 @@ edges:
     - { id: findings-schema,    load: import }
     - { id: severity-scale,     load: import }
     - { id: confidence-anchors, load: import }
+  precedes:
+    - { id: reconcile }
 # analytics — the loop
 goals:
   - outcome: Defects are caught and fixed before the change lands, rather than escaping to production or a later stage.

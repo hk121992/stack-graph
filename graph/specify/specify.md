@@ -17,8 +17,8 @@ edges:
     - { id: dev-sprint, stage: specify }
   references:
     - { id: handbook, load: on-demand, external: true }
-  can-follow:
-    - { id: design }
+  precedes:
+    - { id: plan }
 # analytics — the loop
 goals:
   - outcome: The design becomes a canonical spec amendment with explicit touchpoints, so build implements against settled spec rather than a moving target.
