@@ -655,4 +655,27 @@ dev-sprint node bodies + handbook concept lines — done (commit `e46087b`); `02
 carrier-as-record framing + `07-decomposition` product-dashboard-as-PM-delivery-surface — light, pending;
 Arc B build (`product-dashboard-curator` + `product-lens` + `work-item-schema` + `okr-schema`) — pending.
 *Status:* Accepted (design + rename committed); handbook concept reconciliation + Arc B build pending.
+
+## Dev-sprint backbone
+
+**D50 — Dev-sprint backbone wave 1 built: `plan`/`build`/`reconcile`/`land`/`debrief` + the loop wiring.**
+The missing backbone stages + the loop-critical sub-nodes (`ship`, `deploy`, `spec-diff`, `log-decision`,
+`measure-outcomes`, `capture-learnings`) + the `IU-schema` reference are authored; the dev-sprint loop now
+traverses end-to-end (front + backbone + review cell). **Gate model:** three operator gates —
+**commit-to-build** (`plan→build`, `defined→committed`), **commit-to-land** (`reconcile→land`,
+`in-delivery→shipped`), **live-confirmed** (`land→debrief`, `shipped→live`); `committed→in-delivery` is
+**traversal-derived** (entering build), not a gate. **Wiring:** happy path = `precedes` (the 8-edge forward
+chain `align-context→…→debrief`); corrective loops = `can-follow`, each bounded + escalatable (build←review
+fix, build←reconcile rework, reconcile←land revert, plan←build re-plan); seed-next = align-context←debrief
+(13 process edges total). **Carrier discipline held (D44):** no backbone stage writes the carrier — `plan`
+produces the plan (`children[]` is curator-content/projected), and `debrief` records outcome evidence but
+does **not** advance `lifecycle_state` (the live-confirmed gate does) and holds no edge to the curators — the
+loop closes via the **shared authored homes** (D38). **Wave-1 `land` = `ship` + `deploy`** (operator);
+**`canary` input-gated to wave 2** (no prod traffic pre-launch). **Deferred to wave 2, named not dressed
+(F7 prose seams):** `debug`+`investigate-probe`, `canary`, `optimise`, `benchmark`/`health`, the
+visual-design thread. *Codex-reviewed* (gate model, projected-stage coherence, loop edges as can-follow,
+debrief-feedback-via-homes, the anti-fake-shipping check — all applied). *Record:* 28 nodes / 15 refs / 109
+edges, validated. *Applies D44 (carrier/projected-stage), D45 (gate dial); pays the F7 `@plan`-edge IOU;
+details graph-map.md's backbone sketch.* *Design:* `docs/dev-sprint-backbone-design.md`. *Status:* Accepted;
+wave 1 built + committed. Wave 2 (sub-arcs + crystallising nodes) pending.
 *Status:* Accepted (design); build in progress (product seats landed; handbook amendments pending).
