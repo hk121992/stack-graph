@@ -114,6 +114,11 @@ different mechanisms, not one writer**:
 - **Content** (the carrier's identity, priority, body) is maintained by a **curator** through the gated
   raise → integrate path — the heavyweight, reviewed changes.
 
+Because `gate_decisions[]` and `transition_history[]` are **append-only**, a carrier is not only a
+forward state-holder but a **durable record** — the process's memory of how the work moved, when, and why
+each call was made, kept after the work is delivered or abandoned. The current/forward view and this
+retained record are two readings of one carrier, not separate artefacts.
+
 A carrier is **not a node** — it is an instance flowing through the graph, and none of the three is a
 `composes-into` edge. What the lifecycle states, stages, and gates *are* is a domain concern — a delivery
 process's work item is one carrier.

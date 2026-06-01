@@ -140,10 +140,11 @@ mis-placed — move it into the pack.)
 Recurring shapes a pack composes from:
 
 - **A curator over a carrier.** Work that travels a process is a **carrier** — a stateful
-  work-item ([graph-spec](../02-graph-spec/)); a **curator skill** maintains the carrier surface
-  and syncs its `current_stage` as the arc progresses. Gates are **state transitions on the
-  carrier** (each recording a decision), **not** `composes-into` edges — a curator is not an
-  arc stage.
+  work-item ([graph-spec](../02-graph-spec/)); a **curator skill** maintains the carrier's
+  **content** (identity, priority, body, disposition). It does **not** write `current_stage` —
+  that is projected from the traversal — nor decide gates. Gates are **state transitions on the
+  carrier** (each recording a decision), **not** `composes-into` edges; a curator is not an arc
+  stage.
 - **A lens.** A concern that *examines* rather than traverses (a review dimension, a strategy
   check) is a **lens**, routed by the context axis: a prompt-describable isolated examination is
   an **agent**; one that needs the live thread, the operator, or a browser is a **skill**. A lens
