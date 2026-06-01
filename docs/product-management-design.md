@@ -23,12 +23,12 @@ general pattern from Be Civic's already-working PM system**, grounded in establi
   *as evidence develops*. Maintained by a curator.
 - **The delivery coupling (downstream, per-item).** Turns that substrate into prioritised, shipped
   product. **Not** a separate arc — it rides the dev-sprint, whose interaction-heavy front already
-  blends PM + eng/design. Its machinery: the roadmap (carrier source), the gates, a product lens
+  blends PM + eng/design. Its machinery: the product-dashboard (carrier source), the gates, a product lens
   into the front, the maturity dial.
 
-Joined by the **outcome layer** (vision → objectives → north star → metrics) and the **roadmap** —
-the strategy/discovery loop sets themes/priorities, the delivery coupling executes items — and by
-**feedback** (`debrief` outcomes flow back to reprioritise the roadmap *and* confirm/kill the loop's
+Joined by the **outcome layer** (vision → objectives → north star → metrics) and the **product-dashboard** —
+the strategy/discovery loop sets themes/priorities, the delivery coupling executes work items — and by
+**feedback** (`debrief` outcomes flow back to reprioritise the product-dashboard *and* confirm/kill the loop's
 hypotheses).
 
 ## Spec touchpoints
@@ -39,7 +39,7 @@ hypotheses).
 | `01-concepts` | Concepts / threads | **amend (core)** — PM as two faces (strategy/discovery loop + delivery coupling), not arcs; personas as PM-owned cross-thread surface. |
 | `02-graph-spec` | Node / carrier schema | **amend (core)** — carrier schema fields for the structured state model (not a scalar `stage`). |
 | `04-harness-spec` | Harness surfaces | **amend (core)** — personas surface (PM-owned, experience-consumed); maturity as harness-local state; outcome layer surfaces. |
-| `05-maintenance-skill` | Curator cells | **amend (core)** — surface + curator pattern applied to strategy/roadmap/personas surfaces. |
+| `05-maintenance-skill` | Curator cells | **amend (core)** — surface + curator pattern applied to strategy/product-dashboard/personas surfaces. |
 | `07-decomposition` | PM pack | **amend (PM-pack)** — SVPG spine + Strategyzer engine; the two-face structure; four-risks lens at both levels; product lens; delivery coupling machinery. |
 | `06-analytics` | Outcome measurement | **amend (core)** — `debrief` measures KPIs vs OKRs; outcome-over-output principle. |
 
@@ -109,7 +109,7 @@ verification, not value discovery). See `docs/experience-thread-design.md`.
 | **BMD / Value-Proposition Canvas** (a Strategyzer instance) | `bc-workspace/bmd/` (173 hypotheses across BMC blocks + VPC sub-blocks, 41 findings, evidence sessions, `vpc/`, assessments); discipline at `handbook/.../07-workspace/04-bmd-discipline.md` | Evidence-first strategy/value-prop, post-pivot hypothesis lifecycle (invalidate/supersede, never delete), a curator | The **strategy/discovery loop** — the canvas surface + curator |
 | **Personas** | `bc-operations/docs/user-research/profiles.md` | 10 stress-test profiles + a coverage matrix; symlinked into the test harness | The **personas surface** — PM-owned, consumed by the experience thread |
 | **User-simulation** | `handbook/.../06-experience/02-testing.md` (two-tier), `01-arc.md` (Experience Arc, 8 invariants), 7 failure modes, runbooks, "Imogen" replay persona | Single-agent walkthrough + three-agent judge harness, graded against a session-shape contract | The **`simulate-users` node** — **re-homed to the experience thread** (`docs/experience-thread-design.md`); not a PM evidence source |
-| **Roadmap** | `bc-workspace/roadmap/` (`items/<id>.md`, `backlog.md`, `sprints/`, `manifest.json`); discipline at `07-workspace/05-roadmap-discipline.md` | Items on a **12-stage lifecycle** with **tiers** (T1 fast-track / T2–T3 gated), a curator | The delivery coupling — the carrier + roadmap surface + roadmap-curator |
+| **Roadmap** | `bc-workspace/roadmap/` (`items/<id>.md`, `backlog.md`, `sprints/`, `manifest.json`); discipline at `07-workspace/05-roadmap-discipline.md` | Items on a **12-stage lifecycle** with **tiers** (T1 fast-track / T2–T3 gated), a curator | The delivery coupling — the carrier + work-ledger surface + product-dashboard-curator |
 
 *Gap in BC today: the explicit outcome layer (north star / OKRs / KPIs) and a stated product vision
 are thin — those are the methodology elements we add.*
@@ -123,14 +123,14 @@ are thin — those are the methodology elements we add.*
         ▼   derives objectives + themes
   ═══ OUTCOME LAYER ═══  vision → OKRs → north-star → KPIs
         ▼
-  ═══════ ROADMAP ═══════   (prioritised opportunities serving objectives — the carrier source)
-        │   a roadmap item (carrier — see STATE MODEL below)
+  ═══ PRODUCT-DASHBOARD ═══   (prioritised opportunities serving objectives — the carrier source)
+        │   a work item (carrier — see STATE MODEL below)
         ▼
   DELIVERY COUPLING  (per-item · rides the dev-sprint)
   align-context · design ─[gate-1]─ specify ─[gate-2]─ plan ─[gate-3]─ build · review · reconcile · land · debrief
    (front blends a PM product-lens + eng/design; reads VPC / personas / strategy; de-risks usability + feasibility)  │
         ▲                                                                                                            │
-        └──── outcomes (KPIs vs OKRs) ──► roadmap reprioritise  +  loop confirm / kill hypotheses ──────────────────┘
+        └──── outcomes (KPIs vs OKRs) ──► product-dashboard reprioritise  +  loop confirm / kill hypotheses ───────────┘
 ```
 
 ## The strategy / discovery loop (upstream)
@@ -166,19 +166,19 @@ thread. See `docs/experience-thread-design.md` for the full interaction table.
 The connective tissue between strategy and delivery — the SVPG principle made operational:
 
 - **Product vision** — the apex (from the strategy/discovery loop).
-- **Objectives / OKRs** — outcomes the roadmap serves; the bridge from strategy to roadmap items.
+- **Objectives / OKRs** — outcomes the product-dashboard serves; the bridge from strategy to work items.
 - **North-star metric** — the single measure of core value delivered.
 - **KPIs / metrics** — instrumented outcomes; what `debrief` reports **against the OKRs** (not "shipped
   vs not"), and the *scale*-stage evidence source feeding back into the strategy/discovery loop.
 
-This is what makes the loop outcome-driven: roadmap items exist to move objectives, and the feedback
+This is what makes the loop outcome-driven: work items exist to move objectives, and the feedback
 seam measures whether they did.
 
 ## The delivery coupling (downstream)
 
-### The carrier: a roadmap item with a state model
+### The carrier: a work item with a state model
 
-The **roadmap item is the carrier** — the **opportunity**; it is the PARENT. PM owns the front and
+The **work item is the carrier** — the **opportunity**; it is the PARENT. PM owns the front and
 the gates; engineering owns the middle; `debrief` closes the loop.
 
 The carrier does **not** carry a single `stage` scalar. It carries a **state model**:
@@ -188,7 +188,7 @@ The carrier does **not** carry a single `stage` scalar. It carries a **state mod
 - **`current_dev_stage`** — nullable; while `in-delivery`, the dev-sprint stage (`align-context /
   design / specify / plan / build / review / reconcile / land / debrief`) the item or its units are
   currently at. Null when not yet in delivery or after completion.
-- **Parent / child links** — at `plan`/`build` the roadmap item (opportunity) decomposes into
+- **Parent / child links** — at `plan`/`build` the work item (opportunity) decomposes into
   **implementation-unit children**, each carrying its own `current_dev_stage`. A parent's delivery
   progress is **aggregated from its children** — the parent is not a single scalar "building" while
   units span `design` through `review`.
@@ -237,7 +237,7 @@ don't duplicate it. PM enters two ways:
   problem? serves the value proposition and the target user? serves which objective?* Delivered
   **main-thread as a skill** (D36), invoked by `design`/`plan`.
 - **Building on the discovery loop + the outcome layer** — the front **reads** the strategic substrate and the
-  objective the item serves: `align-context` reads the roadmap item + personas + value-prop; `design`
+  objective the item serves: `align-context` reads the work item + personas + value-prop; `design`
   and the product lens check the solution against the VPC, strategy, and the OKR.
 
 ### Gates + maturity ladder = generalised tiers
@@ -283,7 +283,7 @@ Each is a **workspace surface** maintained by a curator (the D40 cell tuned per 
 | **Strategy / canvas** | vision, VPC (JTBD + value map), business model, market & strategy | discovery loop | low–med | strategy-curator, evidence-first |
 | **Objectives / metrics** | OKRs, north star, KPIs | outcome layer | med | light; set by the discovery loop, read by `debrief` |
 | **Personas** (PM-owned) | target-user profiles + JTBD coverage; shared spine with experience thread | discovery loop | low | light; mostly read by loop + experience thread |
-| **Roadmap** | items (lifecycle + tier), backlog, sprints | delivery coupling | high | roadmap-curator, **light** gate |
+| **Product-dashboard** | work items (lifecycle + tier), backlog, sprints | delivery coupling | high | product-dashboard-curator, **light** gate |
 
 *Note: the experience contract + sim runs are experience-thread surfaces, not PM surfaces. See
 `docs/experience-thread-design.md`.*
@@ -293,11 +293,11 @@ Each is a **workspace surface** maintained by a curator (the D40 cell tuned per 
 | Seam | From → To | What flows |
 |---|---|---|
 | Strategy → objectives | discovery loop → outcome layer | strategy sets **OKRs + north star** |
-| Objectives → roadmap | outcome layer → roadmap | items are framed as **opportunities serving an objective** |
-| Roadmap item → front | roadmap → delivery coupling front | `align-context`/`design` **read** VPC / personas / strategy / the OKR |
+| Objectives → product-dashboard | outcome layer → product-dashboard | work items are framed as **opportunities serving an objective** |
+| Work item → front | product-dashboard → delivery coupling front | `align-context`/`design` **read** VPC / personas / strategy / the OKR |
 | Gate evidence | real signal (interviews, analytics) → gate decision record | the maturity-appropriate evidence informs the go/no-go |
 | Personas → experience | PM personas → experience thread | personas are the shared spine; experience thread consumes via `simulate-users` |
-| Outcomes back | `debrief` → roadmap **and** discovery loop | KPIs vs OKRs → reprioritise; **confirm / kill** strategy hypotheses |
+| Outcomes back | `debrief` → product-dashboard **and** discovery loop | KPIs vs OKRs → reprioritise; **confirm / kill** strategy hypotheses |
 
 ## Build now vs defer (for BC)
 
@@ -310,7 +310,7 @@ Each is a **workspace surface** maintained by a curator (the D40 cell tuned per 
   evidence-session node deferred but the loop's evidence bar is real discovery (no `simulate-users`).
 - **Outcome layer:** define the **north star + OKR structure** (so items can serve objectives) —
   light; full KPI instrumentation is deferred.
-- **Delivery coupling:** the **roadmap-curator** + item lifecycle / state model / gates / tiers; the
+- **Delivery coupling:** the **product-dashboard-curator** + item lifecycle / state model / gates / tiers; the
   **carrier state model** (the interface, implemented; `debrief` writes the outcome back); the
   **maturity / tier dial** defaulted to pre-launch; the **product-lens** skill into the front; the
   **four-risks lens** as a discovery checklist.
@@ -328,11 +328,11 @@ Each is a **workspace surface** maintained by a curator (the D40 cell tuned per 
 
 - **Native:** `gh` PRs + git (curators, gates as labelled PRs); skills/agents ambient; `CLAUDE.md`
   cascade (orientation); `Read` is path-agnostic (nodes read artefacts/bindings).
-- **Built:** the curators (strategy + roadmap + persona); the **carrier state model sync** (item
+- **Built:** the curators (strategy + product-dashboard + persona); the **carrier state model sync** (item
   `lifecycle_state` + `current_dev_stage` ↔ dev-sprint stage); the **gate-decisions record**;
   the **maturity/tier dial**; the outcome-layer surfaces' renderers. (`simulate-users` is built as
   part of the experience thread, not PM.)
-- **Convention:** nodes must be **authored** to read the roadmap item / personas / VPC / strategy /
+- **Convention:** nodes must be **authored** to read the work item / personas / VPC / strategy /
   OKR via bindings, and to read the maturity stage; the four-risks lens is a prompt discipline, not
   magic. Verified in `validate`.
 
@@ -355,12 +355,12 @@ Each is a **workspace surface** maintained by a curator (the D40 cell tuned per 
 |---|---|---|---|
 | BMD/VPC + bmd-curator, SVPG framing | the two-face PM structure (strategy/discovery loop + delivery coupling) | **PM-pack** | `07-decomposition` (**D43**) |
 | SVPG operating model | **SVPG spine + Strategyzer engine** | **PM-pack** | `07-decomposition` (**D43**) |
-| roadmap item with a state model (`lifecycle_state` × `current_dev_stage` + gates + history) | a **carrier** with a structured state model (not a scalar stage) | **Core** | `01-concepts` + `02-graph-spec` (**D44**) |
+| work item with a state model (`lifecycle_state` × `current_dev_stage` + gates + history) | a **carrier** with a structured state model (not a scalar stage) | **Core** | `01-concepts` + `02-graph-spec` (**D44**) |
 | T1/T2/T3 tiers + founder-led / early-users / scale posture | the **maturity ladder** (per-product) × **tier** (per-item) rigour dial | **Core** | `01-concepts` + `04-harness` (**D45**) |
 | vision / OKRs / north star / KPIs | the **outcome layer** — outcome over output; what `debrief` measures | **Core** | `01-concepts` + `06-analytics` |
 | the four big risks | a **discovery lens** (value/usability/feasibility/viability) applied at both levels | **PM-pack** | `07-decomposition` + `01-concepts` |
 | office-hours / CEO review feeding the front | a **product lens** (skill) into the shared front | **PM-pack** | `07-decomposition` + `01-concepts` |
-| roadmap / strategy / personas surfaces + curators | the **surface + curator family** (D40 tuned per surface) | **Core** (pattern); PM-pack (content) | `04-harness` + `05-maintenance-skill` |
+| product-dashboard / strategy / personas surfaces + curators | the **surface + curator family** (D40 tuned per surface) | **Core** (pattern); PM-pack (content) | `04-harness` + `05-maintenance-skill` |
 | personas (PM-owned, experience-consumed) | **personas** as a PM-owned surface shared with the experience thread | **Core** | `04-harness` + `07-decomposition` |
 | `simulate-users` re-homed to experience thread | **experience thread** — re-homed, not in PM pack | **Core** | `07-decomposition` (node) + `04-harness` (contract) |
 | session-start orientation | **orientation = harness instructions**, not a node | **Core** | `04-harness` / directory topology |
@@ -381,7 +381,7 @@ Each is a **workspace surface** maintained by a curator (the D40 cell tuned per 
   a BC harness mapping or a spec question.
 - **Product-lens node breakdown** — one skill, or PM content inside `align-context`/`design` + a
   `plan`-stage CEO review? Lean to a small skill (D36).
-- **Strategy-curator vs roadmap-curator** — one curator cell parameterised per surface vs. variants.
+- **Strategy-curator vs product-dashboard-curator** — one curator cell parameterised per surface vs. variants.
 - **Carrier vs. the static `composes-into dev-sprint` edges** — runtime unit vs static structure;
   keep distinct in the spec.
 - **PM-pack spec scope** — confirm which concepts in the Core vs PM-pack table above land in

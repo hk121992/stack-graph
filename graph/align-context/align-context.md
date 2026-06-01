@@ -68,7 +68,7 @@ is harness instruction, not a node.
 
 Invoke when a work-item has entered the in-delivery window and its intent must be made shared and
 correct before its design can be resolved. The operator may pass a **mode token**
-(`lightweight` / `standard` / `deep` / `spec`), the **carrier** (the roadmap item / work-item), and
+(`lightweight` / `standard` / `deep` / `spec`), the **carrier** (the work item), and
 an intent or request statement. Default to `standard` when no mode is given. Reach for `deep` when
 the item is novel or ambiguous, and for `spec` when the product has a spec layout whose settled
 intent and starting touchpoints you should capture.

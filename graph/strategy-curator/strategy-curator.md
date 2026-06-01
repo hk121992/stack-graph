@@ -4,7 +4,7 @@ id: strategy-curator
 primitive: skill
 title: Strategy curator
 description: Maintains the strategy canvas (value-proposition canvas + business-model canvas + product strategy) via the evidence-first test-and-learn loop. Modes — hypothesise (frame testable claims), gather-evidence (run evidence via explore + real discovery), assess (record findings, confirm/kill/supersede/pivot, graduate a labelled PR), refresh-canvas (regenerate the view). The vendored, general curator; a harness points it at its own canvas via overlay.
-when-to-use: A canvas claim needs framing or putting to evidence; a finding has landed that confirms, kills, supersedes, or pivots a hypothesis; the riskiest value/viability assumption is unaddressed; or the canvas view has drifted from its sources. NOT for delivery (the roadmap/gates) or the outcome layer (OKRs) — those are adjacent surfaces.
+when-to-use: A canvas claim needs framing or putting to evidence; a finding has landed that confirms, kills, supersedes, or pivots a hypothesis; the riskiest value/viability assumption is unaddressed; or the canvas view has drifted from its sources. NOT for delivery (the product-dashboard/gates) or the outcome layer (OKRs) — those are adjacent surfaces.
 # classification — graph lens
 mode: collaborative
 determinism: generative
@@ -63,7 +63,7 @@ not a pipeline.
 market research is `explore` — you invoke it, you do not absorb it; real-user discovery is the
 operator's real-evidence work, gathered at the rigour your maturity stage demands. You do **not**
 run user simulations — `simulate-users` is the experience thread's verification node, not your
-evidence source, and you do not invoke it. The roadmap, gates, and product lens are the delivery
+evidence source, and you do not invoke it. The product-dashboard, gates, and product lens are the delivery
 arc (separate nodes); the outcome layer (OKRs / north-star) is set alongside you, not owned here.
 
 ## The loop you serve

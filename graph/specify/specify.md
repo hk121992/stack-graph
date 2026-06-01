@@ -56,7 +56,7 @@ paths, section names, or codes.
 
 ## You do not write the carrier
 
-Read the carrier (the roadmap item) for **context** — its `lifecycle_state`, its prior
+Read the carrier (the work item) for **context** — its `lifecycle_state`, its prior
 `transition_history` — and read the design doc it points at. You **do not write the carrier**.
 Completing this stage is the **signal** the projection picks up: it advances the carrier's
 `current_stage` from the observed traversal; you write no carrier field. Advancing the work's

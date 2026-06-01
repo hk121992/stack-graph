@@ -5,6 +5,12 @@ status: notes — 2026-05-30
 
 # Product arc — working notes
 
+> **Superseded in part (2026-06-01).** The *roadmap artefact* sketched here is now the
+> **product-dashboard** — see `docs/product-dashboard-design.md` (D49: record-primary, renamed from
+> "roadmap"). The PM arc itself is designed in `docs/product-management-design.md` +
+> `docs/pm-graph-map.md` (D43 two faces, D44 carrier, D45 dial). Retained for its **prior-art survey**
+> (CE / gstack / OSS / frameworks) and the **two-arc loop** sketch — both still valid groundwork.
+
 A **separate graph from the dev-sprint** — the product-management arc that sits *upstream* of
 the sprint and loops back from it. Notes + direction now; prior-art research is being gathered
 (a background agent surveys CE / gstack / Anthropic Skills / OSS / PM frameworks). Decision:

@@ -102,7 +102,7 @@ by a **maturity × tier dial**: a per-process **maturity** posture sets the *def
 bar, and a per-item **tier** overrides it (a high-risk item is gated hard even in an early,
 low-rigour process; a routine item fast-tracks even in a mature one). The carrier, its
 stages, and what each gate weighs are **domain** — the schema is general
-([graph-spec](../02-graph-spec/)); a delivery process's roadmap item is one carrier.
+([graph-spec](../02-graph-spec/)); a delivery process's work item is one carrier.
 
 ## Skill or agent — the context axis
 

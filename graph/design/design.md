@@ -72,8 +72,7 @@ experience-contract**.
 
 Invoke when a work-item's intent is aligned (typically handed forward by `align-context`) and its
 design must be resolved before it can be specified, planned, and built. The operator may pass a
-**mode token** (`lightweight` / `standard` / `deep` / `experience`), the **carrier** (the roadmap
-item / work-item), and an intent or design-question summary. Default to `standard` when no mode is
+**mode token** (`lightweight` / `standard` / `deep` / `experience`), the **carrier** (the work item), and an intent or design-question summary. Default to `standard` when no mode is
 given. Reach for `experience` (in addition to the others) whenever the item bears a user-facing
 experience whose contract must be authored or refined here.
 

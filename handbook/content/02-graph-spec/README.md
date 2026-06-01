@@ -116,7 +116,7 @@ different mechanisms, not one writer**:
 
 A carrier is **not a node** — it is an instance flowing through the graph, and none of the three is a
 `composes-into` edge. What the lifecycle states, stages, and gates *are* is a domain concern — a delivery
-process's roadmap item is one carrier.
+process's work item is one carrier.
 
 ## Inline
 

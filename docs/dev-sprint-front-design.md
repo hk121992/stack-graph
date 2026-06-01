@@ -14,7 +14,7 @@ lens family) and `graph/explore/explore.md` for node shape and voice. All three:
 
 ## Governed decisions (locked — author to these)
 
-- **Carrier touch = projected model.** The front stages **read** the carrier (the roadmap item) for
+- **Carrier touch = projected model.** The front stages **read** the carrier (the work item) for
   context and **emit** node-enter/-exit events (the built-in instrumentation); they carry **no
   write-edge** to the carrier. `current_stage` + `transition_history` are **projected from the observed
   traversal**, not written by a stage or a curator. Gates (advancing `lifecycle_state` + recording a
