@@ -23,7 +23,12 @@ lint design) and the curator cell (D40).
 
 ## Two kinds of reference
 
-One reference layer, two **kinds** (a frontmatter tag — your "tag them as handbook references"):
+**"One reference layer" is conceptual** — a single governed, reviewable home for all canonical agent
+content. In practice it has two storage homes: handbook-references live in a sectioned structure
+(`NN-section/`, for render order and numbering); standard references stay flat in `graph/_refs/`. One
+layer, two storage homes, one curator, one integrate gate.
+
+Two **kinds** (a frontmatter tag — your "tag them as handbook references"):
 
 | | `reference` (standard) | `handbook-reference` |
 |---|---|---|
@@ -63,22 +68,27 @@ index captures); `extends` is the additive overlay onto an sg entry; both are tr
 
 ## Maintenance — the `maintains` edge
 
-A node declares a **`maintains`** edge into each handbook-entry it is responsible for (declared on the
-node, like every edge). "Who maintains entry X" = the incoming `maintains` edges; the graph record
+"Who maintains entry X" is **graph-derived uniformly**: a node declares a **`maintains`** edge into
+each handbook-entry it is responsible for (declared on the node, like every edge). The graph record
 computes `maintained_by` per entry (the reverse, exactly as it computes `consumed_by` for references).
-Several nodes maintaining one entry is just several edges — no list, no separate store.
+Several nodes maintaining one entry is just several edges — no list, no separate store. SG entries are
+not a special case of this model; they are an instance of it.
 
-- **Local entries** carry ≥1 `maintains` edge from a node (a curator or a domain node). An entry with
-  none is an orphan — `validate` flags it.
-- **SG entries are maintained externally** — by the factory, outside the consuming org. They carry no
-  local `maintains` edge; `owner: sg` marks them. Changing one means **raising a PR to the SG repo**
-  (the raise-to-factory path); the harness never edits a vendored entry in place. (Whether to also
-  represent "maintained by SG" as a conceptual external node is an open detail; the `owner: sg` flag +
-  the documented raise-to-SG instructions are the load-bearing parts either way.)
+- **Local entries** carry ≥1 `maintains` edge from a local node (a curator or a domain node). An entry
+  with none is an orphan — `validate` flags it.
+- **SG entries** carry a `maintains` edge from an **external/factory maintainer node** — a typed
+  external-maintainer node representing the stack-graph factory, with the edge marked `external: true`.
+  `owner: sg` on the entry frontmatter is provenance; the `maintains` edge is the structural record.
+  They carry no local `maintains` edge; changing one means **raising a PR to the SG repo** (the
+  raise-to-factory path); the harness never edits a vendored entry in place.
 - **One gated write path.** However many nodes maintain an entry, all changes graduate through the
   curator (raise → integrate). Many proposers, one integrator — co-maintenance never means
   uncoordinated writes. The granularity discipline that keeps this clean: an entry is **one coherent
   topic**, not a grab-bag.
+
+The `maintains` edge must be added to 02-graph-spec's edge taxonomy: class = structural; valid
+endpoints = node → handbook-reference (plus the external/factory maintainer case); acyclic; graph-record
+projection = computed `maintained_by` per entry (symmetric to `consumed_by`). See Open details.
 
 ## Numbering, anchors & cross-references (adopt BC PR #83)
 
@@ -94,13 +104,28 @@ Several nodes maintaining one entry is just several edges — no list, no separa
 
 ## SG dominance, `extends` & conflict
 
-- SG handbook-references are vendored, read-only, **dominant**. Local entries are additive.
-- A local entry addressing an sg topic declares `extends: stack-graph:<id>` — it adds, never shadows
-  (the same extend-only invariant as node overlays; namespacing prevents id collision by construction).
-- The curator's **consistency-checker** flags semantic conflict — duplication (local restates sg →
-  defer/link), contradiction (local says not-X where sg says X), undeclared overlap. **SG wins by
-  default**; the harness's governed recourse is the **raise-to-SG** valve (amend the sg entry at the
-  factory). The render composes sg core + local extension per topic, ownership-badged.
+SG handbook-references are vendored, read-only, **dominant**. Local entries are additive.
+
+**`extends` is the ONLY sanctioned way a local entry touches an sg topic.** It is **adds-only**: a
+local extension may add new anchors and sections under the sg topic; it may NOT redefine an existing
+sg anchor or contradict a normative sg claim.
+
+**Conflict is a HARD GATE** at integrate (structural enforcement, not a warning):
+
+- An **undeclared sg-slot overlap** — a local entry whose id/anchor collides with an sg entry without
+  an explicit `extends` declaration — **fails integrate**.
+- An **`extends` that redefines an sg anchor** — any local section whose anchor matches an existing sg
+  anchor — **fails integrate**.
+
+These are structural checks; the build/integrate tooling enforces them before merge.
+
+The curator's **consistency-checker** is the **best-effort backstop** for subtler semantic contradiction
+only (duplication where local restates sg; logical contradiction where local says not-X and sg says X).
+It is not the gate — it is a quality signal after the structural gate has passed.
+
+**SG wins on any conflict.** The harness's sole governed recourse is the **raise-to-SG valve**: amend
+the sg entry at the factory, then pull the updated vendored entry. The render composes sg core + local
+extension per topic, ownership-badged.
 
 ## Rendering — adopt + **tailor** bc-renderer-core
 
@@ -116,9 +141,10 @@ our shape, which BC's single-origin renderer does not handle:
 - Otherwise inherit BC's machinery: filesystem-driven nav, computed numbers, the anchor manifest +
   fragment-lint, the DSL resolver tags, relative-href multi-origin output.
 
-Output: one numbered, cross-referenced, ownership-badged handbook artefact (for the operator) + the
-`index.json` page-graph (for agents) — the single place to review exactly the canonical context agents
-read.
+Output: one numbered, cross-referenced, ownership-badged handbook artefact (the **operator-facing
+canonical handbook**) + the `index.json` page-graph (for agents). This is the single governed surface
+for handbook content; agents also consume node-bound standard refs, external bindings, decisions, and
+on-demand refs — the rendered handbook is not the entirety of agent context.
 
 ## The full lifecycle
 
@@ -135,11 +161,18 @@ read.
 
 ## Generalisation → the decision
 
+**D46 amends D41.** D41 positioned the handbook as an external locator for agent context. D46 changes
+the model: sg now ships handbook-references that render **into** the product handbook. The handbook is
+no longer merely a pointer to external content — it is the rendered union of sg-vendored entries and
+local entries, composited by the tailored renderer. This is a model change, not a silent extension of
+D41.
+
 Proposed **D46 — the reference layer + handbook model**: references carry a `kind` (`reference` |
 `handbook-reference`); handbook-references take the shape/discipline above; the handbook is the
 rendered union of sg-vendored + local handbook-references; maintenance is the `maintains` edge (sg =
 external + raise-to-SG); numbering is computed-at-render with concept anchors + fragment-lint;
-dominance is extend-only + curator-detected + sg-wins + raise-valve.
+dominance is extend-only with **hard structural gates at integrate** + consistency-checker backstop +
+sg-wins + raise-valve. This design supersedes D41's external-locator model for the handbook.
 
 ## Sequencing & deferrals (get the setup right before changing SG)
 
@@ -155,8 +188,13 @@ dominance is extend-only + curator-detected + sg-wins + raise-valve.
 - The exact `reference` vs `handbook-reference` classification of the existing 10 refs (clear:
   four-risks/vpc/bmc → handbook; findings-schema/severity-scale/lens-dispatch → standard; what-belongs
   borderline).
-- Whether sg external-maintenance gets a conceptual graph node, or just `owner: sg` + the raise-to-SG
-  doc.
+- The external/factory maintainer node: whether it is a first-class typed node in the graph or just
+  `owner: sg` + the raise-to-SG doc. `owner: sg` is provenance; the `maintains` edge from a typed
+  external-maintainer node is the structural record — which form lands in the spec is still open.
 - `extends` as a typed edge vs a frontmatter field (record-tracked either way).
 - The sectioned home for handbook-references in the authoring workspace (where they live vs
   `graph/_refs/`), and how render-order is captured.
+- **`maintains` edge taxonomy (02-graph-spec amendment):** class = structural; valid endpoints =
+  node → handbook-reference (or external-maintainer-node → handbook-reference for factory entries);
+  acyclic; graph-record projection = computed `maintained_by` per entry (symmetric to `consumed_by`).
+  Must be added to 02-graph-spec's edge taxonomy table before the spec is finalised.
