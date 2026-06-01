@@ -2,7 +2,7 @@
   "generated": "2026-06-01T00:00:00Z",
   "node_count": 12,
   "reference_count": 10,
-  "edge_count": 48,
+  "edge_count": 46,
   "nodes": {
     "drift-detector": {
       "primitive": "agent",
@@ -259,10 +259,6 @@
       "edges": {
         "references": [
           {
-            "id": "four-risks",
-            "load": "import"
-          },
-          {
             "id": "experience-contract",
             "load": "on-demand",
             "external": true
@@ -282,9 +278,6 @@
       "status": "v0.1.0 — 2026-06-01",
       "edges": {
         "invokes": [
-          {
-            "id": "simulate-users"
-          },
           {
             "id": "explore"
           },
@@ -355,7 +348,6 @@
       "title": "The four product risks — discovery lens",
       "status": "v0.1.0 — 2026-06-01",
       "consumed_by": [
-        "simulate-users",
         "strategy-curator"
       ]
     },
@@ -613,12 +605,6 @@
     },
     {
       "from": "simulate-users",
-      "to": "four-risks",
-      "type": "references",
-      "load": "import"
-    },
-    {
-      "from": "simulate-users",
       "to": "experience-contract",
       "type": "references",
       "load": "on-demand",
@@ -630,11 +616,6 @@
       "type": "references",
       "load": "on-demand",
       "external": true
-    },
-    {
-      "from": "strategy-curator",
-      "to": "simulate-users",
-      "type": "invokes"
     },
     {
       "from": "strategy-curator",

@@ -3,7 +3,7 @@
 id: strategy-curator
 primitive: skill
 title: Strategy curator
-description: Maintains the strategy canvas (value-proposition canvas + business-model canvas + product strategy) via the evidence-first test-and-learn loop. Modes — hypothesise (frame testable claims), gather-evidence (run evidence via simulate-users / explore), assess (record findings, confirm/kill/supersede/pivot, graduate a labelled PR), refresh-canvas (regenerate the view). The vendored, general curator; a harness points it at its own canvas via overlay.
+description: Maintains the strategy canvas (value-proposition canvas + business-model canvas + product strategy) via the evidence-first test-and-learn loop. Modes — hypothesise (frame testable claims), gather-evidence (run evidence via explore + real discovery), assess (record findings, confirm/kill/supersede/pivot, graduate a labelled PR), refresh-canvas (regenerate the view). The vendored, general curator; a harness points it at its own canvas via overlay.
 when-to-use: A canvas claim needs framing or putting to evidence; a finding has landed that confirms, kills, supersedes, or pivots a hypothesis; the riskiest value/viability assumption is unaddressed; or the canvas view has drifted from its sources. NOT for delivery (the roadmap/gates) or the outcome layer (OKRs) — those are adjacent surfaces.
 # classification — graph lens
 mode: collaborative
@@ -11,7 +11,6 @@ determinism: generative
 # edges — the graph
 edges:
   invokes:
-    - { id: simulate-users }
     - { id: explore }
     - { id: pr-author }
     - { id: queue-checker }
@@ -60,10 +59,12 @@ changes through the same machinery. You differ only in surface and modes — it 
 maintain the canvas. There is no edge between you; you are parallel members of the curator family,
 not a pipeline.
 
-**You are not the evidence producer and you are not the delivery side.** Running a user simulation
-is `simulate-users`; desk and landscape research is `explore` — you invoke them, you do not absorb
-them. The roadmap, gates, and product lens are the delivery arc (separate nodes); the outcome layer
-(OKRs / north-star) is set alongside you, not owned here.
+**You are not the evidence producer and you are not the delivery side.** Desk, landscape, and
+market research is `explore` — you invoke it, you do not absorb it; real-user discovery is the
+operator's real-evidence work, gathered at the rigour your maturity stage demands. You do **not**
+run user simulations — `simulate-users` is the experience thread's verification node, not your
+evidence source, and you do not invoke it. The roadmap, gates, and product lens are the delivery
+arc (separate nodes); the outcome layer (OKRs / north-star) is set alongside you, not owned here.
 
 ## The loop you serve
 
@@ -108,10 +109,13 @@ before branching.
 
 ### `gather-evidence` — run evidence against the claims
 
-1. **Choose the evidence source for the flagged claim.** Simulated-user evidence (value +
-   usability) → invoke **simulate-users** with a scoped simulation request. Desk / landscape /
-   market evidence → invoke **explore** with a scoped research brief.
-2. **Receive and link the findings.** Take back graded findings; link each to the hypotheses it
+1. **Choose the evidence source for the flagged claim.** Desk / landscape / market evidence →
+   invoke **explore** with a scoped research brief. Value / usability / viability evidence →
+   **real-user discovery** at the rigour your maturity stage demands (discovery: reasoned
+   conviction or early signal; validation: real user signal; scale: measured data). Do **not**
+   reach for `simulate-users` — it is the experience thread's verification node (it grades a
+   *built* experience), not a discovery evidence source for the canvas.
+2. **Receive and link the findings.** Take back the findings; link each to the hypotheses it
    bears on; carry its evidence **state and strength**. Do not yet move the hypothesis — recording
    the verdict is `assess`'s job.
 3. **Aim at the weakest first.** Spend the cycle on the assumption `hypothesise` flagged riskiest,

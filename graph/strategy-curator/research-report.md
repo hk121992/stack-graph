@@ -4,22 +4,28 @@ type: research-report
 status: complete
 authored: 2026-06-01
 last_updated: 2026-06-01
-amended: []
+amended:
+  - { date: 2026-06-01, note: "Experience-thread carve-out (docs/experience-thread-design.md). DROPPED the `invokes: simulate-users` edge — simulate-users is now the experience thread's *verification* node, NOT a PM/discovery evidence source. `gather-evidence`'s evidence is `explore` (desk/landscape/market) + **real discovery** (real-user evidence, scaled by maturity stage), not simulate-users. Everything else unchanged: modes (hypothesise/gather-evidence/assess/refresh-canvas); invokes explore/pr-author/queue-checker; references vpc-schema/bmc-schema/four-risks/bundling-rules/handbook; the never-delete lifecycle; the four goals. Touched: Identity, Contract, Keep/Drop (Edge only), Overlaps and seams, Edges, Conformance, Open questions." }
 sources_lifted: 5
 researcher_adequacy_note: |
-  Lifted five sources: the Be Civic bmd-curator config + README + discipline page (the
-  mature prior art for the canvas, the test-and-learn loop, and the never-delete lifecycle),
-  plus the two stack-graph design docs (the Arc A design and the PM graph map — the general
-  spec and the proximate authoring row). Edges were determined by mirroring the established
-  curator cell (D40): `invokes` for the runtime fleet (pr-author/queue-checker graduation +
-  explore/simulate-users evidence), `references` for the schemas/lens with load dials per the
-  design map (four-risks import; vpc/bmc/handbook on-demand). Confidence in skill /
-  collaborative / generative is high — it is the operator-facing dispatcher and a sibling of
-  handbook-curator, explicitly specified that way in pm-graph-map.md. Goals framed cleanly as
-  outcomes (canvas-stays-current, every-item-carries-evidence-state, riskiest-assumptions-tested,
-  graduation-via-one-path); none were forced. Recommendation: proceed to translator — one open
-  item (whether simulate-users, the parallel sibling, should be `invokes` while its node file
-  is still being authored) is flagged for the acceptance gate, not a blocker.
+  AMENDED 2026-06-01 for the experience-thread carve-out. No new source was lifted — the
+  amendment is the removal of one `invokes` edge, grounded in docs/experience-thread-design.md
+  (simulate-users is re-homed to the experience thread as a *verification* node; it is NOT a
+  PM/discovery evidence source). The change: DROP `invokes: simulate-users` from
+  `gather-evidence`. The curator's evidence sources are now **`explore`** (desk / landscape /
+  market research, an autonomous read-only agent it invokes) **+ real discovery** — real-user
+  evidence, at the rigour the product's maturity stage demands (discovery: reasoned conviction;
+  validation: real user signal; scale: measured data). The four-risks discipline is unchanged
+  (it still flags the riskiest value/viability assumption and aims gather-evidence there), but
+  the means of clearing a value/usability risk is real discovery, not a simulated-user run.
+  Everything else is preserved: the four modes, the remaining three `invokes` edges
+  (explore/pr-author/queue-checker), all five `references` (vpc-schema/bmc-schema/four-risks/
+  bundling-rules/handbook), the never-delete lifecycle, and the four outcome goals.
+  `skill` / `collaborative` / `generative` are unchanged and still correct. The earlier open
+  item — "should simulate-users be `invokes` while its file is authored in parallel" — is now
+  resolved by REMOVAL (the edge is gone, not pending). Recommendation: proceed to translator —
+  re-render to drop the edge and the simulate-users mentions in the body; the change is
+  surgical and low-risk.
 ---
 
 # Research report for strategy-curator
@@ -39,12 +45,15 @@ graduation machinery (a labelled PR via `pr-author`). It maintains the canvas as
 **surface** (overlay-bound to the product's own canvas home), and evidence rigour scales with
 the product's **maturity stage** (discovery → validation → scale).
 
-**Excludes:** the *evidence-production* itself (running a user simulation is `simulate-users`;
-desk/landscape research is `explore` — both are invoked, not absorbed); the downstream
-**delivery** side (the roadmap, gates, the product lens — Arc B, separate nodes); the
-**outcome layer** (OKRs / north-star — set alongside, read by `debrief`, not owned here); and
-the canvas *schemas* themselves (the VPC/BMC structure lives in `vpc-schema` / `bmc-schema`
-references, consulted, not restated in the body).
+**Excludes:** the *evidence-production* itself — desk / landscape / market research is
+`explore` (invoked, not absorbed), and **real-user discovery** is the operator's real-evidence
+work, scaled by maturity stage. (**`simulate-users` is NOT an evidence source for this node** —
+it is the experience thread's *verification* node, re-homed there in the experience-thread
+carve-out; this curator does not invoke it.) Also excludes the downstream **delivery** side
+(the roadmap, gates, the product lens — Arc B, separate nodes); the **outcome layer** (OKRs /
+north-star — set alongside, read by `debrief`, not owned here); and the canvas *schemas*
+themselves (the VPC/BMC structure lives in `vpc-schema` / `bmc-schema` references, consulted,
+not restated in the body).
 
 ## Goals
 
@@ -71,9 +80,10 @@ is now evidenced). It engages the live main thread and shares state; that is the
 side of the context axis, hence a **skill**. It is also a deliberate **sibling of
 `handbook-curator`** (both are surface curators sharing the graduation machinery — stated in
 `pm-graph-map.md`: "curators are sibling skills, not one parameterised node"), and
-handbook-curator is `skill` / `collaborative`. No ambiguity: the autonomous work (running a
-simulation, doing desk research, composing a PR body) is delegated to **agents** it invokes,
-which keeps this node squarely collaborative.
+handbook-curator is `skill` / `collaborative`. No ambiguity: the autonomous work (doing desk /
+landscape research, composing a PR body, the duplicate-check) is delegated to **agents** it
+invokes (`explore`, `pr-author`, `queue-checker`), which keeps this node squarely
+collaborative.
 
 **`determinism:`** `generative`
 
@@ -98,9 +108,11 @@ and the `handbook` reference (overlay-resolved to the product's canon). Loads th
 - **`hypothesise`** — one or more **testable claims** written into the canvas as items with
   state `assumed`, each tied to specific profile/block items, with the riskiest flagged (via
   the four-risks lens).
-- **`gather-evidence`** — **findings**, produced by invoking `simulate-users` (simulated-user
-  evidence: value + usability) and/or `explore` (desk / landscape / research), linked back to
-  the hypotheses they bear on, carrying an evidence state/strength.
+- **`gather-evidence`** — **findings**, produced by invoking `explore` (desk / landscape /
+  market research) and/or gathering **real-user discovery** evidence at the maturity-scaled
+  rigour, linked back to the hypotheses they bear on, carrying an evidence state/strength.
+  (Not simulate-users — that is the experience thread's verification node, not a PM evidence
+  source.)
 - **`assess`** — an updated canvas: each affected item moved to **confirmed / killed /
   superseded / pivoted** (never deleted — killed/superseded items retained with a status and,
   for supersede, a pointer to the successor), with the change **graduated** as a labelled PR
@@ -132,8 +144,10 @@ and the `handbook` reference (overlay-resolved to the product's canon). Loads th
 - **The four-risks discipline** — `hypothesise` flags the riskiest value/viability assumption
   and `gather-evidence` aims there first; the lens is consulted as a prompt discipline (import).
 - **Maturity-scaled rigour** — the evidence bar (`assess` accepts) scales with the product's
-  maturity stage (discovery = simulated-users + conviction; validation = real signal; scale =
-  metrics) — a stage the node reads via binding, never assumes.
+  maturity stage (discovery = reasoned conviction or early signal; validation = real user
+  signal; scale = measured data) — a stage the node reads via binding, never assumes. (The
+  earlier "discovery = simulated-users" wording is dropped: simulate-users is the experience
+  thread, not this curator's evidence source.)
 - **The graduation machinery, reused** — canvas changes land via a labelled PR composed by
   `pr-author`, after a `queue-checker` duplicate/collision check, exactly as handbook-curator
   graduates canon. The curator is the **single write path** to the canvas surface.
@@ -151,10 +165,13 @@ and the `handbook` reference (overlay-resolved to the product's canon). Loads th
   (Arc B), and the **personas surface** — adjacent nodes/surfaces, not this node.
 
 **Edge only (separate node):**
-- **Running a user simulation** → `simulate-users` (an autonomous evidence-producing agent;
-  value + usability). `invokes` edge, from `gather-evidence`.
 - **Desk / landscape / market research** → `explore` (the existing read-only context agent).
-  `invokes` edge, from `gather-evidence`.
+  `invokes` edge, from `gather-evidence`. The curator's evidence-production agent.
+- **(REMOVED) running a user simulation → `simulate-users`** — previously an `invokes` edge
+  from `gather-evidence`. **Dropped in the experience-thread carve-out**: simulate-users is the
+  experience thread's *verification* node, not a PM/discovery evidence source. `gather-evidence`
+  now draws on `explore` + **real-user discovery** (maturity-scaled), not a simulated-user run.
+  (The simulate-users node still exists; this curator simply no longer invokes it.)
 - **Composing the graduation PR description** → `pr-author`. `invokes` edge, from `assess`.
 - **The duplicate / collision queue check before opening a PR** → `queue-checker`. `invokes`
   edge, from `assess` (mirrors handbook-curator's `raise`).
@@ -168,12 +185,17 @@ and the `handbook` reference (overlay-resolved to the product's canon). Loads th
   maintains the canvas (hypothesise/gather-evidence/assess/refresh-canvas). No edge between
   them — they are parallel members of the curator family, not a pipeline. (The shared
   graduation refs are a likely dependency — see Open questions.)
-- **→ `simulate-users`** (`invokes`, from `gather-evidence`) — hands a simulation request,
-  receives graded findings (the value+usability evidence source). The seam where Arc A pulls
-  evidence. *Note: `simulate-users` is being authored in parallel (the sibling node in this
-  same walk); its file does not yet exist on disk.*
+- **✗ `simulate-users` (NO edge — removed in the experience-thread carve-out).** The curator
+  previously invoked simulate-users from `gather-evidence` for value+usability evidence. That
+  edge is **dropped**: simulate-users is the experience thread's *verification* node, not a
+  PM/discovery evidence source. The curator's value/usability evidence is now **real-user
+  discovery** (maturity-scaled), and its landscape/market evidence is `explore`. No edge
+  between strategy-curator and simulate-users in either direction. (An experience finding can
+  still loop back to a strategy hypothesis — but via `debrief` routing, the same inbound
+  confirm/kill flow described below, not via a direct curator→simulate-users invoke.)
 - **→ `explore`** (`invokes`, from `gather-evidence`) — hands a scoped research brief,
-  receives a distilled digest (desk/landscape/market evidence). Already exists.
+  receives a distilled digest (desk/landscape/market evidence). The curator's evidence-
+  production agent. Already exists.
 - **→ `pr-author`** (`invokes`, from `assess`) — hands the settled canvas edits, receives a PR
   body string. The graduation seam (same as handbook-curator). Already exists.
 - **→ `queue-checker`** (`invokes`, from `assess`) — duplicate/collision check before the PR
@@ -198,23 +220,28 @@ decomposition (D40) is proven, and this is the same cell tuned to a different su
 **Modes stay body branches (D34), not nodes.** None of the four modes earns its own separable
 measurable goal that would force a split — they are stages of one loop sharing the canvas and
 the graduation path. `refresh-canvas` is the most mechanical, but it is a regenerate-the-view
-branch, not an independent unit. The evidence-*production* (simulate-users, explore) and the
-PR-*composition* (pr-author, queue-checker) **are** their own nodes — correctly modelled as
+branch, not an independent unit. The evidence-*production* (`explore`) and the
+PR-*composition* (`pr-author`, `queue-checker`) **are** their own nodes — correctly modelled as
 `invokes` edges, not absorbed branches (each is autonomous, isolated, parallelizable, and
-reused by other callers — the decomposition reuse/cohesion test).
+reused by other callers — the decomposition reuse/cohesion test). (simulate-users is also its
+own node, but it is **not** invoked by this curator — it belongs to the experience thread.)
 
 ## Edges
 
 | edge type | target id | rationale |
 |-----------|-----------|-----------|
-| invokes | simulate-users | `gather-evidence` runs simulated-user evidence (value + usability). The primary discovery-stage evidence source. **Target node is being authored in parallel (sibling in this walk) — forward reference; will resolve when its file lands.** |
-| invokes | explore | `gather-evidence` runs desk / landscape / market research via the existing read-only context agent. Resolvable now. |
+| invokes | explore | `gather-evidence` runs desk / landscape / market research via the existing read-only context agent. The curator's evidence-production agent. Resolvable now. |
 | invokes | pr-author | `assess` graduates settled canvas edits — invokes pr-author to compose the labelled-PR description (same graduation path as handbook-curator). Resolvable now. |
 | invokes | queue-checker | `assess` checks for a duplicate/colliding open canvas PR before opening one (mirrors handbook-curator's `raise` step). The scope_hint flagged this as a "consider"; confirmed IN — graduation needs the same duplicate gate. Resolvable now. |
 | references | vpc-schema (`load: on-demand`) | The Value Proposition Canvas structure (jobs/pains/gains + value map + fit). Larger, consulted within `hypothesise` / `assess` — on-demand, not every invocation. Resolvable now. |
 | references | bmc-schema (`load: on-demand`) | The Business Model Canvas nine blocks. Larger, consulted when working a model block — on-demand. Resolvable now. |
 | references | four-risks (`load: import`) | The discovery lens (value / usability / feasibility / viability). Short, must always be present so every hypothesise/assess pass applies it — `import` (per the design map's load-dial table). Resolvable now. |
 | references | handbook (`load: on-demand`, `external: true`) | The product's curated canon — the curator navigates the product's own handbook/decisions at the step of need; overlay-resolved, factory ships only the pointer. Same external reference handbook-curator and explore carry. (No factory file — validation/build skip it.) |
+
+**Removed (experience-thread carve-out):** `invokes: simulate-users` — simulate-users is the
+experience thread's verification node, not a PM evidence source; the curator's evidence is
+`explore` + real discovery (see *Edge only* and *Overlaps and seams*). After the amendment the
+`invokes` set is exactly `explore` / `pr-author` / `queue-checker`.
 
 **Omitted deliberately:** `composes-into` — strategy-curator is the **top of the
 strategy/discovery arc (Arc A)** and no parent arc node exists yet (F7); per the scope_hint,
@@ -234,20 +261,20 @@ threshold. None are activities. None had to be reframed under protest — the "e
 state / never delete" goal is the one to watch the translator keeps as an *outcome* (the
 canvas is trustworthy) rather than letting it slide to an activity ("tags items").
 
-**Edge targets resolvable:** `explore`, `pr-author`, `queue-checker` — present as node files
-(verified). `vpc-schema`, `bmc-schema`, `four-risks` — present as references (verified on
-disk; the global graph-record was last indexed before the three new refs were added, so a
-re-`index` is needed — a stale-index artefact, not a missing target). `simulate-users` — **not
-yet on disk**: it is the parallel sibling (task #2) being authored in this same `new` walk;
-declared as a forward reference and flagged. `handbook` — `external: true`, correctly absent
-from the factory (harness-supplied).
+**Edge targets resolvable:** after the amendment the `invokes` set is `explore` / `pr-author` /
+`queue-checker` — all present as node files (verified). `vpc-schema`, `bmc-schema`,
+`four-risks`, `bundling-rules` — present as references in `graph/_refs/` (verified on disk).
+`handbook` — `external: true`, correctly absent from the factory (harness-supplied). The
+`simulate-users` edge is **removed**, so the earlier forward-reference concern no longer
+applies (there is nothing to resolve).
 
 ## Open questions
 
-- **`simulate-users` forward reference.** The `invokes: simulate-users` edge points at a node
-  being authored in parallel. The edge is correct and intended (it is the Arc-A evidence
-  source); just confirm at the acceptance gate that the sibling lands so a subsequent `index`
-  + `validate` resolves it. Not a blocker for the report.
+- **`simulate-users` edge — RESOLVED by removal (experience-thread carve-out).** The
+  `invokes: simulate-users` edge was dropped: simulate-users is the experience thread's
+  verification node, not a PM/discovery evidence source. The curator's evidence is `explore` +
+  real-user discovery. No forward reference remains; `index` + `validate` have nothing to
+  resolve for it. (Superseded — kept here as the audit trail of the change.)
 - **Shared graduation references (`what-belongs` / `pr-description-shape` / `bundling-rules`).**
   handbook-curator carries these three as `references` (on-demand) because *it* applies the
   gates in `raise`. strategy-curator graduates the *same way* via `pr-author` (which itself
