@@ -92,10 +92,13 @@ one face or the other — the distinction is the **level of examination**, not t
 | **Usability** | can they use it? | segment/JTBD fit (can this segment use it at all?) | prototypes at `design`/`specify` |
 | **Feasibility** | can we build it? | strategic feasibility (platform, capability) | eng spike at `design`/`specify` |
 
-**Evidence strength model** (Strategyzer's evidence ladder, applied to real discovery):
-synthetic/weak → qualitative (real interviews, evidence sessions) → quantitative (analytics,
-experiments). The strategy/discovery loop and the item-level coupling each demand a level of evidence
-appropriate to their scope; the maturity axis sets the default bar (see maturity table below).
+**Evidence strength model** — **two distinct axes** (encoded in `four-risks` v0.2.0): (1) **evidence
+strength by kind** — weak (opinions/hypotheticals/synthetic runs) → moderate (*stated*
+intent/preference, a said-yes) → strong (*observed* behaviour, a did-yes: usage, retention, payment);
+and (2) the **maturity bar** that sets which rung a risk must reach to clear (see the maturity table
+below). The two are independent: a low maturity bar lets a pre-launch team *move* on weak/moderate
+evidence, but that must never be recorded as if it *cleared* the risk — `assess` records both the rung
+and the bar.
 **`simulate-users` is not a PM evidence source** — it is an experience-thread instrument (product/UX
 verification, not value discovery). See `docs/experience-thread-design.md`.
 
@@ -251,9 +254,15 @@ high-risk item; a mature product can still fast-track a low-risk one.
 | **Scale** (data-driven) | analytics + behaviour | T2/T3; gates need metric movement | analytics, experiments / A-B |
 
 At pre-launch, the default is fast-track and gates are advisory — a pre-launch product is **not
-slowed by evidence-gating**. Maturity is **harness-local per-product state** (a field a node reads
-via bindings); it may later generalise to the dev-sprint itself (maturity-appropriate QA/canary
-rigour).
+slowed by evidence-gating**. **Stated plainly (a declared limitation, not an oversight):** at
+pre-launch a value/viability (demand) risk can be cleared on founder conviction + qualitative
+research — i.e. demand is *asserted*, not yet *tested* against real customers. The customer-facing
+demand test (get-out-of-the-building: real interviews / evidence sessions aimed at early adopters who
+have the problem and a budget) is the **early-users-stage priority** — the deferred evidence-session
+node — not a pre-launch gate. This keeps the absence of a demand test at pre-launch a *known, bounded*
+posture rather than a silent assumption. Maturity is **harness-local per-product state** (a field a
+node reads via bindings); it may later generalise to the dev-sprint itself (maturity-appropriate
+QA/canary rigour).
 
 ## Entry / orientation is a harness concern, not a node
 

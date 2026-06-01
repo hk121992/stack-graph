@@ -526,9 +526,13 @@ records `lifecycle_state` (the work's life-phase), `current_stage` (the arc stag
 the parent aggregates), `gate_decisions[]` (append-only; per gate: decision / owner / timestamp /
 evidence / conditions / override / confidence), and `transition_history[]`. A scalar 'stage' cannot
 represent review loops, re-entry, skipped stages, decomposition, abandonment, or post-ship measurement
-lag — the state model can. A **gate** advances `lifecycle_state` and records a decision; a curator skill
-maintains the carrier surface and syncs `current_stage` (a **state mechanism**, never a `composes-into`
-edge — a curator is not an arc stage). The carrier is **general** (the work-item of any process); its
+lag — the state model can. A **gate** advances `lifecycle_state` and records a decision (a deliberate, lightweight call), but
+`current_stage` + `transition_history` are **projected from the observed traversal** (node-enter/-exit
+events tagged with the carrier — derived, operator-overridable, **not** written by a stage or a curator);
+a **curator** maintains only the carrier's **content** (PR-gated); and the traversing stages carry **no
+write-edge** to the carrier (none of this is a `composes-into` edge — a carrier is not a node, a curator
+is not an arc stage). *(Refined after the front-stage build: nothing fires a curator just to advance a
+stage.)* The carrier is **general** (the work-item of any process); its
 values / stages / gates are domain. *Why:* surfaced by the codex review of the PM design — a scalar
 stage would corrupt the timeless spec the moment a real item fans out into PRs. *Queues:* `01-concepts`
 + `02-graph-spec` — done. *Status:* Accepted.
@@ -587,3 +591,32 @@ verification of a probabilistic AI product from PM discovery; resolves the codex
 overclaimed as value evidence' finding by reclassification. *Design:* `docs/experience-thread-design.md`.
 *Queues:* `01-concepts` / `06-analytics` / `07-decomposition` — done; the experience-thread nodes +
 `simulate-users` re-home (build). *Status:* Accepted (design); build pending.
+
+## Methodology grounding
+
+**D48 — A dev-time advisory council grounds the graph in methodology; provenance is authored into the
+graph.** Methodology baked into a pack is recorded in a **graph-native provenance manifest**
+(`graph/_refs/<pack>-methodology-provenance.md`): `claimed_methods`, sources, `principles_included`
+with a principle→node **encoding map** + `present`/`planned` state, `principles_omitted` (intentional,
+each with a reason), and `method_interfaces` (the seams between methods). The manifest is **authored
+when the pack is built** (*extends D38* — traceability is authored, not inferred), not reconstructed
+by the auditor. A **non-authoritative** dev-time board — `sg-advisory-council` in `tooling/`, sibling
+to the maintainer + curator, **never vendored** — reads the manifest and convenes **source-custodian**
+sub-agents, each citing only a **closed principle catalog** (`references/catalogs/<seat>.md`; an
+unbacked concern is an `ungrounded-hunch`, never dressed as methodology), to surface
+**fidelity / gap / grounding / seam** findings. Convening is **selective** (claimed-method custodians
+audit fidelity; a domain-relevant *unclaimed* custodian audits coverage-gap) with a **mandatory seam
+pass** the orchestrator owns. Output is **report-only** — the operator filters it and routes anything
+worth acting on into `sg-graph-maintainer` / `sg-handbook-curator`; nothing is auto-applied or gated.
+Built now for the **product** domain (seats: Cagan/SVPG, Osterwalder/Strategyzer,
+Blank/Customer-Development); growth (Balfour) and reality-check (Graham/Tan) seats deferred. It
+critiques **the graph's construction and baked-in methodology**, never stack-graph-as-product.
+*Why:* methodology baked into packs drifts or gets half-implemented as the graph grows and nothing
+catches it — the methodology analogue of `review` (code) and the curator (handbook). A Codex review
+confirmed that "cite a source" by instruction alone fabricates citations, so grounding rides authored
+manifests + closed catalogs, kept lightweight because output is advisory and human-filtered
+(hallucination is a cost, not a catastrophe). *Design:* `docs/advisory-council-design.md`.
+*Queues:* `07-decomposition` (pack provenance manifest) + `05-maintenance-skill` (maintainer authors
+it) + `08-devops` (the grounding gate) + `CLAUDE.md` (dev-tooling) — pending;
+`tooling/sg-advisory-council/` + the PM manifest (`graph/_refs/pm-methodology-provenance.md`) — built.
+*Status:* Accepted (design); build in progress (product seats landed; handbook amendments pending).
