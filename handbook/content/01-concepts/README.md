@@ -39,10 +39,30 @@ Not everything is a node or an edge. Three-way distinction (the discriminator li
 - **Node** — a primitive that owns its own branching and sequencing (a skill, an agent).
   Addressable and instrumented.
 - **Edge** — a typed relationship between nodes: `loads`, `invokes`, `composes-into`,
-  `references`, `precedes` / `can-follow`, `overlay`. Directed unless noted.
+  `references`, `maintains`, `precedes` / `can-follow`, `overlay`. Directed unless noted.
 - **Inline** — small references, MCP calls, and **execution surfaces** (a headless browser,
   a worktree) that live in a node's body, not worth a node or edge of their own. Ride a
   native primitive where one exists rather than rebuilding it.
+
+## The reference layer
+
+Shared content is a **reference** — a single-source native artefact a node depends on,
+never an injected block. References come in two **kinds**:
+
+- A **standard reference** — operational content (a schema, a protocol, a checklist) that
+  nodes consume but that is not, on its own, operator-facing.
+- A **handbook-reference** — canonical, top-level "how the system works" content that
+  *also* renders into the handbook for an operator to review.
+
+The **handbook is the rendered union of the handbook-references** — one navigable, numbered
+artefact — composed from the **vendored** (factory) entries plus a harness's **local**
+entries, each tagged by **ownership**. Factory entries are **dominant and read-only** to a
+harness: a local entry may only **extend** a factory topic (add to it), never redefine or
+contradict it, and that boundary is enforced, not advised. Every reference is itself a 1:1
+artefact (one file) depended on via a `references` edge; a handbook-reference is kept current
+by the nodes that hold a **`maintains`** edge into it. The mechanics — kinds, ownership,
+`extends`, the `maintains` edge, numbering, and how the union renders — are in
+[graph-spec](../02-graph-spec/) and [harness-spec](../04-harness-spec/).
 
 ## Arc
 
@@ -56,10 +76,33 @@ invokes. (The term replaces "workflow", which now collides with Claude's native
 - An arc is not a new primitive. Its **stages** — for the dev sprint: align context,
   design, specify, plan, build, review, reconcile, land, debrief — are spans of the
   traversal, named for navigation, not a fourth element beside node/edge/inline.
+- **Reserve "arc" for the traversal.** A function or concern that relates to an arc without
+  being one is named for *how* it relates: a continuous **loop** (it maintains state, not a
+  start-to-finish pass), a **coupling** (it feeds and reads an arc at points), a **thread**
+  (it spans an arc's stages), or a **lens** (it examines, it does not traverse). These attach
+  to arcs; they are not new arcs.
 - **Arc vs Claude `/workflows`.** Claude's native `/workflows` is a different thing — a JS
   script that orchestrates subagents. An arc renders to a **skill/command**; native
   workflows are an *optional run-time executor* for an arc's autonomous fan-out, not the
   arc itself.
+
+## Carriers and gates
+
+Work travels an arc as a **carrier** — a work-item that holds its own **state**, not a
+single scalar position. A carrier records its **lifecycle state** (where the work is in its
+life — proposed, in flight, delivered, parked, …), its **current stage** in the arc while in
+flight, any **decomposition** into child work-units (one parent fans out into the units that
+implement it, each with its own stage), the **gate decisions** it has passed, and a
+**transition history**. That structure is what lets an arc loop, re-enter, skip, fan out, or
+abandon work without losing the thread — a scalar "stage" cannot represent any of those.
+
+A **gate** is a go/no-go transition on a carrier, recorded as a **decision** — the call, who
+made it, when, the evidence it rested on, and any conditions or override. Gate rigour is set
+by a **maturity × tier dial**: a per-process **maturity** posture sets the *default* evidence
+bar, and a per-item **tier** overrides it (a high-risk item is gated hard even in an early,
+low-rigour process; a routine item fast-tracks even in a mature one). The carrier, its
+stages, and what each gate weighs are **domain** — the schema is general
+([graph-spec](../02-graph-spec/)); a delivery process's roadmap item is one carrier.
 
 ## Skill or agent — the context axis
 
@@ -94,6 +137,24 @@ stack-graph does not just model the graph — it improves it, on evidence.
   over a **gbrain** recall substrate (the surrounding transcripts and reasoning). Curation
   and recall are different jobs; both are kept.
 
+## Experience
+
+A product built in the factory is itself an **agent operating environment**, so verifying it
+behaves as intended is the same kind of problem the factory solves for itself. The
+**experience thread** runs personas and scenarios against the **probabilistic** product and
+grades two dimensions:
+
+- **UX** — the **output** the product produces, against an intended **experience contract**
+  (the invariants and failure modes the experience must hold).
+- **AX (agent experience)** — the product agent's own **traversal**: the tools it reaches
+  for, the friction it hits, and the **tokens and latency to the outcome** (the optimisation
+  target is the same outcome for fewer tokens, faster).
+
+AX measurement is the **same traversal instrumentation the factory runs on its own graph**
+([analytics](../06-analytics/)), pointed at the product. Experience testing is *verification*
+— does the built thing behave? — distinct from deciding *what* to build. Detail:
+[decomposition](../07-decomposition/).
+
 ## Composition — factory and overlay
 
 How one graph composes across a directory tree (mechanics in [harness-spec](../04-harness-spec/)):
@@ -102,7 +163,8 @@ How one graph composes across a directory tree (mechanics in [harness-spec](../0
 - A harness **overlays** local modules in the same format, attaching to the global graph
   by adding an **entry node or an edge** — additive only. Shared node *families* (e.g. a
   set of review lenses) are extended this way: a product drops in its own family member and
-  an edge, never editing the vendored set.
+  an edge, never editing the vendored set. The same **extend-only** discipline governs the
+  reference layer: local handbook-references extend vendored ones, never replace them.
 - Because every locally-authored element lives in the single org-root `.claude`, there
   is nothing to merge per directory — no scoped or composed view is generated. A single
   **global record** is generated across `.claude` for administration and analytics only.
@@ -111,9 +173,12 @@ How one graph composes across a directory tree (mechanics in [harness-spec](../0
 
 Dev is the **first** process domain stack-graph models, not the only one:
 
-- The core abstraction — **primitives, typed edges, arc-as-cyclic-traversal, the loop** —
-  names nothing about software.
-- Domain lives only in **nodes and edges** (a "run the tests" node, a "PR" edge), never in
-  the graph or loop machinery. A non-dev domain drops in by supplying its own nodes. **If
-  anything in the core mentions code, tests, or commits, that is a bug in the
-  abstraction**, not a feature.
+- The core abstraction — **primitives, typed edges, arc-as-cyclic-traversal, carriers and
+  gates, the reference layer, the loop** — names nothing about software.
+- A consuming workspace's **functions** (engineering, product, marketing, …) are
+  **processes over the graph** — an arc, a continuous loop, a coupling, a thread, or a lens —
+  never new primitives. A function drops in by supplying its own nodes, references, and
+  edges; its methodology (how *that* function works) is a **pack**, not core doctrine.
+- Domain lives only in **nodes, references, and edges** (a "run the tests" node, a "PR"
+  edge), never in the graph or loop machinery. **If anything in the core mentions code,
+  tests, commits, or a particular method, that is a bug in the abstraction**, not a feature.

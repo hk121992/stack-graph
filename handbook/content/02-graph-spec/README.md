@@ -62,6 +62,7 @@ All edges are **directed** (`from → to`) and typed:
 | `invokes` | node → node (agent / script / command) | structural | no |
 | `composes-into` | node → arc (or parent node) | structural | no |
 | `references` | node → reference / artefact (carries `load: import \| on-demand`) | structural | no |
+| `maintains` | node → handbook-reference (or external/factory maintainer → entry) | structural | no |
 | `triggers` | event → node | binding | no |
 | `precedes` | node → node | **process** | **yes** |
 | `can-follow` | node → node | **process** | **yes** |
@@ -71,15 +72,41 @@ All edges are **directed** (`from → to`) and typed:
 [harness-spec](../04-harness-spec/)). `triggers` is how a hook is modelled — a binding
 from an event to the node it fires. `composes-into` targets an **arc** (a traversal), which
 is derived from edges, not a node file — so the maintainer does not resolve it to a file.
+**`maintains`** records that a node keeps a **handbook-reference** current; the record projects
+the reverse as `maintained_by` (symmetric to `consumed_by` for `references`). A vendored
+(`owner: sg`) entry carries a `maintains` edge from an **external/factory maintainer** (marked
+`external: true`), so "who maintains an entry" is uniformly graph-derived, never a special case.
 
 ## Cyclic semantics
 
 Structural, binding, and composition edges (`loads`, `invokes`, `composes-into`,
-`references`, `triggers`, `overlay`) are **acyclic** — a load/invoke cycle is a defect.
+`references`, `maintains`, `triggers`, `overlay`) are **acyclic** — a load/invoke cycle is a defect.
 The **process edges `precedes` / `can-follow` are the only ones that may cycle**, and that
 is exactly how an arc loops: the dev sprint closes by looping `debrief --can-follow→ align-context`,
 and the review↔build correction is a `can-follow` loop. The structural skeleton stays a DAG;
 every loop rides a process edge.
+
+## The carrier
+
+An arc is traversed by **carriers** — work-items that hold their own state as they move,
+rather than a single scalar "stage". The carrier schema is general (the work-item of any
+process); its *values* are domain. A carrier records:
+
+| field | holds |
+|---|---|
+| `lifecycle_state` | the work's life-phase (e.g. proposed → in-flight → delivered → parked); the value set is domain-defined |
+| `current_stage` | the arc stage the work is at while in flight (null otherwise) |
+| `children` | decomposition — a parent carrier fans out into child work-units, each with its own `current_stage`; the parent aggregates |
+| `gate_decisions[]` | append-only; per gate: `{ gate, decision, owner, timestamp, evidence_refs, conditions?, override?, confidence }` |
+| `transition_history[]` | append-only log of `lifecycle_state` transitions (from → to, who, when, why) |
+
+This structure is what makes loops, re-entry, skipped stages, decomposition, and abandonment
+representable — a scalar "stage" represents none of them. A **gate** advances `lifecycle_state`
+and writes a `gate_decisions` entry; gate rigour is set by the **maturity × tier dial**
+([concepts](../01-concepts/)). A carrier is **not a node** — it is an instance flowing through
+the graph; a node (a curator) maintains the carrier surface and syncs `current_stage` as the arc
+progresses (a **state mechanism**, not a `composes-into` edge). What the lifecycle states, stages,
+and gates *are* is a domain concern — a delivery process's roadmap item is one carrier.
 
 ## Inline
 
@@ -136,6 +163,46 @@ the orchestrator into the agent's **spawn prompt**, not imported by the agent �
 holds the reference and fills it into the subagent's prompt at dispatch.
 Behaviour that must be *enforced* rather than merely present is a **hook** (a `triggers` edge),
 not a reference.
+
+## Handbook-references
+
+A reference carries a **`kind`**. The default, `reference`, is the standard shared content
+above — node-bound, flat in `graph/_refs/`, not operator-facing. A **`handbook-reference`** is
+canonical, top-level "how the system works" content that *also* renders into the operator
+handbook (the rendered union of all handbook-references — the render is in
+[plugin-spec](../03-plugin-spec/), ownership and overlay in [harness-spec](../04-harness-spec/)).
+Not every reference is a handbook entry; a standard reference is **promoted** when it proves to
+be canonical. Handbook-references live in a **sectioned** home (`NN-section/`), standard
+references stay flat in `graph/_refs/` — one layer, two storage homes.
+
+A handbook-reference adds frontmatter over the reference base:
+
+```yaml
+kind: handbook-reference
+id: <slug>
+type: concept             # concept | procedure | spec | domain | index — gates the template
+title: <title>
+section: <section>        # groups + orders the entry in the rendered handbook
+owner: sg                 # sg (vendored, dominant) | local (harness)
+read-when: <trigger>      # one sentence; agent discovery
+related: [<slug>, ...]    # the page-graph (bidirectional, curator-enforced)
+extends: stack-graph:<id> # local-only; additive overlay onto a vendored entry
+status: vX.Y.Z — YYYY-MM-DD
+```
+
+- **No `number`** — numbering is **computed at render** from document order (section +
+  position), never stored in an id, slug, or cross-reference; insert or reorder and everything
+  renumbers. Identity is the **stable slug + author-assigned concept anchors** (`{#tag}`,
+  kebab-case, never numeric). The build emits an anchor manifest; a **fragment-lint** validates
+  every in-body `[text](slug#anchor)` cross-reference against it.
+- **No `managed-by`** — maintenance is the **`maintains`** edge: the nodes holding a `maintains`
+  edge into the entry keep it current, and the record projects `maintained_by`. A local entry
+  with none is an orphan (validate flags it); a vendored entry is maintained by the
+  external/factory maintainer.
+- **`owner` + `extends`** — `owner` is provenance (`sg` vendored, `local` harness). A local
+  entry that touches a vendored topic must declare `extends`, and `extends` is **adds-only**: it
+  may add anchors/sections, never redefine a vendored anchor or contradict a vendored normative
+  claim. The boundary is a **hard integrate gate**, not advice ([harness-spec](../04-harness-spec/)).
 
 ## The node file
 
