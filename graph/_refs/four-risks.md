@@ -3,7 +3,7 @@ kind: reference
 id: four-risks
 title: The four product risks — discovery lens
 description: The four risks every product idea must clear before it is worth building (value, usability, feasibility, viability), as a discovery checklist.
-status: v0.1.0 — 2026-06-01
+status: v0.2.0 — 2026-06-01
 ---
 
 # The four product risks
@@ -27,9 +27,19 @@ Apply it honestly:
   fail the other.
 - **Address the riskiest first.** Spend discovery effort where the evidence is weakest, not where it
   is easiest. Confidence on three risks and a blind spot on the fourth is not a green light.
-- **Rigour scales with maturity.** Early (founder-led), "evidence" may be reasoned conviction or a
-  simulated-user run; with first users it must be real signal; at scale, measured data. The four
-  questions never change — only the evidence bar does.
-- **Output, per risk:** the current evidence, its strength, and whether the risk is *cleared*,
-  *open*, or a *stop*. An open value or viability risk routes back to discovery; an open usability or
-  feasibility risk routes into design.
+- **Two axes govern each risk — keep them distinct** (conflating them is the classic drift):
+  - **Evidence strength — what *kind* of evidence is this?** Grade every piece by kind, *independent
+    of maturity*:
+    - **weak** — opinions, hypotheticals, "people would love this," a synthetic/simulated run;
+    - **moderate** — *stated* intentions or preferences (a *said*-yes: survey, interview, letter of intent);
+    - **strong** — *observed* behaviour (a *did*-yes: usage, retention, payment, a real conversion).
+    A said-yes is not a did-yes. Weak evidence can *support* a hypothesis but never *clears* a risk on its own.
+  - **Maturity bar — how strong must it be *here*?** The rung a risk must reach to clear, set by the
+    product's maturity stage: pre-launch/founder-led accepts weak→moderate to keep moving; first-users
+    demands moderate→strong; scale demands strong (measured data). The four questions never change —
+    only the bar does.
+- **Output, per risk:** the current evidence, **its strength rung** (weak/moderate/strong), the
+  **maturity bar** it must meet, and whether the risk is *cleared*, *open*, or a *stop*. Record both
+  axes — a low maturity bar must never silently upgrade weak evidence into a cleared risk ("how strong
+  must it be?" is not "how strong is it?"). An open value or viability risk routes back to discovery;
+  an open usability or feasibility risk routes into design.
