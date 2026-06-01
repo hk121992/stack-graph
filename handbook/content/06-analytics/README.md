@@ -2,7 +2,7 @@
 title: Analytics & instrumentation
 type: spec
 read-when: Specifying or implementing how usage, outcomes, and arc-conformance are measured.
-related: [graph-spec, devops, concepts, plugin-spec, harness-spec, analytics/recall-substrate]
+related: [graph-spec, devops, concepts, plugin-spec, harness-spec, analytics/recall-substrate, harness-spec/directory-topology]
 ---
 
 # Analytics & instrumentation

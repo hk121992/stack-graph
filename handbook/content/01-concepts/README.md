@@ -2,7 +2,7 @@
 title: Concepts
 type: reference
 read-when: You need the shared mental model before reading any spec.
-related: [graph-spec, decomposition, harness-spec, overview]
+related: [graph-spec, decomposition, harness-spec, overview, analytics, analytics/recall-substrate]
 ---
 
 # Concepts
@@ -103,10 +103,9 @@ How one graph composes across a directory tree (mechanics in [harness-spec](../0
   by adding an **entry node or an edge** — additive only. Shared node *families* (e.g. a
   set of review lenses) are extended this way: a product drops in its own family member and
   an edge, never editing the vendored set.
-- A directory sees the global vendored graph **+** its ancestors' overlays **+** its own.
-  The **scoped view is generated at runtime** (a preamble), because it depends on the
-  working directory; a single **global record** is generated across all `.claude`
-  directories for administration and analytics only.
+- Because every locally-authored element lives in the single org-root `.claude`, there
+  is nothing to merge per directory — no scoped or composed view is generated. A single
+  **global record** is generated across `.claude` for administration and analytics only.
 
 ## Generality stance
 

@@ -2,7 +2,7 @@
 title: Plugin specification
 type: spec
 read-when: Packaging the plugin or building the handbook→plugin pipeline.
-related: [graph-spec, harness-spec, analytics, overview]
+related: [graph-spec, harness-spec, analytics, overview, harness-spec/directory-topology]
 ---
 
 # Plugin specification
@@ -108,7 +108,7 @@ the built file omits them.
 
 The build verifies each emitted primitive **loads** — native frontmatter valid against the
 primitive's own schema (a skill has `name` + `description`; an agent has its required
-fields), placeholders fully expanded, no stray graph keys. A node that fails verification
+fields), `@-import` pointers resolved, no stray graph keys. A node that fails verification
 fails the build; it is not shipped.
 
 ## Public plugin + dev-wrapper

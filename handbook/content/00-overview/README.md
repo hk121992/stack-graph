@@ -2,7 +2,7 @@
 title: stack-graph handbook
 type: index
 read-when: Orienting to stack-graph — what it is and how this handbook is organised.
-related: [concepts, graph-spec, devops]
+related: [concepts, graph-spec, devops, overview/authoring, overview/maintenance, plugin-spec]
 ---
 
 # stack-graph handbook

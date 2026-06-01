@@ -2,7 +2,7 @@
 title: Harness specification
 type: spec
 read-when: Defining how a consuming workspace customises the vendored graph.
-related: [plugin-spec, graph-spec, analytics, harness-spec/directory-topology]
+related: [plugin-spec, graph-spec, analytics, harness-spec/directory-topology, concepts]
 ---
 
 # Harness specification

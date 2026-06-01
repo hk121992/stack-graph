@@ -10,7 +10,8 @@
       "concepts",
       "plugin-spec",
       "harness-spec",
-      "analytics/recall-substrate"
+      "analytics/recall-substrate",
+      "harness-spec/directory-topology"
     ]
   },
   {
@@ -32,7 +33,9 @@
       "graph-spec",
       "decomposition",
       "harness-spec",
-      "overview"
+      "overview",
+      "analytics",
+      "analytics/recall-substrate"
     ]
   },
   {
@@ -66,7 +69,12 @@
     "related": [
       "concepts",
       "decomposition",
-      "plugin-spec"
+      "plugin-spec",
+      "analytics",
+      "harness-spec",
+      "harness-spec/directory-topology",
+      "maintenance-skill",
+      "overview"
     ]
   },
   {
@@ -78,7 +86,8 @@
       "plugin-spec",
       "graph-spec",
       "analytics",
-      "harness-spec/directory-topology"
+      "harness-spec/directory-topology",
+      "concepts"
     ]
   },
   {
@@ -113,7 +122,10 @@
     "related": [
       "concepts",
       "graph-spec",
-      "devops"
+      "devops",
+      "overview/authoring",
+      "overview/maintenance",
+      "plugin-spec"
     ]
   },
   {
@@ -144,7 +156,8 @@
     "read-when": "You hit drift, ambiguity, or a missing page while working in stack-graph.",
     "related": [
       "overview",
-      "devops"
+      "devops",
+      "overview/authoring"
     ]
   },
   {
@@ -156,7 +169,8 @@
       "graph-spec",
       "harness-spec",
       "analytics",
-      "overview"
+      "overview",
+      "harness-spec/directory-topology"
     ]
   }
 ]

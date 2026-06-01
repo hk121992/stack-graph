@@ -2,7 +2,7 @@
 title: Maintenance — the forcing rule
 type: procedure
 read-when: You hit drift, ambiguity, or a missing page while working in stack-graph.
-related: [overview, devops]
+related: [overview, devops, overview/authoring]
 ---
 
 # Maintenance — the forcing rule
