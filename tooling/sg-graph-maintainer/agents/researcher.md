@@ -68,7 +68,7 @@ summary:
      `primitive:`, `mode:`, `goals:`.
    - `handbook/content/07-decomposition/README.md` — node/edge/inline cut rules;
      skill-or-agent discrimination; granularity heuristics.
-   - `handbook/content/01-concepts/README.md` — vocabulary: workflow, collaborative vs
+   - `handbook/content/01-concepts/README.md` — vocabulary: arc, collaborative vs
      autonomous, the loop, goals as outcomes.
    - `tooling/sg-graph-maintainer/references/node-schema.md` — quick authoring
      reference for the edge taxonomy.
@@ -95,18 +95,37 @@ summary:
      edge, not absorbed content.
    Summarise this in the research-report `## Source inventory` section.
 
-6. **Apply the decomposition discriminator.** Per `07-decomposition`: does this node
-   own its own branching and sequencing? Is it collaborative (skill) or autonomous
-   (agent)? Settle `primitive:` and `mode:` in the research-report. If the answer is
-   ambiguous, name the ambiguity — the translator needs to resolve it, but surface
-   the options rather than guessing.
+6. **Apply the decomposition discriminator + choose the primitive.** Per
+   `07-decomposition` §"Choosing the primitive", in order:
+   - **Is it a node at all?** If it is **shared content a host runs** (a schema, a
+     procedure, a rubric) with no goal of its own, it is a **reference**, not a node — STOP
+     and tell the driver `new` is the wrong mode (the `reference` mode authors it). A
+     reference carries a **`kind`**: `reference` (standard, node-bound, flat in `graph/_refs/`)
+     or `handbook-reference` (canonical "how the system works" content that renders into the
+     handbook; sectioned home). If the content is canonical, top-level, operator-facing
+     doctrine, flag it as a **handbook-reference**; otherwise a standard reference. A standing
+     always-apply guideline is a **rule**; enforcement is a **hook**. Use the
+     **reference-vs-skill** test: a skill is *invoked and run*; a reference is content the host
+     *follows / emits to*.
+   - **If it is a node**, pick `primitive:`/`mode:` by the **context axis**: collaborative →
+     `skill` (current context); autonomous → `agent` (isolated, returns a summary).
+   - **One node ⟷ one primitive (D34).** A node is exactly one rendered file. Treat any
+     **modes** as branches in the one body, never as separate nodes; if a mode earns its own
+     goal, flag it as its own primitive. Do not propose a node that renders to part-of or
+     several-of a primitive.
+   - Record `primitive:`/`mode:` (or "reference") in the research-report. If ambiguous, name
+     the options rather than guessing — the translator resolves it, but the driver may need to
+     re-route the mode.
 
 7. **Identify edges.** For each relationship to another node or reference, assign an
    edge type from the edge taxonomy:
    - `invokes` — this node invokes another node at runtime.
    - `loads` — this node loads another node or reference into context.
-   - `composes-into` — this node is a stage in a larger workflow.
-   - `references` — this node references an artefact (a decision store, a config).
+   - `composes-into` — this node is a stage in a larger arc.
+   - `references` — this node references an artefact (a decision store, a config) — to a
+     reference (which carries a `kind`) or a node; carries `load: import | on-demand`.
+   - `maintains` — this node keeps a **handbook-reference** current (node → handbook-reference;
+     never to a standard `reference`). The record projects the reverse as `maintained_by`.
    - `precedes` — this node normally runs before another (process edge, may cycle).
    - `can-follow` — this node may follow another (process edge, may cycle).
    - `overlay` — this node attaches to a global node in the vendored graph.

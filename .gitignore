@@ -6,3 +6,15 @@ dist/
 .env.*
 # renderer build output (when the UI lands)
 handbook/renderer/dist/
+# maintainer source-material: verbatim lifted source (often third-party) — a local
+# working dir only; the committed research-report's Source inventory preserves provenance
+graph/*/source-material/
+
+# stray generated images (e.g. dropped into the repo root)
+*.png
+workspace/dist/
+.gstack/
+.stack-graph/
+
+# Product/operator-specific material — kept local, out of the general factory repo
+docs/private/

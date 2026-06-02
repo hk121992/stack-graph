@@ -2,19 +2,19 @@
 title: stack-graph handbook
 type: index
 read-when: Orienting to stack-graph — what it is and how this handbook is organised.
-related: [concepts, graph-spec, devops]
-status: v0.0.0 — 2026-05-29
+related: [concepts, graph-spec, devops, overview/authoring, overview/maintenance, plugin-spec]
 ---
 
 # stack-graph handbook
 
 stack-graph is **the factory**: a general, process-agnostic system that models an agent
-operating environment as a graph of its `.claude` primitives and the workflows that
+operating environment as a graph of its `.claude` primitives and the arcs that
 traverse them, then instruments and improves them through a PR-gated loop. A product is
 what *runs inside* the factory.
 
-**Status: scaffold.** This handbook currently holds section stubs with the open design
-questions parked where they'll be answered. The specifications are authored next.
+The model is specified; node authoring is the next phase. The *why* behind each decision
+lives in [`docs/`](../../../docs/) — the handbook states the resolved model, not its
+derivation ([`01-authoring`](01-authoring.md)).
 
 ## How to navigate
 
@@ -27,7 +27,7 @@ and `related[]` edges. Then read the sections relevant to your task.
 - **02-graph-spec** — node/edge/inline taxonomy, cyclic semantics, the node schema, storage.
 - **03-plugin-spec** — packaging, the handbook→plugin build/vendor pipeline, install.
 - **04-harness-spec** — what a harness is; the additive local-overlay customisation model.
-- **05-maintenance-skill** — the `sg-graph-maintainer` skill (modelled on bc-corpus-creator).
+- **05-maintenance-skill** — the `sg-graph-maintainer` skill that authors and maintains the graph.
 - **06-analytics** — instrumentation (preamble/hooks), conformance, the transcript baseline.
 - **07-decomposition** — principles for decomposing a process into the graph.
 - **08-devops** — how stack-graph develops itself; PR discipline; the two loops.

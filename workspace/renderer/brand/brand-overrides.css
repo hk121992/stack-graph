@@ -1,0 +1,9 @@
+/* stack-graph brand overrides.
+ *
+ * Loaded by the shell AFTER the vendored bc-renderer-core style.css, so any
+ * --brand-* / semantic token re-declared here wins. Generated/augmented from
+ * brand.config.json `palette` at build time (see brand.ts paletteCss()).
+ *
+ * Default: empty — the portal inherits be-civic's palette as-is (per the
+ * "use the be-civic template as-is for now, swappable later" decision).
+ */

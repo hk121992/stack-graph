@@ -1,0 +1,42 @@
+name: workspace-portal
+
+# Rebuild-on-merge (design §3). Path-filtered: only portal/handbook/graph changes
+# trigger. Builds + checks the portal; deploy is handled by Cloudflare Workers Builds
+# (git-connected) — or add a `wrangler deploy` step with a scoped CLOUDFLARE_API_TOKEN
+# from the Bitwarden broker. The projection snapshot is published by a LOCAL operator
+# job, not CI (no .stack-graph in CI → the CI build is authored-only/degraded by design).
+
+on:
+  pull_request:
+    paths:
+      - 'workspace/**'
+      - 'handbook/content/**'
+      - 'graph/**'
+  push:
+    branches: [main]
+    paths:
+      - 'workspace/**'
+      - 'handbook/content/**'
+      - 'graph/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # full history — the graph "last-updated" badges need it
+      - uses: oven-sh/setup-bun@v2
+      - name: Install Graphviz
+        run: sudo apt-get update && sudo apt-get install -y graphviz
+      - name: Build portal
+        run: bash workspace/build.sh
+      - name: Smoke-check assembled output
+        run: |
+          test -f workspace/dist/index.html
+          test -f workspace/dist/handbook/index.html
+          test -f workspace/dist/graph/index.html
+          test -f workspace/dist/dashboard/index.html
+          test -f workspace/dist/analytics/index.html
+          test -f workspace/dist/fonts/manrope-700.woff2
+          echo "portal assembled OK"

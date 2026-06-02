@@ -1,0 +1,10 @@
+{
+  "name": "stack-graph",
+  "private": true,
+  "type": "module",
+  "description": "stack-graph factory — dev tooling. The build/vendor.ts script projects the authored graph (graph/) into the installable .claude plugin.",
+  "scripts": {
+    "vendor": "bun run build/vendor.ts",
+    "vendor:check": "bun run build/vendor.ts --check"
+  }
+}

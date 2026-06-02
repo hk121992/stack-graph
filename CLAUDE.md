@@ -46,7 +46,7 @@ built. **Read `handbook/content/index.json` at task start** — it lists every p
 
 ## Building the graph — dev tooling
 
-Two dev-time skills live in `tooling/` (kept separate from the built `skills/` plugin
+Three dev-time skills live in `tooling/` (kept separate from the built `skills/` plugin
 surface) and install by per-skill symlink into `~/.claude/skills/`:
 
 - **`sg-graph-maintainer`** — author and maintain graph nodes. Modes: `new` (gather
@@ -57,12 +57,19 @@ surface) and install by per-skill symlink into `~/.claude/skills/`:
 - **`sg-handbook-curator`** — maintain this handbook. Modes: `sweep` (drift scan),
   `raise` (labelled handbook PR), `refresh-index`. Enacts the forcing rule
   (`00-overview/02-maintenance.md`): on drift, raise a PR — never silently continue.
+- **`sg-advisory-council`** — a **non-authoritative** methodology-grounding board. Modes:
+  `convene` (read a pack's methodology-provenance manifest → dispatch the relevant
+  source-custodian advisors — Cagan/SVPG, Osterwalder/Strategyzer, Blank/Customer
+  Development — → surface fidelity/gap/grounding/seam findings), `roster`. Critiques **how
+  the graph is built and the methodology baked in** — never the product, never gates,
+  never auto-applies. Findings are suggestions the operator filters (D48).
 
 Install once (from the repo root):
 
 ```bash
 ln -s "$PWD/tooling/sg-graph-maintainer" ~/.claude/skills/sg-graph-maintainer
 ln -s "$PWD/tooling/sg-handbook-curator"    ~/.claude/skills/sg-handbook-curator
+ln -s "$PWD/tooling/sg-advisory-council"    ~/.claude/skills/sg-advisory-council
 ```
 
 The repo is the source of truth; edits propagate through the symlink. **Contribution:**

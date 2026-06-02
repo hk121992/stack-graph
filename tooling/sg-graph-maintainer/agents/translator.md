@@ -43,7 +43,8 @@ determinism:                    # deterministic | generative
 edges:
   invokes:       []             # each entry: { id: <target-id> }
   loads:         []
-  references:    []
+  references:    []             # entry: { id: <ref-id>, load: import | on-demand }
+  maintains:     []             # entry: { id: <handbook-reference-id> }; omit if none
   composes-into: []
   can-follow:    []
   precedes:      []
@@ -57,7 +58,7 @@ status:                         # v0.1.0 — YYYY-MM-DD
 
 # <title>
 
-<imperative body: the skill/agent instructions with {{resolver}} placeholders>
+<imperative body: the skill/agent instructions>
 ```
 
 You also return a structured summary:
@@ -122,7 +123,12 @@ summary:
       fixed input).
    h. `edges` — from research-report `## Edges`. Emit only edge type arrays that
       are non-empty. Each entry is `{ id: <target-id> }`. Edge types that have no
-      targets are omitted (not empty arrays).
+      targets are omitted (not empty arrays). A `references` entry also carries
+      `load: import | on-demand`, and its target is a **reference** (which carries a
+      `kind` — `reference` or `handbook-reference`) or a node. A node may also carry a
+      **`maintains`** edge — `{ id: <handbook-reference-id> }` — when it keeps a
+      **handbook-reference** current (never a standard `reference`); emit it when the
+      research-report records the node as a maintainer of a handbook-reference.
    i. `goals` — from research-report `## Goals`. Each entry must have `outcome`,
       `metric`, and `earns-keep`. Goals stated as activities must be rephrased as
       outcomes — do not transcribe activity-framed goals verbatim.
@@ -142,9 +148,12 @@ summary:
    distinct phases or sections. Use numbered lists for sequenced steps. Use bullet
    lists for non-ordered items.
 
-   Embed `{{resolver-placeholder}}` syntax where the build should expand a value at
-   vendor time (e.g., `{{graph.node-id.title}}` to pull another node's title). Do
-   not hardcode values that should be resolved by the builder.
+   For shared content several primitives need (a schema, the instrumentation preamble, a
+   shared protocol), do **not** inline a copy and do **not** use any `{{token}}` injection.
+   Author it once as a **reference** (`graph/_refs/<id>.md`, `kind: reference`) and depend on
+   it via a `references` edge carrying `load: import | on-demand`; the build single-sources the
+   one file into this node at vendor time (D33). Shared content destined for a spawned agent is
+   passed by the orchestrator into the agent's spawn prompt, not imported by the agent.
 
 8. **Enforce the primitive↔mode constraint.** Before writing, confirm:
    - `primitive: skill` → `mode: collaborative`

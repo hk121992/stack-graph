@@ -87,8 +87,9 @@ sub-nodes.}}
 |-----------|-----------|-----------|
 | invokes | {{target-id}} | {{why this node invokes the target}} |
 | loads | {{target-id}} | {{why this node loads the target}} |
-| references | {{artefact-id}} | {{what artefact is referenced}} |
-| composes-into | {{workflow-id}} | {{what workflow and stage}} |
+| references | {{reference-id}} (`load: import \| on-demand`) | {{what shared reference (kind: reference \| handbook-reference) is depended on, and why import vs on-demand}} |
+| maintains | {{handbook-reference-id}} | {{which handbook-reference this node keeps current — never a standard reference}} |
+| composes-into | {{arc-id}} | {{what arc and stage}} |
 | can-follow | {{target-id}} | {{process flow — when does this follow}} |
 | precedes | {{target-id}} | {{process flow — what does this precede}} |
 

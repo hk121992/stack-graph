@@ -2,8 +2,7 @@
 title: Graph specification
 type: spec
 read-when: Defining or implementing the node/edge model, the node schema, or storage.
-related: [concepts, decomposition, plugin-spec]
-status: v0.1.0 — 2026-05-30
+related: [concepts, decomposition, plugin-spec, analytics, harness-spec, harness-spec/directory-topology, maintenance-skill, overview]
 ---
 
 # Graph specification
@@ -20,25 +19,38 @@ sequencing. Only these are nodes; everything else is an edge, inline, or an attr
 
 | `.claude` primitive | graph role |
 |---|---|
-| **skill** | **node** (collaborative) |
-| **agent** | **node** (autonomous) |
-| **command** | **node** if it carries its own procedure; else an `invokes` edge (a thin alias to a skill/agent) |
+| **skill** | **node** — loads into the current context (operator-in-loop) |
+| **agent** (subagent) | **node** — isolated context, returns a summary |
+| **command** | **legacy** — folded into skills; a thin alias is an `invokes` edge, otherwise author it as a skill |
 | **script** (`bin/` executable) | **node**, reached by an `invokes` edge |
 | hook | `triggers` **edge** — the handler it points to is the node (or inline) |
+| **rule** (`rules/*.md`) | `references` **endpoint** — a path-gated CLAUDE.md fragment |
 | MCP server / call | **inline** (or an `invokes` edge when the tool is node-like) |
-| reference — CLAUDE.md/memory, brand asset, schema, decision, output-style | `references` **endpoint** — a referenced artefact, not a branching node |
+| native **workflow** (`workflows/*.js`) | the run-time executor an arc may *lower onto*; not authored as a node (see [plugin-spec](../03-plugin-spec/)) |
+| reference — CLAUDE.md/memory, agent-memory, schema, decision, output-style | `references` **endpoint** — a referenced artefact, not a branching node |
 | settings | **attribute / environment** — the loading context, not a graph element |
 
-This follows the discriminator: only things that own control flow earn a node.
+This follows the discriminator: only things that own control flow earn a node. Execution
+surfaces (a headless browser, a worktree) own no control flow — they are inline tools or
+native primitives, not nodes.
 
-## Granularity
+## Granularity — one node, one primitive
 
-**One node per primitive** by default — one skill is one node, with its modes as inline
-branches in the body (precedent: gstack `office-hours` holds startup/builder modes in a
-single skill, not two). Promote a mode to its own node **only when it earns a split** — a
-distinct goal you would measure separately, distinct branching, or a different
-collaborative/autonomous nature. Let goals draw the boundary (see decomposition). This
-resolves Q1: nodes are per-primitive; junctions are inline unless measured apart.
+A graph node maps **1:1 to a single rendered primitive**: one node ⟷ one skill /
+agent / script file. There is **no node-count divergence** between the authoring view and the
+rendered directory — the graph does not model sub-parts as nodes that collapse at build.
+
+- **Modes** (e.g. a review skill's `interactive`/`headless`) are conditional **branches in a
+  node's body**, never separate nodes.
+- **Reuse and sizing** come from extracting a right-sized primitive (a smaller skill/agent) or
+  a **reference** (the References section above) — each itself a 1:1 artefact — not from an
+  authoring-only node. Decide *what becomes its own primitive* by the
+  [decomposition](../07-decomposition/) rule (reuse / cohesion / just-in-time) and by
+  letting **goals draw the boundary**: a sub-part that earns its own measurable goal becomes
+  its own primitive (still 1:1); one that does not stays a body branch.
+
+The only "two views" is that the single node *file* is read two ways — as graph frontmatter
+(the lens and the index) and as a native `.claude` primitive (the build) — described next.
 
 ## Edges
 
@@ -48,8 +60,9 @@ All edges are **directed** (`from → to`) and typed:
 |---|---|---|---|
 | `loads` | node → node / reference | structural | no |
 | `invokes` | node → node (agent / script / command) | structural | no |
-| `composes-into` | node → workflow (or parent node) | structural | no |
-| `references` | node → referenced artefact | structural | no |
+| `composes-into` | node → arc (or parent node) | structural | no |
+| `references` | node → reference / artefact (carries `load: import \| on-demand`) | structural | no |
+| `maintains` | node → handbook-reference (or external/factory maintainer → entry) | structural | no |
 | `triggers` | event → node | binding | no |
 | `precedes` | node → node | **process** | **yes** |
 | `can-follow` | node → node | **process** | **yes** |
@@ -57,30 +70,207 @@ All edges are **directed** (`from → to`) and typed:
 
 `overlay` is the harness mechanism (a local node attaches to the vendored graph; see
 [harness-spec](../04-harness-spec/)). `triggers` is how a hook is modelled — a binding
-from an event to the node it fires.
+from an event to the node it fires. `composes-into` targets an **arc** (a traversal), which
+is derived from edges, not a node file — so the maintainer does not resolve it to a file.
+**`maintains`** records that a node keeps a **handbook-reference** current; the record projects
+the reverse as `maintained_by` (symmetric to `consumed_by` for `references`). A vendored
+(`owner: sg`) entry carries a `maintains` edge from an **external/factory maintainer** (marked
+`external: true`), so "who maintains an entry" is uniformly graph-derived, never a special case.
 
 ## Cyclic semantics
 
 Structural, binding, and composition edges (`loads`, `invokes`, `composes-into`,
-`references`, `triggers`, `overlay`) are **acyclic** — a load/invoke cycle is a defect.
+`references`, `maintains`, `triggers`, `overlay`) are **acyclic** — a load/invoke cycle is a defect.
 The **process edges `precedes` / `can-follow` are the only ones that may cycle**, and that
-is exactly how a workflow loops: the dev sprint closes with `debrief --can-follow→ intake`,
-and the review↔build correction is a `can-follow` loop. This resolves Q2: keep the
-structural skeleton a DAG; put every loop on a process edge.
+is exactly how an arc loops: the dev sprint closes by looping `debrief --can-follow→ align-context`,
+and the review↔build correction is a `can-follow` loop. The structural skeleton stays a DAG;
+every loop rides a process edge.
+
+**Cyclic-edge discipline.** Happy-path forward flow is expressed with **`precedes`** (declared on
+the source node). **Corrective loops and re-entries use `can-follow`**, and every `can-follow`
+edge must carry three things: an **exit criterion** (the condition under which the loop terminates
+and forward progress resumes), a **max-attempt / escalation policy** (what happens when the exit
+criterion is not met within the allowed iterations — e.g. surface to the operator, halt, or elevate
+to a different stage), and a **labelled re-entry** (a named event or mode that identifies *which*
+re-entry path is being taken, so the traversal record is unambiguous). Without these three, a
+`can-follow` edge is an open cycle — the traversal has no termination guarantee and the record
+cannot distinguish a deliberate re-entry from a stuck loop. The rule: every loop in the graph is
+**explicit, bounded, and escalatable**.
+
+## The carrier
+
+An arc is traversed by **carriers** — work-items that hold their own state as they move,
+rather than a single scalar "stage". The carrier schema is general (the work-item of any
+process); its *values* are domain. A carrier records:
+
+| field | holds |
+|---|---|
+| `lifecycle_state` | the work's life-phase (e.g. proposed → in-flight → delivered → parked); the value set is domain-defined |
+| `current_stage` | the arc stage the work is at while in flight (null otherwise) |
+| `children` | decomposition — a parent carrier fans out into child work-units, each with its own `current_stage`; the parent aggregates |
+| `gate_decisions[]` | append-only; per gate: `{ gate, decision, owner, timestamp, evidence_refs, conditions?, override?, confidence }` |
+| `transition_history[]` | append-only log of `lifecycle_state` transitions (from → to, who, when, why) |
+
+This structure is what makes loops, re-entry, skipped stages, decomposition, and abandonment
+representable — a scalar "stage" represents none of them. The carrier's fields are updated by **three
+different mechanisms, not one writer**:
+
+- **`current_stage` + `transition_history` are projected from the observed traversal.** As work moves
+  through the arc, each stage emits node-enter/-exit events ([analytics](../06-analytics/)); tagged with
+  the carrier, those events *project* onto it — `current_stage` is the latest stage event, the history the
+  sequence. Nobody writes them (the operator may override); they are **derived**, exactly as the graph
+  record is derived from frontmatter. The stages that traverse a carrier hold **no write-edge** to it.
+- **A gate** advances `lifecycle_state` and records a `gate_decisions` entry — a deliberate, lightweight
+  decision at a stage boundary; gate rigour is set by the **maturity × tier dial** ([concepts](../01-concepts/)).
+- **Content** (the carrier's identity, priority, body) is maintained by a **curator** through the gated
+  raise → integrate path — the heavyweight, reviewed changes.
+
+Because `gate_decisions[]` and `transition_history[]` are **append-only**, a carrier is not only a
+forward state-holder but a **durable record** — the process's memory of how the work moved, when, and why
+each call was made, kept after the work is delivered or abandoned. The current/forward view and this
+retained record are two readings of one carrier, not separate artefacts.
+
+A carrier is **not a node** — it is an instance flowing through the graph, and none of the three is a
+`composes-into` edge. What the lifecycle states, stages, and gates *are* is a domain concern — a delivery
+process's work item is one carrier.
+
+## Carrier instances
+
+A carrier *instance* is the concrete runtime realisation of a carrier — what is actually stored in the
+workspace when work moves through the arc. Instance storage is **distinct from node storage** (node files
+are `.claude` primitives serving the builder, renderer, and index; an instance is not a node and not a
+primitive). The two storage patterns live side-by-side without overlap.
+
+**Format and index.** An instance is a **markdown file with YAML frontmatter** (its authored state) **and
+a body** (the content or narrative record), indexed by a **manifest** in the workspace surface that holds
+it. This follows the graph's own files-canonical / frontmatter-structured / index-derived pattern, applied
+to runtime artefacts.
+
+**Three strictly-separate kinds of state** — conflating them is the structural risk:
+
+| kind | what it holds | who writes it | where it lives |
+|---|---|---|---|
+| **Authored** | `lifecycle_state`; the append-only `gate_decisions[]` log; an optional operator `stage_override`; curated content | gates (lifecycle + decisions) + the curator (content) | committed in the instance file |
+| **Projected** | `current_stage`; the stage-traversal sequence | derived from the carrier-tagged event log — **never written into the file** | generated store (not committed) |
+| **Terminal snapshot** | the traversal timeline, frozen once into the closed record at any terminal `lifecycle_state` | a recorder, keyed off the terminal transition; decoupled from the gate | committed into the closed record, once, at close |
+
+The **projected state** is derived exactly as the graph record is derived from node frontmatter: every arc
+stage emits node-enter/-exit events tagged with the carrier id; `current_stage` is the latest such event
+for that carrier; the traversal sequence is the ordered history. No stage holds a write-edge into the
+instance — the stages are what make the projection real.
+
+The **terminal snapshot** is the only point a derived value enters a committed file. It is written by a
+**recorder** — a dedicated action keyed off the terminal lifecycle transition, decoupled from the gate that
+advances the state — and it is written once, at close. After that, the closed record is complete and
+self-contained.
+
+**Degraded read.** When the generated projection is absent (e.g. a fresh clone), the authored ledger and
+any frozen closed records render fully. In-flight instances show their stage as unknown or stale until the
+projection rebuilds from replayed events. The surface never implies full fidelity without the projection;
+closed items are always complete.
 
 ## Inline
 
-Small references and **MCP calls live inline in a node body**, not as nodes or edges —
-they have no control flow of their own. Precedent: the Be Civic corpus inline tags
-(`<Skill>`, `<Ref>`, `<VV>`). An edge appears only when the thing invoked is itself
-node-like (a script with logic → an `invokes` edge).
+Small references, **MCP calls, and execution surfaces** live inline in a node body, not as
+nodes or edges — they have no control flow of their own. An edge appears only when the
+thing invoked is itself node-like (a script with logic → an `invokes` edge).
+
+## References — shared content
+
+Shared content that several primitives need — the finding contract (`findings-schema`,
+`severity-scale`, `confidence-anchors`), the instrumentation preamble, `lens-dispatch`,
+common protocols — is a **reference**: a native single-source artefact, **not** an injected
+block. stack-graph has **no build-time injection primitive**; everything is a native
+`.claude` artefact, keeping the canonical store literally native.
+
+A reference is its own file at `graph/_refs/<id>.md` — frontmatter `kind: reference`
+(+ `id`, `title`, `description`, `status`) over the body. It is **not a node**: it owns no
+control flow, declares no `goals` and no process edges. A node depends on it via a
+`references` edge carrying a **load dial**:
+
+| `load:` | runtime behaviour | use for |
+|---|---|---|
+| `import` | native **`@-import`** — spliced into the host at *load* time, guaranteed-present, not skippable | short, must-always-be-present invariants (e.g. the preamble) |
+| `on-demand` | the host *points at* it; the agent **reads it at the step of need** | larger or conditional material; keeps context lean, reads as its own doc |
+
+```yaml
+references:
+  - { id: lens-dispatch,   load: on-demand }
+  - { id: findings-schema, load: import }
+```
+
+The `load` dial is the native equivalent of "always present vs consulted when needed" —
+`import` is load-time `@-import` (the host holds a pointer, the build single-sources the
+file); `on-demand` is a backtick path / "follow `<id>`" the agent reads. The **build**
+single-sources each reference into its consumers (places/symlinks the one canonical file and
+resolves the pointer) — DRY + freshness with native output, no `{{token}}` splice
+([plugin-spec](../03-plugin-spec/README.md)).
+
+A `references` edge may be marked **`external: true`** when its target is **harness-supplied**
+and absent from the factory. The canonical case is the **handbook** — a node whose job
+touches the consuming product's own handbook + decisions (the curator, the drift detector, a
+context-gathering or design node) depends on a `handbook` locator (`load: on-demand`); the
+factory ships only the pointer, and the harness **overlay** resolves it to that product's canon
+root + page index ([harness-spec](../04-harness-spec/README.md)). The node then navigates pages
+at the step of need. (Another case is a **crystallization manifest** a self-improving node grows
+in its harness — the references/scripts manifest it reads.) The factory ships only the consumer's pointer;
+the harness supplies the target. Validation and the build skip an external reference — there is
+no factory file to resolve or single-source. This is **overlay resolution, not `{{token}}`
+injection**: the body carries a stable "follow your `handbook` reference", and the overlay
+binds what it points at (a path / index) — the binding is harness config, never a body splice.
+
+Shared content destined for a spawned **agent** (e.g. a lens's finding contract) is passed by
+the orchestrator into the agent's **spawn prompt**, not imported by the agent — the orchestrator
+holds the reference and fills it into the subagent's prompt at dispatch.
+Behaviour that must be *enforced* rather than merely present is a **hook** (a `triggers` edge),
+not a reference.
+
+## Handbook-references
+
+A reference carries a **`kind`**. The default, `reference`, is the standard shared content
+above — node-bound, flat in `graph/_refs/`, not operator-facing. A **`handbook-reference`** is
+canonical, top-level "how the system works" content that *also* renders into the operator
+handbook (the rendered union of all handbook-references — the render is in
+[plugin-spec](../03-plugin-spec/), ownership and overlay in [harness-spec](../04-harness-spec/)).
+Not every reference is a handbook entry; a standard reference is **promoted** when it proves to
+be canonical. Handbook-references live in a **sectioned** home (`NN-section/`), standard
+references stay flat in `graph/_refs/` — one layer, two storage homes.
+
+A handbook-reference adds frontmatter over the reference base:
+
+```yaml
+kind: handbook-reference
+id: <slug>
+type: concept             # concept | procedure | spec | domain | index — gates the template
+title: <title>
+section: <section>        # groups + orders the entry in the rendered handbook
+owner: sg                 # sg (vendored, dominant) | local (harness)
+read-when: <trigger>      # one sentence; agent discovery
+related: [<slug>, ...]    # the page-graph (bidirectional, curator-enforced)
+extends: stack-graph:<id> # local-only; additive overlay onto a vendored entry
+status: vX.Y.Z — YYYY-MM-DD
+```
+
+- **No `number`** — numbering is **computed at render** from document order (section +
+  position), never stored in an id, slug, or cross-reference; insert or reorder and everything
+  renumbers. Identity is the **stable slug + author-assigned concept anchors** (`{#tag}`,
+  kebab-case, never numeric). The build emits an anchor manifest; a **fragment-lint** validates
+  every in-body `[text](slug#anchor)` cross-reference against it.
+- **No `managed-by`** — maintenance is the **`maintains`** edge: the nodes holding a `maintains`
+  edge into the entry keep it current, and the record projects `maintained_by`. A local entry
+  with none is an orphan (validate flags it); a vendored entry is maintained by the
+  external/factory maintainer.
+- **`owner` + `extends`** — `owner` is provenance (`sg` vendored, `local` harness). A local
+  entry that touches a vendored topic must declare `extends`, and `extends` is **adds-only**: it
+  may add anchors/sections, never redefine a vendored anchor or contradict a vendored normative
+  claim. The boundary is a **hard integrate gate**, not advice ([harness-spec](../04-harness-spec/)).
 
 ## The node file
 
 A node is **one canonical markdown file** — graph frontmatter **+** imperative body — that
 serves three consumers: the **builder** (emits a valid `.claude` primitive), the
 **renderer** (authoring/review view), and the **index** (the graph + analytics record).
-The frontmatter is a superset, grouped by consumer. This resolves Q3.
+The frontmatter is a superset, grouped by consumer.
 
 ```yaml
 ---
@@ -101,7 +291,7 @@ edges:
   loads:         [{ id: brand-voice }]
   references:    [{ id: decisions-store }]
   composes-into: [{ id: dev-sprint, stage: design }]
-  can-follow:    [{ id: orient }]
+  can-follow:    [{ id: align-context }]
   precedes:      [{ id: specify }]
 # analytics — the loop (fields specified in 06-analytics)
 goals:
@@ -111,13 +301,14 @@ goals:
 status: v0.1.0 — 2026-05-30
 ---
 
-# the imperative body: the skill/agent instructions,
-# with resolver placeholders ({{...}}) the builder expands (see 03-plugin-spec)
+# the imperative body: the skill/agent instructions; shared content via `references`
+# edges (load: import | on-demand), single-sourced by the build (see 03-plugin-spec)
 ```
 
 `primitive:` names the `.claude` element this node builds into — using the Claude
 taxonomy, not an invented type. `mode:` must agree with it (collaborative↔skill,
-autonomous↔agent).
+autonomous↔agent). `status:` is required **on node files** (a node versions the primitive it
+builds into) — unlike handbook pages, which carry no status.
 
 ## Storage & projection
 
@@ -125,13 +316,13 @@ autonomous↔agent).
 a valid `.claude` primitive file with graph frontmatter *added* — Claude ignores the extra
 keys (`edges`, `mode`, `goals`), so the file already works in place. The graph **record**
 is generated by scanning those frontmatter `edges` across all `.claude` directories (the
-global record for analytics; the scoped view per directory at runtime — see
+global record for analytics — see
 [concepts](../01-concepts/)).
 
-The **build projects** each node file into (1) a clean native `.claude` file — native
-fields + the body with resolvers expanded, graph keys stripped — and (2) its rows in the
-graph record. One source, three consumers, no second database. Build mechanics:
-[plugin-spec](../03-plugin-spec/).
+The **build projects** each node file (the authoring view) into (1) a clean native
+`.claude` file — native fields + the body with `@-import` pointers resolved, graph keys stripped (the
+rendered view) — and (2) its rows in the graph record. One source, three consumers, no
+second database. Build mechanics: [plugin-spec](../03-plugin-spec/).
 
 ## Field notes
 
@@ -144,9 +335,9 @@ Resolutions to gaps an author hits against the schema above:
   verbatim by the builder, following the primitive's own schema. This spec does not
   re-enumerate them.
 - **`mode` on a `command` or `script`.** Same rule as skill/agent: `collaborative` if it
-  pauses for the operator, `autonomous` if it runs to a result unattended. A command
-  that is a thin alias with no logic of its own is **not a node** — it is an `invokes`
-  edge.
+  pauses for the operator, `autonomous` if it runs to a result unattended. A command that
+  is a thin alias with no logic of its own is **not a node** — it is an `invokes` edge.
+  (Commands are legacy — folded into the skills mechanism; author new logic as a skill.)
 - **`overlay` entry shape.** `{ target: <global-node-id>, via: <edge-type> }` — a local
   overlay node declares which vendored node it attaches to and the edge type it adds.
   Additive only; it never rewrites the target.

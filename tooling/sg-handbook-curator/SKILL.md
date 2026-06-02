@@ -1,6 +1,6 @@
 ---
 name: sg-handbook-curator
-description: Maintains the stack-graph handbook at handbook/content/. Use when surfacing handbook drift, raising labelled handbook PRs, or refreshing the page-graph index. Three modes available: sweep (scan for drift — contradictions, stale terminology, broken cross-references, missing canonical pages, index out of sync), raise (author a labelled PR for a specific amendment), refresh-index (regenerate index.json from page frontmatter). Dev-time tooling for operators and agents working on stack-graph itself. Do NOT use for context-loading at session start — agents navigate the handbook directly via index.json.
+description: Maintains the stack-graph handbook at handbook/content/. Use when surfacing handbook drift, raising labelled handbook PRs, inspecting the open-PR queue, or refreshing the page-graph index. Four modes available: sweep (scan for drift — contradictions, stale terminology, broken cross-references, missing canonical pages, index out of sync), raise (author a labelled PR for a specific amendment, with duplicate-PR detection), queue (read-only print of open handbook PRs + cross-PR collisions), refresh-index (regenerate index.json from page frontmatter). The integrate mode (batch-merge cadence) has a recorded contract but is not yet implemented. Dev-time tooling for operators and agents working on stack-graph itself. Do NOT use for context-loading at session start — agents navigate the handbook directly via index.json.
 ---
 
 # sg-handbook-curator
@@ -31,19 +31,20 @@ Authoritative procedures that this skill operationalises:
 
 Source lives at `tooling/sg-handbook-curator/`.
 
-## Mode availability in this v0.1
+## Mode availability
 
 | Mode | Status |
 |---|---|
 | `sweep` | Available |
-| `raise` | Available |
+| `raise` | Available (with duplicate-PR detection) |
+| `queue` | Available |
 | `refresh-index` | Available |
+| `integrate` | Contract recorded (below); **implementation deferred** |
 | `comment` | Deferred — later |
-| `integrate` | Deferred — later |
-| `queue` | Deferred — later |
-| `decision-doc` | Deferred — later |
+| `decision-doc` | Deferred — later (product-specific) |
+| `spec-amend` | Deferred — folds into `raise` for now (D40) |
 
-When a deferred mode is invoked, print a one-line "deferred — not available in v0.1" message and stop.
+When a deferred mode is invoked, print a one-line "deferred — not available in this version" message and stop. `integrate` is a special case: its **contract** is recorded below (D40) so the design is not lost, but invoking it prints "integrate: contract recorded, implementation deferred" and stops.
 
 ## Bare-invocation behaviour (no mode argument)
 
@@ -53,17 +54,18 @@ Print the orientation block, then ask via AskUserQuestion which mode to run.
 
 > sg-handbook-curator maintains the handbook at `handbook/content/`. It does NOT load context — agents read the handbook directly via `handbook/content/index.json`. This skill is for drift detection, amendments, and index maintenance.
 >
-> Three modes available in v0.1:
+> Four modes available:
 >
 > - **sweep** — scan the handbook for drift: contradictions, stale terminology, broken cross-references, missing canonical pages, index out of sync with page frontmatter. Report only; no mutations.
-> - **raise** — author a labelled PR for a specific amendment. Branch, write the change, open the PR.
+> - **raise** — author a labelled PR for a specific amendment. Checks the open-PR queue for duplicates first, then branches, writes the change, opens the PR.
+> - **queue** — read-only print of the open `handbook`-labelled PR queue plus cross-PR file collisions. No mutations.
 > - **refresh-index** — regenerate `handbook/content/index.json` from the pages' frontmatter. Idempotent.
 >
-> Four modes deferred to a later version: `comment`, `integrate`, `queue`, `decision-doc`.
+> `integrate` (batch-merge cadence) has a recorded contract but is not yet implemented. `comment`, `decision-doc`, `spec-amend` are deferred.
 
 ### AskUserQuestion gate
 
-Header: "Which mode?". Options: "sweep", "raise", "refresh-index", "abort".
+Header: "Which mode?". Options: "sweep", "raise", "queue", "refresh-index", "abort".
 
 ## Modes
 
@@ -109,19 +111,24 @@ Header: "Which mode?". Options: "sweep", "raise", "refresh-index", "abort".
 
 **Sequence.**
 
-1. **Read `references/what-belongs.md`** — the strict principles governing what may be added to the handbook. These are gates, not advice.
+1. **Read `references/what-belongs.md`** (the strict principles — gates, not advice) **and `references/bundling-rules.md`** (when to bundle vs split, and the bundle-refusal cases).
 
 2. **Capture the proposal.** Confirm with the caller:
    - Which pages need editing?
    - What specifically changes on each page?
    - What triggered the drift (the task, file, or conversation that surfaced it)?
 
-3. **Apply the strict principles.** For each proposed edit:
+3. **Duplicate-PR check.** Dispatch `agents/queue-checker.md` (model: haiku) in `check-duplicate` mode with `target_files` = the pages you intend to edit. If it returns duplicates (an open `handbook` PR already touching those files):
+   - **Do not open a second PR.** `comment` mode (post to the existing PR) is deferred, so surface the overlapping PR(s) — number, title, URL, overlapping files — to the caller and **stop**, recommending they extend the existing PR or close it first. Re-running `raise` after the conflict clears proceeds normally.
+   - If the queue-checker errors (auth/network), surface and abort before any mutation.
+
+4. **Apply the strict principles + bundling rules.** For each proposed edit:
    - Is the new content inferable from existing context? If yes — refuse and explain.
    - Does each line earn its token cost ("would removing this cause an agent to make a mistake?")? If no — trim before authoring.
    - Is the content canonical-and-resolved, or proposed/unresolved? If unresolved — it belongs in the PR description, not the page body.
+   - Does the bundle obey `bundling-rules.md`? In particular, **never bundle a structural-frontmatter / ToC-promotion change with body-content edits** — split into separate PRs.
 
-4. **Branch + edit.** In the stack-graph checkout: `git checkout main && git pull && git checkout -b handbook/<slug>`. Apply the proposed edits via the Edit tool. Cite original content; do not introduce inferable material.
+5. **Branch + edit.** In the stack-graph checkout: `git checkout main && git pull && git checkout -b handbook/<slug>`. Apply the proposed edits via the Edit tool. Cite original content; do not introduce inferable material.
 
 5. **Refresh index if frontmatter changed.** If any edited page added, modified, or removed a frontmatter field, or if pages were renamed or moved, run `refresh-index` mode inline (or call `scripts/refresh-index.ts` directly) and stage the updated index in the same commit.
 
@@ -169,7 +176,41 @@ Header: "Which mode?". Options: "sweep", "raise", "refresh-index", "abort".
 
 **Output.** `handbook/content/index.json` rewritten (idempotent if no changes).
 
-**Script note.** `scripts/refresh-index.ts` is a TypeScript stub — see the TODO header in that file for the implementation contract. The logic mirrors `bc-handbook-curator`'s `refresh-index.ts` with `HANDBOOK_ROOT` resolution adapted for the stack-graph repo layout (no `bc-workspace/` wrapper; handbook root is the repo's own `handbook/` directory).
+**Script note.** `scripts/refresh-index.ts` is implemented (Node built-ins, no deps). Its logic mirrors `bc-handbook-curator`'s `refresh-index.ts` with `HANDBOOK_ROOT` resolution adapted for the stack-graph repo layout (no `bc-workspace/` wrapper; handbook root is the repo's own `handbook/` directory). Not yet exercised end-to-end against a real frontmatter change.
+
+### Mode: queue
+
+**One-line.** Read-only print of the open `handbook`-labelled PR queue plus cross-PR file collisions. No mutations.
+
+**When to use.** Before an `integrate` session (gauge queue depth), or any time the operator wants to see what canon changes are in flight.
+
+**Required args.** None.
+
+**Sequence.**
+
+1. **Dispatch `agents/queue-checker.md`** (model: haiku) in `mode: list`.
+2. **Compute collisions.** Group the returned PRs by overlapping `files[]`; two PRs touching the same page are a collision the operator should know about before merging either.
+3. **Report to operator** in chat: queue size; one row per PR (number, title, author, age, files, URL); a collisions block listing any page touched by more than one open PR.
+4. **No mutations.** If the operator wants to act, they invoke `raise` (new change) or — once implemented — `integrate` (merge the batch).
+
+**Output.** Chat report only. No files written.
+
+### Mode: integrate — contract recorded, implementation deferred (D40)
+
+`integrate` is the batch-merge cadence — the canon analogue of `land` (the gate that closes the loop `raise` opens). Its **contract is recorded here** so the design is not lost; **invoking it prints "integrate: contract recorded, implementation deferred" and stops** until the integrate fleet is built.
+
+**Caller / cadence.** Operator, on a periodic cadence (e.g. weekly) — a **separate session** from the per-change `raise`.
+
+**Intended sequence (when built).**
+
+1. **List the queue.** Dispatch `queue-checker` (`mode: list`) — the open `handbook` PRs are the queue; there is no separate store.
+2. **Cross-PR consistency.** Dispatch `consistency-checker` (model: opus) — vocabulary, frontmatter, voice (`read-when`), and cross-PR collisions across the batch. Scope is **not** deep semantic ("does spec X still support claim Y") in V1.
+3. **Link validation.** Dispatch `link-validator` (model: sonnet) — cross-references and `related[]` resolve across the post-merge page set.
+4. **Surface decisions synchronously.** Any operator decision goes **in the PR description**, never via `AskUserQuestion` mid-mode. Integration stays synchronous.
+5. **Walk the merges** in batch, guided by an `integrator-checklist.md` reference (to be authored with the mode).
+6. **Refresh the index** after merges (`refresh-index`).
+
+**Fleet to build:** `agents/consistency-checker.md` (opus), `agents/link-validator.md` (sonnet); reference `references/integrator-checklist.md`. (Modelled on `bc-handbook-curator`'s deferred integrate design.)
 
 ## Shared infrastructure
 
@@ -189,6 +230,9 @@ Each file in `agents/` is a stateless task-instruction subagent. Dispatch via th
 |---|---|---|
 | `pr-author` | opus | Judgment: composes PR descriptions, applies strict principles |
 | `drift-detector` | sonnet | Mechanical: scans pages for known drift patterns |
+| `queue-checker` | haiku | Mechanical: one `gh` call, JSON munging, no judgment |
+| `consistency-checker` | opus | (integrate — deferred) cross-PR consistency judgment |
+| `link-validator` | sonnet | (integrate — deferred) mechanical cross-reference resolution |
 
 Dispatch shape for each:
 
@@ -233,6 +277,9 @@ Dispatch shape for each:
 | Contribution model | `handbook/content/08-devops/README.md` |
 | What belongs in the handbook | `references/what-belongs.md` |
 | PR description shape | `references/pr-description-shape.md` |
+| Bundling rules | `references/bundling-rules.md` |
 | Drift-detector agent | `agents/drift-detector.md` |
 | PR-author agent | `agents/pr-author.md` |
+| Queue-checker agent | `agents/queue-checker.md` |
 | Index refresh script | `scripts/refresh-index.ts` |
+| Curator decomposition (graph model) | `docs/decisions.md` (D40), `docs/graph-map.md` (curator cell) |
