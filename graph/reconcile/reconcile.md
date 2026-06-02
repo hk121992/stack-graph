@@ -22,7 +22,8 @@ edges:
   composes-into:
     - { id: dev-sprint, stage: reconcile }
   references:
-    - { id: handbook, load: on-demand, external: true }
+    - { id: handbook,                 load: on-demand, external: true }
+    - { id: instrumentation-preamble, load: import }
   can-follow:
     - { id: land }
   precedes:

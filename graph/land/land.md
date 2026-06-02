@@ -15,7 +15,8 @@ edges:
     - { id: deploy }
   composes-into:
     - { id: dev-sprint, stage: land }
-  references:    []
+  references:
+    - { id: instrumentation-preamble, load: import }
   precedes:
     - { id: debrief }
 # analytics — the loop

@@ -145,6 +145,44 @@ supply additional harness-local keys for local nodes; local nodes declare their 
 in the same way. A key that is not relevant to a given process is simply omitted from that
 process's declared requirements.
 
+### The bindings reference file
+
+The bindings reference is `<org-root>/.claude/bindings.yaml` — a **YAML file with flat top-level
+keys** matching the contract key names above. Structured values (those whose binding is more than a
+single path) are nested under their key.
+
+A node reads the file **on demand** — a file read relative to the org root — and navigates from
+the value it finds. This is not an `@-import` (which is a Claude-resolved load-time splice) and not
+a Claude config slot; it is a plain file read the node performs when it needs the binding. A key
+absent from the file causes the node to degrade per its own documented degraded behavior.
+
+Example:
+
+```yaml
+surface-root: workspace/product
+items-root: workspace/product/items
+manifest-path: workspace/product/items/manifest.json
+sprint-records-root: workspace/product/sprints
+strategy-doc: workspace/product/strategy.md
+objectives-doc: workspace/product/objectives.md
+personas: workspace/experience/personas
+handbook-index: workspace/handbook/index.json
+event-log: .stack-graph/events.jsonl
+renderer:
+  entrypoint: workspace/build/render.js
+  output: workspace/portal
+  degraded-policy: authored-only
+deploy-config: deploy/prod.yaml
+experience-contract: workspace/experience/contract.md
+okr-binding: objectives-doc
+plan-policy:
+  threshold: 20
+  link-shape: workspace/product/plans/{id}.md
+terminal-recorder: stack-graph:debrief-fleet
+maturity: scaling
+stale-projection-policy: authored-only
+```
+
 ## Peers
 
 A user may run several workspaces side by side, each its own org root with its own `.claude`,

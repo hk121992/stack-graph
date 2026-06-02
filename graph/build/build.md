@@ -22,7 +22,8 @@ edges:
   composes-into:
     - { id: dev-sprint, stage: build }
   references:
-    - { id: IU-schema, load: import }
+    - { id: IU-schema,                load: import }
+    - { id: instrumentation-preamble, load: import }
   can-follow:
     - { id: review }
     - { id: reconcile }

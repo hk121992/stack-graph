@@ -123,12 +123,12 @@ the gate facts **are**.
   work-items, OKRs, strategy, personas), the bindings **values**, the deploy-config, the experience-contract
   instance. Built in the harness step, not here.
 - **Bindings contract — the complete set of keys a harness must supply** (read via the bindings reference
-  in `.claude/`, never hardcoded): `dashboard-root`, `items-root`, `manifest-path`, `sprints-root`,
+  in `.claude/`, never hardcoded): `surface-root`, `items-root`, `manifest-path`, `sprint-records-root`,
   `strategy-doc`, `objectives-doc`, `personas`, `handbook-index`, `event-log` (the carrier-tagged stream
   path/shape under `.stack-graph/`), `renderer` (entrypoint + output/portal), `deploy-config`,
   `experience-contract`, `okr-binding` (how `outcome_link` resolves to an objective id), `plan-policy`
   (in-body vs linked threshold + link shape), `terminal-recorder` (who freezes the timeline), `maturity`
-  (the dial setting), `stale-projection-behavior` (degraded-mode policy).
+  (the dial setting), `stale-projection-policy` (degraded-mode policy).
 
 ## 7. Resolves — the dashboard design's open questions
 

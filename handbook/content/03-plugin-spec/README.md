@@ -53,8 +53,9 @@ Each node file `graph/<id>/<id>.md` projects through four deterministic stages:
    an `@-import` for `load: import` (spliced at load), or a backtick path for `load: on-demand`
    (read at the step). One source serves all consumers; pure function of the inputs, no
    per-build state.
-2. **Strip.** Remove the graph-only frontmatter keys (`edges`, `mode`, `determinism`,
-   `goals`, `status`), leaving only native `.claude` fields.
+2. **Strip and fold.** Remove the graph-only frontmatter keys (`edges`, `mode`, `determinism`,
+   `goals`, `status`, `title`) and fold `when-to-use` into `description` (appended as trigger
+   guidance), leaving only native `.claude` fields.
 3. **Place.** Write the result into the plugin tree by `primitive:` — `skill` →
    `skills/<name>/SKILL.md`, `agent` → `agents/<name>.md`, `command` →
    `commands/<name>.md`, `script` → `lib/`. Hook configs derive from `triggers` bindings,

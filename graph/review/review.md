@@ -21,7 +21,8 @@ edges:
     - { id: lens-dispatch,      load: on-demand }
     - { id: findings-schema,    load: import }
     - { id: severity-scale,     load: import }
-    - { id: confidence-anchors, load: import }
+    - { id: confidence-anchors,       load: import }
+    - { id: instrumentation-preamble, load: import }
   precedes:
     - { id: reconcile }
 # analytics — the loop
