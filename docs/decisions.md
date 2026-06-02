@@ -1,6 +1,6 @@
 ---
 title: Decision log
-status: v0.14.0 — 2026-06-01
+status: v0.15.0 — 2026-06-02
 ---
 
 # Decision log
@@ -704,3 +704,26 @@ degraded mode, manifest stale-check, terminal-freeze-not-just-debrief, complete 
 topology.* *Design:* `docs/artefacts-design.md` (+ `work-item-schema` v0.2.0). *Status:* Accepted (the
 contract); the **plugin build** + **harness build** are the two remaining prerequisites to exercise the loop.
 *Status:* Accepted (design); build in progress (product seats landed; handbook amendments pending).
+
+## Workspace portal
+
+**D52 — Workspace portal: deployed = authored-from-git ⨝ a published projection snapshot; fail-closed.** The
+operator's read-only comprehension surface (handbook + product-dashboard + graph browser + analytics),
+deployed (CF Worker), rebuilt on PR merge. *Core resolution (Codex): the deployed-vs-local-projection gap* —
+projected state (`current_stage`, last-used, AX, health) lives only in gitignored local `.stack-graph/`, so a
+git-built CF deploy cannot see it. **Resolved:** the deployed portal **joins** the committed **authored
+layer** (canon + the work-ledger's authored state [lifecycle/gates/content/`frozen_timeline`] + the vendored
+graph **structure**) with a **sanitised `portal-projection.json` snapshot** published on rebuild, keyed by
+commit SHA, to a non-git store (CF KV/R2); **degrades loudly** (stale/unknown + a provenance banner) when the
+snapshot is absent or SHA-mismatched. Raw events never leave the workspace. **Merge-governance:** two tiers —
+*auto-merge* the operational ledger **only** behind a path+field classifier + CI invariants (schema-valid;
+`gate_decisions[]` append-only; the **gate-token rule** — a `lifecycle_state` change must carry its
+authorising appended `gate_decision`; manifest stale-check); *PR-approval* for canon / sprint-plan /
+objectives / strategy / graph + anything the classifier rejects. **Access:** fail-closed — Cloudflare Access
+scoped to the single operator, the Worker rejects anonymous requests, the snapshot store is not publicly
+readable, no write surface. *Build (A3b):* reuse `bc-renderer-core` + the handbook-renderer architecture;
+build the dashboard/graph/analytics panels new; brand = a swappable config layer defaulting to be-civic.
+*Codex-reviewed* (freshness model / build-data contract / single-model — cleared; the classifier/schema/
+access concretisations applied after; final go/no-go pending a Codex rate-limit reset). *Renames the
+"roadmap-artefact" surface → portal; resolves the `04-harness` "workspace render" + the artefacts doc's
+renderer contract.* *Design:* `docs/workspace-portal-design.md`. *Status:* Accepted (design); build = A3b.
