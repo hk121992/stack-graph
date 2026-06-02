@@ -60,6 +60,18 @@ import { execSync } from "node:child_process";
 
 const GENERATOR_VERSION = "0.1.0";
 
+// Sanitization — the locality boundary. Ids are emitted as JSON keys AND values, so they
+// must be bounded, metachar-free tokens, never a free-text/secret channel. Non-matching
+// ids are dropped with a warning.
+const ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
+
+// AX is published. Only these numeric, finite metrics pass through; the rest of any `ax`
+// object is dropped (never spread verbatim) so secrets/free-text cannot ride along.
+const AX_NUMERIC_KEYS = [
+  "tokens_total", "tokens_to_outcome", "duration_ms", "latency_ms",
+  "steps", "steps_to_outcome", "tool_calls", "backtracks",
+] as const;
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -77,8 +89,12 @@ function repoRoot(): string {
 function gitHead(root: string): string {
   try {
     const sha = execSync("git rev-parse HEAD", { cwd: root, encoding: "utf8" }).trim();
-    if (/^[0-9a-f]{40}$/i.test(sha)) return sha;
-    throw new Error("Unexpected sha format: " + sha);
+    if (!/^[0-9a-f]{40}$/i.test(sha)) throw new Error("Unexpected sha format: " + sha);
+    // A dirty tree must NOT claim a clean commit: downstream freshness is `commit === HEAD`,
+    // so a dirty publish would render uncommitted projection data as authoritative. Suffix
+    // "-dirty" so the equality check fails and the portal degrades loudly.
+    const dirty = execSync("git status --porcelain", { cwd: root, encoding: "utf8" }).trim() !== "";
+    return dirty ? `${sha}-dirty` : sha;
   } catch (e) {
     throw new Error("Failed to get git HEAD: " + String(e));
   }
@@ -116,11 +132,11 @@ interface RawEvent {
   from?: string;
   to?: string;
   arc?: string;
-  // ax aggregate object (optional)
+  // ax aggregate object (optional) — sanitised to a numeric allowlist on read, never copied verbatim
   ax?: Record<string, unknown>;
-  // any other fields must NOT be read — they may contain sensitive content
-  [key: string]: unknown;
 }
+// NOTE: deliberately NO index signature. A future `{...ev}` then becomes a type error
+// rather than a silent leak — the output is constructed field-by-field from an allowlist.
 
 // ---------------------------------------------------------------------------
 // Projection types (these are the sanitized output types)
@@ -219,18 +235,33 @@ function deriveProjection(
     if (ev.kind !== "enter" && ev.kind !== "exit") continue;
 
     const nodeId = ev.node;
-    const carrierId = ev.carrier && ev.carrier !== "null" ? ev.carrier : null;
     const ts = ev.ts;
 
     if (!nodeId || !ts) {
       console.warn("  [WARN] Event missing node or ts — skipped.");
       continue;
     }
+    // Sanitize ids — reject anything that isn't a bounded, metachar-free token (the ids are
+    // emitted as JSON keys+values, so a free-text/secret/`</script>` id must never pass).
+    if (!ID_RE.test(nodeId)) {
+      console.warn(`  [WARN] Non-conforming node id rejected (skipped).`);
+      continue;
+    }
+    let carrierId: string | null = ev.carrier && ev.carrier !== "null" ? ev.carrier : null;
+    if (carrierId !== null && !ID_RE.test(carrierId)) {
+      console.warn(`  [WARN] Non-conforming carrier id rejected (carrier dropped on this event).`);
+      carrierId = null;
+    }
 
     // Validate timestamp is parseable
     const tsMs = new Date(ts).getTime();
     if (isNaN(tsMs)) {
-      console.warn(`  [WARN] Unparseable timestamp "${ts}" on ${ev.kind} for node ${nodeId} — skipped.`);
+      console.warn(`  [WARN] Unparseable timestamp "${ts}" — skipped.`);
+      continue;
+    }
+    // Reject future timestamps — they would spoof last_used and inflate traversals_30d.
+    if (tsMs > now) {
+      console.warn(`  [WARN] Future timestamp "${ts}" — skipped.`);
       continue;
     }
 
@@ -253,11 +284,16 @@ function deriveProjection(
     }
 
     if (ev.kind === "exit") {
-      // AX aggregates — only if an ax object is present on the exit event
+      // AX aggregates — extract ONLY the numeric allowlist; NEVER spread the ax object
+      // (it could carry secrets/free-text). Anything non-numeric or not allowlisted is dropped.
       if (ev.ax && typeof ev.ax === "object" && !Array.isArray(ev.ax)) {
-        // Merge: later events overwrite earlier for same node
-        const existing = axAggregates.get(nodeId) ?? {};
-        axAggregates.set(nodeId, { ...existing, ...ev.ax });
+        const src = ev.ax as Record<string, unknown>;
+        const existing = (axAggregates.get(nodeId) ?? {}) as Record<string, number>;
+        for (const k of AX_NUMERIC_KEYS) {
+          const v = src[k];
+          if (typeof v === "number" && Number.isFinite(v)) existing[k] = v;
+        }
+        if (Object.keys(existing).length > 0) axAggregates.set(nodeId, existing);
       }
     }
   }

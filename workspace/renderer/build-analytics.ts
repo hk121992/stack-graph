@@ -35,8 +35,10 @@ function gitHead(): string | null {
   try { return execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(); }
   catch { return null; }
 }
-function esc(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+function esc(s: unknown): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
 interface Projection {

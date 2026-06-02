@@ -83,12 +83,15 @@ function writeHtml(filePath: string, html: string) {
 const log = (m: string) => process.stdout.write(m + "\n");
 const warn = (m: string) => process.stderr.write("[warn] " + m + "\n");
 
-function esc(s: string): string {
-  return s
+function esc(s: unknown): string {
+  // Total + context-safe: coerce (YAML may yield numbers/booleans), escape for HTML text
+  // AND single/double-quoted attribute contexts.
+  return String(s ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -610,7 +613,7 @@ function renderGateDecisions(gates?: GateDecision[]): string {
     return `<li class="gate-entry">
   <div class="gate-header">
     <span>${esc(g.gate)}</span>
-    <span class="${cls}">${esc(g.decision.toUpperCase())}</span>
+    <span class="${cls}">${esc((g.decision ?? "?").toUpperCase())}</span>
     <span class="tier-badge">${esc(g.confidence ?? "")}</span>
   </div>
   <div class="gate-meta">${esc(g.owner)} · ${esc(g.timestamp)}</div>
@@ -623,7 +626,7 @@ function renderGateDecisions(gates?: GateDecision[]): string {
 
 function renderFrozenTimeline(ft?: FrozenTimeline): string {
   if (!ft) return "";
-  const entries = ft.transitions.map((t) =>
+  const entries = (ft.transitions ?? []).map((t) =>
     `<li class="timeline-entry"><span class="timeline-stage">${esc(t.stage)}</span><span class="timeline-at">${esc(t.at)}</span></li>`
   ).join("\n");
   return `<div class="frozen-timeline">

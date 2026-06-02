@@ -55,8 +55,10 @@ const HUB_CSS = `
 .portal-hub .site-footer { max-width: 960px; margin: 0 auto; padding: 1rem 1.25rem 2rem; color: var(--mute); font-size: .82rem; }
 `;
 
-function esc(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+function esc(s: unknown): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
 const cardsHtml = CARDS.map((c) =>

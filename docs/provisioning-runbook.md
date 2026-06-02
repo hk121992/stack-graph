@@ -21,13 +21,15 @@ of that user's reach. Develops in parallel with the live `gstack` env until cuto
 | | `gstack` (tooling / admin) | `be-civic` (product) |
 |---|---|---|
 | Owns | stack-graph **source**, factory dev, **builds + vendors** | migrated product content + the **vendored plugin** |
-| Secrets | the **Bitwarden broker** (issuer token = admin) | **static, product-scoped** secrets only — no broker, no issuer |
+| Secrets | the **Bitwarden broker** (issuer token = admin) | **static, product-scoped** secrets only — no issuer token, no `agent-run`; broker port closed by iptables (see B6) |
 | Plugin | the source graph (`graph/`) + the build | a **read-only vendored copy** (built skills/agents/refs) — *not* source |
 | Reach | full admin | **cannot** read `~gstack`, edit factory source, or reach admin |
 
 **Invariants** (verify at B6): (1) `be-civic` cannot read `/home/gstack`; (2) the vendored
 plugin under `~be-civic` is **not writable** by `be-civic` (re-vendoring is a privileged
-action); (3) no broker/issuer token, no `agent-run`, no admin path exists in `be-civic`;
+action, and the plugins parent dir is root-owned so be-civic cannot remove it either);
+(3) no issuer token, no `agent-run`; broker TCP port closed by iptables (the broker binds
+host-wide loopback — be-civic can reach it unless explicitly blocked; see B6);
 (4) the stack-graph **dev-tooling** (`tooling/sg-*`) is **not** installed in `be-civic` —
 it runs the loop, it does not author the graph.
 
@@ -57,10 +59,12 @@ git -C ~/projects/be-civic/bc-workspace status   # confirm be-civic working tree
 ```bash
 # [root]
 sudo adduser --gecos "" --disabled-password be-civic        # no password; key/sudo-su access only
-sudo loginctl enable-linger be-civic                         # allow user services (Ollama is shared; gbrain autopilot is per-user)
+sudo loginctl enable-linger be-civic                         # only needed if be-civic runs persistent user services; Ollama is shared loopback, independent of linger
 # Lock the home so be-civic's tree is private and gstack's stays unreachable from it:
 sudo chmod 750 /home/be-civic
-sudo chmod 750 /home/gstack                                  # belt-and-braces: be-civic cannot read gstack's home
+# /home/gstack is already 0750 (others=---); be-civic is "other" so has no access.
+# The real invariant is others=--- — the line below makes it explicit, but is typically a no-op:
+sudo chmod 700 /home/gstack                                  # invariant: others=--- on gstack home; be-civic cannot traverse it
 ```
 
 > **Decision (operator): how `be-civic` authenticates to GitHub.** Either (a) generate a
@@ -80,14 +84,21 @@ sudo -iu be-civic ssh-keygen -t ed25519 -C "be-civic@$(hostname)" -N "" -f /home
 ```bash
 # [be-civic] bun (per-user), + gbrain as a bun-global (mirror gstack: 0.27.0)
 sudo -iu be-civic bash -lc 'curl -fsSL https://bun.sh/install | bash'   # installs to ~/.bun
-sudo -iu be-civic bash -lc 'echo "export BUN_INSTALL=\$HOME/.bun; export PATH=\$BUN_INSTALL/bin:\$PATH" >> ~/.bashrc'
-sudo -iu be-civic bash -lc 'bun install -g gbrain@0.27.0'              # pin to the gstack version
+# PATH for bun goes in ~/.profile (NOT ~/.bashrc — Ubuntu's .bashrc has an early non-interactive
+# guard that causes .bashrc appends to silently no-op for `bash -lc` / Claude / daemons):
+sudo -iu be-civic bash -lc 'echo "export BUN_INSTALL=\$HOME/.bun; export PATH=\$BUN_INSTALL/bin:\$PATH" >> ~/.profile'
+# Install gbrain with bun explicitly on PATH in the SAME invocation (do NOT rely on a prior .bashrc append):
+sudo -iu be-civic bash -lc 'export PATH="$HOME/.bun/bin:$PATH" && bun install -g gbrain@0.27.0'   # pin to the gstack version
 
-# claude CLI — system-symlinked (mirror gstack: /usr/bin/claude). Install under be-civic's
-# npm prefix, then root-symlink so it's on PATH for the user.
-sudo -iu be-civic bash -lc 'npm config set prefix ~/.npm-global && npm i -g @anthropic-ai/claude-code'   # operator: confirm the package/install method matches gstack
-# [root] symlink onto PATH (gstack has /usr/bin/claude):
-sudo ln -sf /home/be-civic/.npm-global/bin/claude /usr/local/bin/claude   # per-user PATH alt: ~/.npm-global/bin
+# NOTE: Claude Code does not read .bashrc or .profile at runtime. Secrets and env vars that
+# agents need at runtime must go in the relevant systemd unit EnvironmentFile= or in
+# ~/.claude settings env: — not only in shell rc files.
+
+# claude CLI — gstack's claude is installed globally at /usr/bin/claude (on every user's
+# default PATH). be-civic uses the shared system install directly — no per-user npm install,
+# no system symlink needed (which would shadow gstack's binary globally).
+# NOTE: confirm the global /usr/bin/claude is intended to be shared. If user-level isolation
+# is required, install per-user to ~/.npm-global/bin via ~/.profile PATH — never a system symlink.
 ```
 
 `node`, `git`, `gh`, `dot` (Graphviz), `wrangler`, and **Ollama** are **system** packages
@@ -110,8 +121,11 @@ sudo install -m 600 -o be-civic -g be-civic /dev/null /home/be-civic/.config/be-
 #   CLOUDFLARE_API_TOKEN=...   (portal + be-civic deploys; scoped, read/deploy only)
 #   GH_TOKEN=...               (if using HTTPS git instead of SSH)
 #   <be-civic product API keys, scoped>
-# [be-civic] source it at login:
-sudo -iu be-civic bash -lc 'echo "[ -f ~/.config/be-civic/secrets.env ] && set -a && . ~/.config/be-civic/secrets.env && set +a" >> ~/.bashrc'
+# [be-civic] source it at login — use ~/.profile (read by login shells; ~/.bashrc has an
+# early non-interactive guard that silently skips these lines for `bash -lc` and Claude):
+sudo -iu be-civic bash -lc 'echo "[ -f ~/.config/be-civic/secrets.env ] && set -a && . ~/.config/be-civic/secrets.env && set +a" >> ~/.profile'
+# For secrets agents need at runtime (not just interactive shells), also add them via
+# systemd unit EnvironmentFile= or ~/.claude settings env:.
 ```
 
 > **Decision (operator): which static secrets.** List the exact product-scoped tokens
@@ -129,13 +143,18 @@ the vendored graph; re-vendoring is a root action). The user never reads `~gstac
 # [root] copy the BUILT plugin surface (not the source graph/, not tooling/)
 SRC=/home/gstack/projects/stack-graph
 DST=/home/be-civic/.claude/plugins/stack-graph
-sudo install -d -o be-civic -g be-civic -m 755 /home/be-civic/.claude/plugins
-sudo rm -rf "$DST" && sudo mkdir -p "$DST"
+# The plugins PARENT is root-owned so be-civic cannot remove/replace the vendored plugin dir:
+sudo install -d -o root -g be-civic -m 755 /home/be-civic/.claude/plugins
+# Sanity gate before rm -rf — refuse if DST is not under the expected path:
+case "$DST" in /home/be-civic/.claude/plugins/*) : ;; *) echo "refusing: unexpected DST=$DST"; exit 1;; esac
+sudo rm -rf -- "$DST" && sudo mkdir -p "$DST"
 sudo cp -r "$SRC/.claude-plugin" "$SRC/skills" "$SRC/agents" "$SRC/references" "$DST/"
 # read-only for be-civic: root owns, group can read/traverse, no write
 sudo chown -R root:be-civic "$DST"
 sudo find "$DST" -type d -exec chmod 755 {} \; && sudo find "$DST" -type f -exec chmod 644 {} \;
 # (re-vendor on plugin updates = re-run this block; it's a root action by design)
+# NOTE: if be-civic must add its OWN plugins, give it a separate writable plugin root and
+# keep this vendored dir under the root-owned path above.
 ```
 
 > The stack-graph **dev-tooling** (`tooling/sg-graph-maintainer` etc.) is intentionally
@@ -163,19 +182,31 @@ shared Ollama). **Only paths change** — copy the store, rewrite `database_path
 the sources. Not a re-index.
 
 ```bash
+# [gstack/root] QUIESCE gbrain writers before copying — never copy a running database;
+# prefer gbrain export/import if available. Stop gstack's gbrain daemons first:
+sudo -u gstack bash -lc 'systemctl --user stop gbrain-autopilot.service 2>/dev/null; pkill -u gstack -f "gbrain serve" 2>/dev/null; true'
+# Preferred alternative: use `gbrain export` (as gstack) then `gbrain import` (as be-civic).
+# If export/import is not available in your gbrain version, the cp -a below is the fallback:
 # [root] copy gstack's brain into be-civic, then hand ownership over
-sudo cp -r /home/gstack/.gbrain /home/be-civic/.gbrain
+sudo cp -a /home/gstack/.gbrain /home/be-civic/.gbrain     # cp -a preserves timestamps/perms; use ONLY after quiescing writers
 sudo chown -R be-civic:be-civic /home/be-civic/.gbrain
 sudo chmod 700 /home/be-civic/.gbrain
-# [be-civic] rewrite ONLY the database_path (engine/model/dimensions stay identical → schema unchanged)
-sudo -iu be-civic bash -lc 'cd ~/.gbrain && \
-  tmp=$(mktemp) && sed "s#/home/gstack/.gbrain#/home/be-civic/.gbrain#g" config.json > "$tmp" && mv "$tmp" config.json && chmod 600 config.json && cat config.json'
+# [gstack/root] restart gstack's gbrain daemons:
+sudo -u gstack bash -lc 'systemctl --user start gbrain-autopilot.service 2>/dev/null; true'
+# [be-civic] rewrite ONLY the database_path using the gbrain-native config command:
+sudo -iu be-civic bash -lc 'export PATH="$HOME/.bun/bin:$PATH" && gbrain config set database_path "$HOME/.gbrain/brain.pglite"'
 # expected: database_path=/home/be-civic/.gbrain/brain.pglite ; embedding_model=ollama:qwen3-embedding:0.6b ; dimensions=1024
+sudo -iu be-civic bash -lc 'export PATH="$HOME/.bun/bin:$PATH" && gbrain config show'
 # [be-civic] register the MCP server + sanity-check (apply-migrations is a no-op on a copied store)
-sudo -iu be-civic bash -lc 'claude mcp add gbrain -- gbrain mcp'   # operator: confirm the exact `gbrain mcp` invocation matches gstack's
-sudo -iu be-civic bash -lc 'gbrain doctor'
-# Re-register source local_paths from gstack paths → be-civic paths, then resync:
-sudo -iu be-civic bash -lc 'cd ~/projects/be-civic && for r in bc-workspace bc-operations bc-knowledge-graph; do gbrain sync "$r" --full || true; done'
+# `gbrain serve` is the stdio MCP subcommand (confirmed — `gbrain mcp` is not a valid subcommand):
+sudo -iu be-civic bash -lc 'export PATH="$HOME/.bun/bin:$PATH" && claude mcp add gbrain -- gbrain serve'
+# Confirm against gstack's actual MCP registration: `claude mcp list` as gstack, verify the server command matches.
+sudo -iu be-civic bash -lc 'export PATH="$HOME/.bun/bin:$PATH" && gbrain doctor'
+# Re-register sources and resync — sources live in the pglite DB, not just config.json.
+# `--full` is not a flag; let failures surface loudly (no || true):
+sudo -iu be-civic bash -lc 'export PATH="$HOME/.bun/bin:$PATH" && for r in bc-workspace bc-operations bc-knowledge-graph; do gbrain sync --repo "$HOME/projects/be-civic/$r"; done'
+# Confirm sources resolve to be-civic paths (not gstack paths) after re-registration:
+sudo -iu be-civic bash -lc 'export PATH="$HOME/.bun/bin:$PATH" && gbrain config show && gbrain stats'
 ```
 
 > **Decision answered (from the plan):** the migration is **as-is, no schema change** —
@@ -207,19 +238,39 @@ done
 # [be-civic] run each; all must pass.
 sudo -iu be-civic bash -lc '
   set -e
+  export PATH="$HOME/.bun/bin:$PATH"
   echo "1. claude launches:";        claude --version
   echo "2. gbrain healthy:";         gbrain doctor && gbrain search "civic" --source bc-workspace --limit 3 >/dev/null && echo "   hybrid search OK"
   echo "3. product skills load:";    ls ~/.claude/skills | head
   echo "4. vendored plugin present + READ-ONLY:"; ls ~/.claude/plugins/stack-graph/skills | head; \
        ( touch ~/.claude/plugins/stack-graph/_wtest 2>/dev/null && echo "   FAIL: plugin is writable" && rm -f ~/.claude/plugins/stack-graph/_wtest ) || echo "   OK: plugin not writable"
-  echo "5. portal builds the migrated workspace:"; cd ~/projects/be-civic/bc-workspace && ( command -v dot && bash ../stack-graph-portal-build.sh 2>/dev/null || echo "   (portal build wired in Phase C against bindings)" )
+  echo "5. portal build check:";     cd ~/projects/be-civic/bc-workspace && ( command -v dot && bash workspace/build.sh 2>/dev/null || echo "   (portal build deferred — wire bindings in Phase C first)" )
 '
-# SECURITY-BOUNDARY checks (must behave as stated):
+# SECURITY-BOUNDARY checks (must ALL report OK):
+
+# gstack source unreachable:
 sudo -iu be-civic bash -lc 'cat /home/gstack/.bashrc >/dev/null 2>&1 && echo "FAIL: be-civic can read ~gstack" || echo "OK: ~gstack unreadable"'
+# gstack source dir not traversable:
+sudo -iu be-civic bash -lc 'ls /home/gstack/projects >/dev/null 2>&1 && echo "FAIL: gstack source reachable" || echo "OK: source unreachable"'
+
+# No broker/agent-run wrapper:
 sudo -iu be-civic bash -lc 'command -v agent-run >/dev/null 2>&1 && echo "FAIL: broker wrapper present" || echo "OK: no broker/agent-run"'
+
+# Broker TCP port: the broker listens on 127.0.0.1:7393 (host-wide loopback — all local UIDs
+# can connect by default). Apply the iptables rule below BEFORE running this check:
+# [root] close the network boundary:
+sudo iptables -A OUTPUT -p tcp --dport 7393 -d 127.0.0.1 -m owner --uid-owner be-civic -j REJECT
+# NOTE: the cleaner long-term alternative is to bind the broker to a gstack-owned unix socket
+# (chmod 0700) — that is a gstack-side change to make when migrating the broker config.
+# The broker also enforces server-side auth (issuer token + Slack-gated approval), but the
+# network boundary should still be closed — defence in depth.
+sudo -iu be-civic bash -lc 'curl -s --max-time 2 http://127.0.0.1:7393/ >/dev/null 2>&1 && echo "FAIL: broker port reachable" || echo "OK: broker unreachable"'
+
+# Vendored plugin dir cannot be removed by be-civic (plugins parent is root-owned):
+sudo -iu be-civic bash -lc 'rmdir --ignore-fail-on-non-empty ~/.claude/plugins/stack-graph 2>/dev/null && echo "FAIL: can remove vendored plugin" || echo "OK: cannot remove vendored plugin"'
 ```
 
-**Gate:** all of (1)–(5) pass + both security-boundary checks report `OK` → proceed to
+**Gate:** all of (1)–(5) pass + all security-boundary checks report `OK` → proceed to
 Phase C. Any failure → fix before continuing.
 
 ## Phase split (what's in B vs deferred to D)
@@ -246,5 +297,12 @@ dashboard from the bound surfaces (`DASHBOARD_ROOT=<ledger> bash workspace/build
 2. **The exact static secrets** to provision (B2) — minimal, product-scoped, no admin.
 3. **Runbook placement** — keep in `docs/` or move the be-civic-specific docs out to keep
    `stack-graph` open-source-clean (top note).
-4. **Confirm the `claude` install method + `gbrain mcp` invocation** match `gstack`'s exact
-   setup (B2/B4) — these mirror gstack but verify against your actual install.
+4. **Confirm the `claude` install method** matches `gstack`'s exact setup (B2) — the
+   default is to use the shared `/usr/bin/claude`; if user-level isolation is needed,
+   install per-user via `~/.npm-global` and keep it ONLY on be-civic's own PATH.
+5. **Confirm `gbrain serve` MCP registration** matches gstack's actual `claude mcp list`
+   output (B4) — `gbrain serve` is the verified stdio MCP subcommand.
+6. **Broker socket binding** — consider migrating gstack's broker to a unix socket (0700)
+   owned by gstack; until then the iptables rule in B6 is the network boundary.
+7. **linger** — `enable-linger` is only needed if be-civic runs persistent user services;
+   the current runbook installs none. Revisit if a be-civic gbrain autopilot unit is added.

@@ -316,8 +316,10 @@ function decodeEntities(s: string): string {
     .replace(/&quot;/g, '"');
 }
 
-function escAttr(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+function escAttr(s: unknown): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/'/g, "&#39;");
 }
 
 /**
