@@ -15,3 +15,6 @@ graph/*/source-material/
 workspace/dist/
 .gstack/
 .stack-graph/
+
+# Product/operator-specific material — kept local, out of the general factory repo
+docs/private/
