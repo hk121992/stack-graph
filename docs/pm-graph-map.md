@@ -39,7 +39,7 @@ is no longer bound to `simulate-users`.
 | id | primitive | loop | goal (outcome) | edges |
 |---|---|---|---|---|
 | **strategy-curator** | skill | A | maintain the strategy canvas via the Strategyzer test-and-learn loop; modes (D34): `hypothesise` / `gather-evidence` / `assess` / `refresh-canvas` | invokes `explore`, `pr-author`; references `vpc-schema` + `bmc-schema` (on-demand), `four-risks` (import), `handbook` (external); maintains the **strategy-canvas** surface. *Generalises BC `bmd-curator`.* |
-| **product-dashboard-curator** | skill | B | maintain the work-item content of the product-dashboard — work items (the **carrier**), their why/links/`risk_state`, tiers, dispositions, sprint-record; modes: `triage` / `add-item` / `reprioritise` / `sprint-plan` / `record-disposition`. Does **not** write `current_dev_stage` (projected from traversal) or decide gates (operator decisions). | invokes `pr-author`, `queue-checker`; references `work-item-schema` + `okr-schema` (import); maintains the **product-dashboard** work-item content (content only). *Generalises BC roadmap-curator.* |
+| **product-dashboard-curator** | skill | B | maintain the work-item content of the product-dashboard — work items (the **carrier**), their why/links/`risk_state`, tiers, dispositions, sprint-record; modes: `triage` / `add-item` / `reprioritise` / `sprint-plan` / `record-disposition`. Does **not** write `current_stage` (projected from traversal) or decide gates (operator decisions). | invokes `pr-author`, `queue-checker`; references `work-item-schema` + `okr-schema` (import); maintains the **product-dashboard** work-item content (content only). *Generalises BC roadmap-curator.* |
 | **product-lens** | skill | B (front) | the CEO/strategy review into the shared front — *right problem? serves the value proposition / target user / the OKR?* | composes-into `dev-sprint`@`design`, @`plan`; references `four-risks` (import), the strategy-canvas (via binding) |
 
 ## Reused (no new authoring)
@@ -62,7 +62,7 @@ curator refs. (Whether a single `surface-curator` could parameterise all three i
 | `four-risks` | factory `_ref` | import | the discovery lens — value / usability / feasibility / viability (SVPG) |
 | `vpc-schema` | factory `_ref` | on-demand | Value Proposition Canvas — jobs/pains/gains + value map (Strategyzer) |
 | `bmc-schema` | factory `_ref` | on-demand | Business Model Canvas — 9 blocks (Strategyzer) |
-| `work-item-schema` | factory `_ref` | import | the carrier — frontmatter + `lifecycle_state` (idea→discovery→defined→committed→in-delivery→shipped→live→parked/killed) + `current_dev_stage` (dev-sprint stage, populated when in-delivery) + `tier` + `gate_decisions[]` + `transition_history[]` (append-only); parent work item decomposes into impl-unit children at plan/build |
+| `work-item-schema` | factory `_ref` | import | the carrier — frontmatter + `lifecycle_state` (idea→discovery→defined→committed→in-delivery→shipped→live→parked/killed) + `current_stage` (dev-sprint stage, populated when in-delivery) + `tier` + `gate_decisions[]` + `transition_history[]` (append-only); parent work item decomposes into impl-unit children at plan/build |
 | `okr-schema` | factory `_ref` | import | the outcome layer — objectives / north-star / KPI structure |
 | `experience-contract` | harness (`external: true`) | on-demand | the product's session-shape invariants (BC: the Experience Arc) |
 | `personas` | harness (`external: true`) | on-demand | the product's user profiles (BC: `profiles.md`) |
@@ -81,7 +81,7 @@ curator refs. (Whether a single `surface-curator` could parameterise all three i
   model, not a scalar stage:
   - `lifecycle_state` — `idea → discovery → defined → committed → in-delivery → shipped → live →
     (parked | killed)`; transitions gated by PM go/no-go decisions.
-  - `current_dev_stage` — the dev-sprint stage the item is currently at (populated when
+  - `current_stage` — the dev-sprint stage the item is currently at (populated when
     `lifecycle_state = in-delivery`; **projected from the dev-sprint traversal** — node-enter/-exit events
     tagged with the carrier — operator-overridable, **never written by the curator**).
   - **Parent / child decomposition** — at `plan` / `build` the parent item spawns **impl-unit
@@ -89,7 +89,7 @@ curator refs. (Whether a single `surface-curator` could parameterise all three i
   - `gate_decisions[]` — append-only log: `{gate, decision, owner, timestamp, evidence_refs,
     override?, conditions?, confidence}` for every go/no-go.
   - `transition_history[]` — append-only log of every `lifecycle_state` transition.
-- **Carrier stage projection (not a write)** — `current_dev_stage` + `transition_history` are
+- **Carrier stage projection (not a write)** — `current_stage` + `transition_history` are
   **projected from the observed dev-sprint traversal** (node-enter/-exit events tagged with the carrier),
   derived and operator-overridable — **no node writes them**, the curator least of all. Gates advance
   `lifecycle_state` (operator go/no-go, each logging a `gate_decision`); `debrief` writes outcomes back to
@@ -108,7 +108,7 @@ curator refs. (Whether a single `surface-curator` could parameterise all three i
 - **invokes:** `strategy-curator` → {`explore`, `pr-author`}; `product-dashboard-curator` → {`pr-author`,
   `queue-checker`}.
 - **composes-into:** `product-lens` → `dev-sprint`@`design`,@`plan`. (`product-dashboard-curator` does
-  **not** `composes-into dev-sprint` — the carrier's `current_dev_stage` is **projected from traversal**
+  **not** `composes-into dev-sprint` — the carrier's `current_stage` is **projected from traversal**
   (see Mechanisms); the curator writes content only.)
 - **cross-thread reference:** `personas` (PM-owned) → experience thread (`simulate-users` reads it;
   see [`experience-thread-design.md`](experience-thread-design.md)).

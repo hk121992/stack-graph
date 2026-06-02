@@ -678,4 +678,29 @@ debrief-feedback-via-homes, the anti-fake-shipping check — all applied). *Reco
 edges, validated. *Applies D44 (carrier/projected-stage), D45 (gate dial); pays the F7 `@plan`-edge IOU;
 details graph-map.md's backbone sketch.* *Design:* `docs/dev-sprint-backbone-design.md`. *Status:* Accepted;
 wave 1 built + committed. Wave 2 (sub-arcs + crystallising nodes) pending.
+
+## Artefacts & surfaces
+
+**D51 — The loop's runtime artefacts: markdown + frontmatter + manifest, with carrier state split three
+ways.** The contract for the loop's runtime data (work-items, the product-dashboard surface, plans,
+sprint-records) — *format, storage, organisation, binding*. Resolves the dashboard's open "surface & file
+format" question; it is the **factory contract a harness instantiates**, and the prerequisite to vendoring
+the plugin + building the BC harness + exercising the loop. **Core fix (Codex): three strictly-separate
+kinds of carrier state** — **authored** (committed in the work-item file: `lifecycle_state` +
+`gate_decisions[]` [the committed lifecycle-transition record] + `stage_override` + curator content);
+**projected** (derived from the `.stack-graph/` event log, *not* committed: `current_stage` +
+`dev_transition_history`); **terminal snapshot** (`frozen_timeline`, written **once by a recorder at any
+terminal `lifecycle_state`** — shipped/live via debrief, parked/killed via the kill-park recorder —
+**decoupled from lifecycle advancement**; the only point a derived value enters a committed file).
+Artefacts = markdown + frontmatter + a committed-but-stale-checked manifest, in `workspace/<surface>/`,
+bound via the bindings reference; derived state in `.stack-graph/` (gitignored); a **degraded mode** renders
+the authored ledger + frozen closed items when the projection is absent (in-flight stage shown
+unknown/stale). The **bindings contract** lists the complete key set a harness must supply. *Naming fixed:*
+`current_stage` (was `current_dev_stage`); the canonical 8-state lifecycle
+(`idea→discovery→defined→committed→in-delivery→shipped→live→parked/killed`) across
+`work-item-schema`/`pm-graph-map`/`product-dashboard-design`. *Codex-reviewed* (the three-way split,
+degraded mode, manifest stale-check, terminal-freeze-not-just-debrief, complete bindings — all applied).
+*Applies D44 (carrier/projected-stage), D49 (record-primary), D38 (authored links); fits the 04-harness
+topology.* *Design:* `docs/artefacts-design.md` (+ `work-item-schema` v0.2.0). *Status:* Accepted (the
+contract); the **plugin build** + **harness build** are the two remaining prerequisites to exercise the loop.
 *Status:* Accepted (design); build in progress (product seats landed; handbook amendments pending).

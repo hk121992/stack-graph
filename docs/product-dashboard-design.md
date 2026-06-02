@@ -95,7 +95,7 @@ days — through:
 This is where the **thinking** happens — discovery, clearing the four risks, letting a solution
 crystallise before we commit. **Low inventory** (nothing lingers — the AI-world "kill the backlog"
 point), **high function** (it's the cockpit, not a parking lot). It maps directly to the carrier's
-`lifecycle_state` (`idea → exploring → committed`).
+`lifecycle_state` (the pre-delivery states `idea` → `discovery` → `defined` → `committed`).
 
 *Why it must exist (the operator's point):* **a feature needs a place to mature and get built out, even
 if only for a few days until the next sprint.** Without it, an idea has nowhere to move from "maybe" to
