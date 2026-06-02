@@ -1,7 +1,7 @@
 {
   "name": "stack-graph",
-  "version": "0.0.0",
-  "description": "The factory — models an agent operating environment as a graph of its .claude primitives and the workflows that traverse them; instruments and improves them via a PR-gated loop. Scaffold; specs in progress.",
+  "version": "0.1.0",
+  "description": "The factory — models an agent operating environment as a graph of its .claude primitives and the workflows that traverse them; instruments and improves them via a PR-gated loop.",
   "author": {
     "name": "Be Civic"
   }
