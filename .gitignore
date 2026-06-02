@@ -12,3 +12,4 @@ graph/*/source-material/
 
 # stray generated images (e.g. dropped into the repo root)
 *.png
+workspace/dist/
