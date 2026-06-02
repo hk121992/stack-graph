@@ -86,6 +86,17 @@ is exactly how an arc loops: the dev sprint closes by looping `debrief --can-fol
 and the review↔build correction is a `can-follow` loop. The structural skeleton stays a DAG;
 every loop rides a process edge.
 
+**Cyclic-edge discipline.** Happy-path forward flow is expressed with **`precedes`** (declared on
+the source node). **Corrective loops and re-entries use `can-follow`**, and every `can-follow`
+edge must carry three things: an **exit criterion** (the condition under which the loop terminates
+and forward progress resumes), a **max-attempt / escalation policy** (what happens when the exit
+criterion is not met within the allowed iterations — e.g. surface to the operator, halt, or elevate
+to a different stage), and a **labelled re-entry** (a named event or mode that identifies *which*
+re-entry path is being taken, so the traversal record is unambiguous). Without these three, a
+`can-follow` edge is an open cycle — the traversal has no termination guarantee and the record
+cannot distinguish a deliberate re-entry from a stuck loop. The rule: every loop in the graph is
+**explicit, bounded, and escalatable**.
+
 ## The carrier
 
 An arc is traversed by **carriers** — work-items that hold their own state as they move,
@@ -122,6 +133,41 @@ retained record are two readings of one carrier, not separate artefacts.
 A carrier is **not a node** — it is an instance flowing through the graph, and none of the three is a
 `composes-into` edge. What the lifecycle states, stages, and gates *are* is a domain concern — a delivery
 process's work item is one carrier.
+
+## Carrier instances
+
+A carrier *instance* is the concrete runtime realisation of a carrier — what is actually stored in the
+workspace when work moves through the arc. Instance storage is **distinct from node storage** (node files
+are `.claude` primitives serving the builder, renderer, and index; an instance is not a node and not a
+primitive). The two storage patterns live side-by-side without overlap.
+
+**Format and index.** An instance is a **markdown file with YAML frontmatter** (its authored state) **and
+a body** (the content or narrative record), indexed by a **manifest** in the workspace surface that holds
+it. This follows the graph's own files-canonical / frontmatter-structured / index-derived pattern, applied
+to runtime artefacts.
+
+**Three strictly-separate kinds of state** — conflating them is the structural risk:
+
+| kind | what it holds | who writes it | where it lives |
+|---|---|---|---|
+| **Authored** | `lifecycle_state`; the append-only `gate_decisions[]` log; an optional operator `stage_override`; curated content | gates (lifecycle + decisions) + the curator (content) | committed in the instance file |
+| **Projected** | `current_stage`; the stage-traversal sequence | derived from the carrier-tagged event log — **never written into the file** | generated store (not committed) |
+| **Terminal snapshot** | the traversal timeline, frozen once into the closed record at any terminal `lifecycle_state` | a recorder, keyed off the terminal transition; decoupled from the gate | committed into the closed record, once, at close |
+
+The **projected state** is derived exactly as the graph record is derived from node frontmatter: every arc
+stage emits node-enter/-exit events tagged with the carrier id; `current_stage` is the latest such event
+for that carrier; the traversal sequence is the ordered history. No stage holds a write-edge into the
+instance — the stages are what make the projection real.
+
+The **terminal snapshot** is the only point a derived value enters a committed file. It is written by a
+**recorder** — a dedicated action keyed off the terminal lifecycle transition, decoupled from the gate that
+advances the state — and it is written once, at close. After that, the closed record is complete and
+self-contained.
+
+**Degraded read.** When the generated projection is absent (e.g. a fresh clone), the authored ledger and
+any frozen closed records render fully. In-flight instances show their stage as unknown or stale until the
+projection rebuilds from replayed events. The surface never implies full fidelity without the projection;
+closed items are always complete.
 
 ## Inline
 

@@ -103,6 +103,48 @@ produced, stages passed). The gap between declared objective and measured outcom
 the loop reprioritises on. A carrier that ships artefacts but moves no objective is as
 visible as a node that never moves its metric.
 
+## Carrier-state projection
+
+The instrumentation preamble emits a `node-enter` / `node-exit` event **tagged with the
+carrier id** on every stage traversal, appending to the same local event log. This makes
+the carrier's stage-position a **derived projection**, never a hand-written field:
+
+- **Current stage** — the latest stage event for that carrier in the log. If an operator
+  `stage_override` is set in the carrier file, that wins; the projection is still derived
+  but overridden for presentation.
+- **Stage-traversal sequence** — the ordered series of stage events for that carrier:
+  its timeline through the graph.
+
+These two values are **computed on read from the event log**; they are never written into
+the carrier instance file — precisely as the graph record is derived from node frontmatter,
+not stored separately. The event log is the single source; the projection is a view over it.
+
+### Terminal freeze
+
+At a **terminal lifecycle state** (closed, shipped, killed, parked, or the harness
+equivalent), a **recorder** freezes the traversal timeline into the closed record. This
+snapshot — the durable history — is the one point at which a derived value enters a
+committed file, and it enters exactly once, at close. The event log itself is
+generated/ephemeral (gitignored); the frozen snapshot in the closed record is the
+permanent artefact.
+
+The recorder is **decoupled from lifecycle advancement**: the gate advances the state; the
+recorder freezes the timeline independently, so no terminal carrier loses its traversal
+history regardless of which path reached the terminal state.
+
+### Stream namespacing
+
+The event log carries three distinguishable streams sharing the same append-log machinery:
+
+| Stream | Subject | Consumers |
+|---|---|---|
+| **Product outcomes** | Carrier-tagged stage events; outcome metrics per node | Dashboard render; improvement loop |
+| **Factory / graph conformance** | Traversal conformance against arc-declared edges; gate events | Factory loop; devops review |
+| **Carrier projection** | Stage position + traversal sequence per carrier id | Surface render; recorder; degraded-mode fallback |
+
+They share machinery but are different subjects with different consumers; keep them
+namespaced so a consumer of one stream does not need to filter noise from another.
+
 ## The improvement loop
 
 **instrument → review → reconcile → amend.** Read the timeline and the per-node metrics;

@@ -46,6 +46,28 @@ together they present **one navigable space**. Working content **graduates** int
 that surface's curator; drafts and alternates stay in the function directory. The render machinery
 is a dedicated build directory, kept out of the content.
 
+### Surface artefact format and manifest
+
+A surface's instances are **markdown files with YAML frontmatter + a body**. Frontmatter holds
+**authored facts** — the structured state that gates write and the curator owns (lifecycle state,
+gate decisions, typed links, identifiers). The body holds narrative content. This follows the
+graph's own files-canonical / frontmatter-structured / index-derived pattern and keeps artefacts
+human-navigable and renderer-friendly while remaining machine-readable.
+
+Each surface is indexed by a **manifest** — a committed, derived index file (e.g.
+`items/manifest.json`) regenerated deterministically from the instance frontmatter by a
+**`refresh-index`** step. The manifest is **not a second source of truth**: it is a read-cache. A
+**stale-check** (run at integrate / CI) fails if the manifest does not reflect the current instance
+files — ensuring the instances remain authoritative and the manifest never drifts ahead of or behind
+them. Refresh points are: create/update an instance, record a gate decision, integrate, and terminal
+freeze. The surface renders from the manifest for navigation and filtering; the instance files are
+always the write target.
+
+Derived / machine state (current traversal stage, event history) lives in `.stack-graph/`
+(generated, gitignored), not in the committed surface. When `.stack-graph/` is absent (fresh clone,
+no projection), the surface renders from the committed authored state alone; in-flight items show
+their stage as unknown/stale until the projection rebuilds.
+
 ## Tree
 
 ```
@@ -91,6 +113,37 @@ demand (not a Claude-resolved config). The handbook index path is additionally m
 the org-root `CLAUDE.md`, which cascades to every child. Recall is one host **brain** with one
 **source** per workspace (`.gbrain-source`); MCP scopes every call by `--source`, so a node sees
 only its own workspace's recall by default.
+
+### The bindings contract
+
+A process declares the **logical keys it requires**; the harness supplies the **values** in the
+bindings reference. Nodes never hardcode paths or identities — they read their binding and navigate
+from there. The set of keys a process may require (not every process needs all of them):
+
+| Key | What it supplies |
+|---|---|
+| `surface-root` | root path of the target surface under `workspace/` |
+| `items-root` | directory holding the surface's instance files |
+| `manifest-path` | path to the surface's committed index file |
+| `sprint-records-root` | directory holding sprint-record files for this surface |
+| `strategy-doc` | the vision / strategy document path |
+| `objectives-doc` | the objectives / OKR document path |
+| `personas` | the personas surface or document read by experience-thread nodes |
+| `handbook-index` | path to the workspace handbook's `index.json` |
+| `event-log` | path / shape of the carrier-tagged event stream under `.stack-graph/` |
+| `renderer` | entrypoint, output/portal path, and degraded-mode policy |
+| `deploy-config` | target environment and deploy parameters |
+| `experience-contract` | the harness-supplied intended-experience specification |
+| `okr-binding` | how an instance's outcome link resolves to an objective id |
+| `plan-policy` | threshold and link shape for graduating an in-body plan to a linked file |
+| `terminal-recorder` | the recorder responsible for freezing a closed item's timeline |
+| `maturity` | the maturity-dial setting for this process / product |
+| `stale-projection-policy` | how the surface behaves when `.stack-graph/` is absent or stale |
+
+This is the **factory contract** — the keys the vendored graph can require. A harness is free to
+supply additional harness-local keys for local nodes; local nodes declare their own required keys
+in the same way. A key that is not relevant to a given process is simply omitted from that
+process's declared requirements.
 
 ## Peers
 
