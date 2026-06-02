@@ -284,12 +284,21 @@ Phase C. Any failure → fix before continuing.
 
 ## Phase C preview (after the gate — Claude@be-civic, separate session)
 
-`~/projects/be-civic/.claude/bindings.yaml` mapping each logical key → the migrated paths;
-fill the OKR gap (`bc-workspace/roadmap/objectives.md` per `okr-schema`); author one
-verification work-item in `work-item-schema` shape. Then **exercise**: run
-`align-context`→`design` via the vendored plugin on the item; confirm carrier-tagged events
-in `.stack-graph/`, `current_stage` projecting from the log, and the portal rendering the
-dashboard from the bound surfaces (`DASHBOARD_ROOT=<ledger> bash workspace/build.sh`).
+**The harness ships via the plugin — do not hand-assemble it.** After re-vendoring the updated
+plugin (now carrying `harness-init` + `bindings-contract`; the B3 vendor step), in a be-civic
+Claude session launched at the org root:
+
+1. **`harness-init scaffold`** — writes `<org-root>/.claude/bindings.yaml` from the bindings
+   contract (inferring + confirming the migrated paths) and scaffolds the bound surface skeleton
+   (`strategy.md`; `objectives.md` per `okr-schema` — this fills the OKR gap; `items/` +
+   `manifest.json`; `sprints/`). Then **`harness-init validate`** — the gate: every required
+   binding resolves and the surface exists before the loop runs.
+2. **`product-dashboard-curator add-item`** — add one verification work-item (the curator authors
+   the `work-item-schema` content; `harness-init` only created the empty bound surface).
+3. **Exercise the loop** — run `align-context`→`design` via the vendored plugin on that item;
+   confirm carrier-tagged events land in `.stack-graph/`, `current_stage` projects from the log,
+   and the portal joins the dashboard from the bound surfaces (`DASHBOARD_ROOT=<surface-root> bash
+   workspace/build.sh`).
 
 ## Open decisions for the operator (recap)
 

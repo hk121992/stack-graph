@@ -1,10 +1,23 @@
 {
-  "generated": "2026-06-01T00:00:00Z",
-  "node_count": 28,
-  "reference_count": 16,
+  "generated": "2026-06-02T00:00:00Z",
+  "node_count": 29,
+  "reference_count": 17,
   "handbook_reference_count": 0,
-  "edge_count": 118,
+  "edge_count": 121,
   "nodes": {
+    "harness-init": {
+      "primitive": "skill",
+      "mode": "collaborative",
+      "title": "Harness init",
+      "status": "v0.1.0 — 2026-06-02",
+      "edges": {
+        "references": [
+          { "id": "bindings-contract", "load": "import" },
+          { "id": "okr-schema", "load": "on-demand" },
+          { "id": "work-item-schema", "load": "on-demand" }
+        ]
+      }
+    },
     "align-context": {
       "primitive": "skill",
       "mode": "collaborative",
@@ -788,6 +801,14 @@
     }
   },
   "references": {
+    "bindings-contract": {
+      "kind": "reference",
+      "title": "Bindings contract — the keys a harness supplies, and the surface template",
+      "status": "v0.1.0 — 2026-06-02",
+      "consumed_by": [
+        "harness-init"
+      ]
+    },
     "IU-schema": {
       "kind": "reference",
       "title": "Implementation-Unit schema \u2014 the plan\u2194build field contract",
@@ -1623,6 +1644,24 @@
       "type": "references",
       "load": "on-demand",
       "external": true
+    },
+    {
+      "from": "harness-init",
+      "to": "bindings-contract",
+      "type": "references",
+      "load": "import"
+    },
+    {
+      "from": "harness-init",
+      "to": "okr-schema",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "harness-init",
+      "to": "work-item-schema",
+      "type": "references",
+      "load": "on-demand"
     }
   ]
 }

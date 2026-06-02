@@ -11,6 +11,12 @@ stack-graph distributes as a Claude Code plugin vendored into a consuming worksp
 canonical artefacts are real `.claude` files ([`graph-spec`](../02-graph-spec/README.md));
 the plugin is **built from them**, not authored separately.
 
+The vendored plugin carries not only the loop nodes and schemas but the **means to instantiate a
+harness**: the `bindings-contract` reference (the binding key set + the surface-structure template)
+and the `harness-init` skill that writes the bindings and scaffolds the surface in the consuming
+workspace ([`harness-spec`](../04-harness-spec/README.md)). A workspace stands up its harness from
+the plugin — the plugin ships the contract and the capability, never the product's data.
+
 ## What the build must do
 
 The build does three things node files cannot do for themselves:

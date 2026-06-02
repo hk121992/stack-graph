@@ -1,6 +1,6 @@
 ---
 title: Decision log
-status: v0.16.0 — 2026-06-02
+status: v0.17.0 — 2026-06-02
 ---
 
 # Decision log
@@ -748,3 +748,26 @@ untrusted product content). Runbook: 5 verified blockers fixed (`gbrain serve` n
 DB; `.bashrc` is dead under `bash -lc` → `~/.profile`; `gbrain sync --repo`; the bw broker IS loopback-
 reachable → iptables + a real check). *Reviewed:* 4 adversarial Opus agents (design / publisher-security /
 build-code / runbook). *Status:* Accepted; remediation committed.
+
+## Harness instantiation
+
+**D54 — The harness ships via the plugin: `harness-init` + `bindings-contract` (executable
+instantiation).** The harness build is **not** a manual per-product step (the readiness plan wrongly
+assumed a be-civic session would hand-assemble it) — the *means* to instantiate a harness ships in
+the vendored plugin. Two new vendored primitives: **`bindings-contract`** (a reference — the single
+source for the binding key set + the `bindings.yaml` format + the dashboard surface-structure
+template, generalising `artefacts-design` §6 / the 04-harness topology) and **`harness-init`** (a
+skill — modes `scaffold`/`bind`/`validate`: writes `<org-root>/.claude/bindings.yaml` from the
+contract by inferring + confirming the workspace's paths, scaffolds the empty bound surface skeleton
+from the template, and validates that every required binding resolves before the loop runs). It is
+**general** (no product paths — it infers/asks), writes **harness-local files only** (never the
+vendored graph), and scaffolds **structure** — content (work items / OKRs / strategy) is the curator
+family's. So a consuming workspace stands up its harness **from the plugin alone** — no
+hand-assembly, no copying a sibling's files. *Why:* the factory/product boundary + "the plugin
+carries the contract, never the data" mean instantiation must be a shipped capability, not a manual
+step performed in the product user (which the admin/tooling user cannot even write into). *Record:*
+**29 nodes / 17 refs / 121 edges**; vendored (16 skills); parity + load-verify pass. *Spec:*
+04-harness (an "Instantiating a harness" section + the contract is a shipped reference), 03-plugin
+(the plugin ships the harness-instantiation capability). *Status:* Accepted; built + vendored. The
+exercise (Phase C) is a be-civic session running `harness-init` → `product-dashboard-curator`
+add-item → `align-context`→`design`.

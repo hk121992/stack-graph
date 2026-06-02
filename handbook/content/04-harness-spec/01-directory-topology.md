@@ -145,6 +145,11 @@ supply additional harness-local keys for local nodes; local nodes declare their 
 in the same way. A key that is not relevant to a given process is simply omitted from that
 process's declared requirements.
 
+This contract is shipped as the vendored **`bindings-contract`** reference — the single source for
+the key set and the dashboard surface-structure template. The vendored **`harness-init`** skill is
+its executable instantiation: it writes this `bindings.yaml`, scaffolds the surface skeleton from
+the template, and (in `validate` mode) gates that every required key resolves before the loop runs.
+
 ### The bindings reference file
 
 The bindings reference is `<org-root>/.claude/bindings.yaml` — a **YAML file with flat top-level

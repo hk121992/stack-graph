@@ -22,6 +22,19 @@ lives in a harness, never in this repo. The concrete on-disk layout is the
 | The build, the graph model, the maintainer | The workspace's `CLAUDE.md` and instructions |
 | Namespaced `stack-graph:*` | Local entry nodes + edges into the vendored graph |
 
+## Instantiating a harness (ships via the plugin)
+
+A harness is **stood up by the plugin itself**, not hand-assembled. The vendored `harness-init`
+skill — run in the consuming workspace — writes `<org-root>/.claude/bindings.yaml` from the
+**bindings contract** (the shipped `bindings-contract` reference: the key set, the file format, and
+the dashboard surface-structure template), scaffolds the empty, bound surface skeleton, and
+**validates** that every required binding resolves before the loop runs. So the *means* to
+instantiate a harness ships in the plugin — the contract, the template, and the capability — while
+the consuming workspace supplies only the values and content. `harness-init` writes harness-local
+files only (never the vendored graph) and scaffolds empty structure; content — work items, OKRs,
+strategy — is filled by the curator family (`product-dashboard-curator`, `strategy-curator`),
+not by `harness-init`.
+
 ## The additive overlay model
 
 A harness customises by **adding**, in the same node-file format as the factory:

@@ -98,7 +98,7 @@ const NATIVE_KEY_ORDER = [
   "argument-hint",
 ];
 
-const PLUGIN_VERSION = "0.1.0";
+const PLUGIN_VERSION = "0.2.0";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 
