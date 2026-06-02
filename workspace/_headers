@@ -1,0 +1,8 @@
+# Cloudflare static-asset response headers (defense-in-depth; Cloudflare Access
+# provides the actual auth gate — see docs/workspace-portal-deploy.md).
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  X-Robots-Tag: noindex, nofollow
+  Cross-Origin-Opener-Policy: same-origin
