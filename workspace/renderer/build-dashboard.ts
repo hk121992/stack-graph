@@ -221,6 +221,8 @@ interface ProjectionResult {
   /** human-readable staleness reason, or null when fresh */
   staleReason: string | null;
   gitHead: string | null;
+  /** true = SHA matches but the snapshot is EMPTY (no events yet) — input-gated, not stale */
+  inputGated?: boolean;
 }
 
 function loadProjection(): ProjectionResult {
@@ -258,12 +260,25 @@ function loadProjection(): ProjectionResult {
     return { projection, fresh: false, staleReason: reason, gitHead };
   }
 
-  return { projection, fresh: true, staleReason: null, gitHead };
+  // Fresh = SHA matches. But a SHA-matching yet EMPTY snapshot is input-gated, not "live":
+  // no dev-sprint events exist yet (the expected pre-exercise / factory / CI state).
+  const empty =
+    Object.keys(projection.carriers ?? {}).length === 0 &&
+    Object.keys(projection.nodes ?? {}).length === 0;
+  return { projection, fresh: true, staleReason: null, gitHead, inputGated: empty };
 }
 
 // ── Provenance banner ────────────────────────────────────────────────────────
 
 function provenanceBanner(result: ProjectionResult): string {
+  if (result.inputGated) {
+    return `<div class="provenance-banner provenance-inputgated">
+  <span class="provenance-icon">○</span>
+  <div class="provenance-body">
+    <strong>Projection input-gated</strong> — no dev-sprint events recorded yet; in-flight stages show as <em>pending</em>. Expected before the loop is exercised.
+  </div>
+</div>`;
+  }
   if (result.fresh) return "";
   const { projection, staleReason, gitHead } = result;
   const generatedAt = projection?.provenance?.generated_at ?? "unknown";

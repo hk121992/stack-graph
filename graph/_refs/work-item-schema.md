@@ -19,7 +19,7 @@ modelling risk):
 |---|---|---|
 | `id`, `title` | identity | author, at creation |
 | `lifecycle_state` | `idea → discovery → defined → committed → in-delivery → shipped → live → (parked \| killed)` | **gates** (operator go/no-go) |
-| `gate_decisions[]` | append-only `{gate, decision, owner, timestamp, evidence_refs, confidence, conditions?, override?}` — **the committed record of every lifecycle transition** (the *when* + *why* of each gate) | **gates** (operator) |
+| `gate_decisions[]` | append-only `{seq, hash, gate, decision, owner, timestamp, evidence_refs, confidence, conditions?, override?}` — **the committed record of every lifecycle transition** (the *when* + *why* of each gate); `seq` is a monotonic integer (0-based position in the log), `hash` is a content hash of the entry (excluding `seq`/`hash` themselves) | **gates** (operator) |
 | `stage_override` | optional — an explicit operator override of the projected stage, when the projection is wrong | **operator** (authored) |
 | `children[]` | planned child work-item ids (decomposition); each materialises as its own work item at `build`; the parent aggregates | **curator** (from the plan) |
 
@@ -46,6 +46,16 @@ artefacts spec's degraded mode.
 |---|---|---|
 | `frozen_timeline` | a one-time snapshot of `dev_transition_history` (+ final `current_stage`) | a **recorder**, at any **terminal** `lifecycle_state` (`shipped`/`live` via `debrief`; `parked`/`killed` via the kill/park recorder) |
 
+**`frozen_timeline` shape** (the sub-shape the dashboard renders):
+```
+{ "final_stage": stage,
+  "captured_at": iso8601,
+  "transitions": [ { "stage": stage, "at": iso8601 } ] }
+```
+This envelope is deliberately distinct from the projection snapshot's `transition_summary` (which is a
+derived, live view keyed to a snapshot SHA). `frozen_timeline` is a **committed terminal snapshot** —
+written once at close, never derived again.
+
 This is the **only** point a derived value enters the committed file — a recorder action **keyed off the
 terminal transition** and **decoupled from lifecycle advancement** (the gate advances the state; the
 recorder freezes the timeline). It guarantees no terminal item loses its history when the (gitignored)
@@ -61,3 +71,11 @@ event log is gone.
 - **Problem-framed until `committed`** — the solution crystallises only at `committed` (Torres).
 - **The durable record** = `gate_decisions[]` + `risk_state` + `frozen_timeline` — proof we made the call
   deliberately on the best evidence available, and when.
+- **`gate_decisions[]` append-only — stable-identity definition.** For all prior indices i, entry at
+  position i is unchanged (verified by `seq` equality + `hash` equality); the log length only grows. The
+  CI append-only invariant is enforceable only against this stable-id'd log — a diff without `seq`+`hash`
+  cannot reliably detect edits to existing entries vs. reorderings.
+- **Recorder-freeze invariant.** A terminal `lifecycle_state` (`shipped`/`live`/`parked`/`killed`)
+  **implies** `frozen_timeline` present. CI should treat a terminal item lacking `frozen_timeline` as a
+  **data-integrity warning** — the portal flags it visibly rather than silently omitting the timeline
+  (the freeze may have been missed; the event log may already be gone).

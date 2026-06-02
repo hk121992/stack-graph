@@ -1,6 +1,6 @@
 ---
 title: Decision log
-status: v0.15.0 — 2026-06-02
+status: v0.16.0 — 2026-06-02
 ---
 
 # Decision log
@@ -727,3 +727,24 @@ build the dashboard/graph/analytics panels new; brand = a swappable config layer
 access concretisations applied after; final go/no-go pending a Codex rate-limit reset). *Renames the
 "roadmap-artefact" surface → portal; resolves the `04-harness` "workspace render" + the artefacts doc's
 renderer contract.* *Design:* `docs/workspace-portal-design.md`. *Status:* Accepted (design); build = A3b.
+
+**D53 — Portal access/freshness reconciled to the as-built model + adversarial-review remediation
+(refines D52).** A four-way **adversarial-Opus** review (Codex rate-limited) of the A3b build + the
+provisioning runbook found real, proven issues; remediated. **Access (refines D52's "fail-closed"):** the
+deployed portal is **static assets, no worker code, gated SOLELY by Cloudflare Access at the edge** (no
+application-layer second gate) — so correct CF Access config is a **verified release gate** (anonymous
+`curl` → 302/403, not 200). The sanitized `portal-projection.json` is a **behind-Access static asset** (not
+a server-side/private store; safe because the publisher emits only sanitized aggregates). **Freshness = three
+states** (input-gated/empty · stale/SHA-mismatch · fresh+populated), reconciled with artefacts-design's "no
+projection ⇒ degraded"; a git-connected CI deploy is **authored-only/input-gated** (no `.stack-graph/`), and
+**live projection requires a local `wrangler deploy`** (KV/R2+Worker = an input-gated later). **Security
+fixes (proven by hostile fixtures):** the projection publisher leaked via a verbatim `ax` spread + unbounded
+ids → now a numeric allowlist + an id grammar + dirty-tree `-dirty` provenance + future-timestamp rejection;
+the dashboard escapers coerce `String()` + escape quotes (a numeric YAML title crashed the build);
+`gate_decisions[]` gain `seq`+`hash` so **append-only is enforceable**; `frozen_timeline` sub-shape defined;
+`.stack-graph/` gitignored; a CSP added; **auto-merge stays disabled until the classifier + CI invariants
+ship as required checks**. **Markdown HTML sanitization = a Phase-C release gate** (before any harness renders
+untrusted product content). Runbook: 5 verified blockers fixed (`gbrain serve` not `mcp`; never `cp` a live
+DB; `.bashrc` is dead under `bash -lc` → `~/.profile`; `gbrain sync --repo`; the bw broker IS loopback-
+reachable → iptables + a real check). *Reviewed:* 4 adversarial Opus agents (design / publisher-security /
+build-code / runbook). *Status:* Accepted; remediation committed.

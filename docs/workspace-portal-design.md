@@ -18,15 +18,19 @@ The portal is **deployed** (built from git in a CF Worker), so its data splits i
   state** (each item's `lifecycle_state`, `gate_decisions`, content, the record, the `frozen_timeline` of
   closed items), objectives/strategy, and the **vendored graph structure**. All committed → present in the
   build.
-- **Projection overlay — a published snapshot.** The *live, derived* bits — in-flight `current_stage`,
+- **Projection overlay — a sanitized static asset.** The *live, derived* bits — in-flight `current_stage`,
   per-node **last-used**, recent traversals, **AX** — live only in `.stack-graph/` (gitignored, local,
-  "never leaves"). So on **rebuild**, a **local operator job publishes a sanitized `portal-projection.json`
-  snapshot** (per-carrier `current_stage` + a transition summary; per-node last-used; AX aggregates — **no
-  raw transcripts/secrets**), keyed by the commit SHA, to the deploy store (CF KV/R2/build artifact). The
-  build **joins** authored-from-git + this snapshot.
-- **Degrade loudly.** When the snapshot is absent or its SHA ≠ the build's, the portal renders the authored
-  layer in full and shows the projection bits as **stale/unknown** with a visible banner (snapshot
-  timestamp + commit). Raw events never leave the workspace (locality preserved).
+  "never leaves"). On **rebuild**, a **local operator job publishes a sanitized `portal-projection.json`**
+  (per-carrier `current_stage` + a transition summary; per-node last-used; AX aggregates — ids/stages/
+  timestamps/numeric metrics **only, no raw events/secrets**) into `workspace/dist/` before `wrangler deploy`.
+  It is served as a **static asset behind CF Access** at `/portal-projection.json`; there is no
+  server-side read. A git-connected CI build has no `.stack-graph/` and emits an empty snapshot. Raw events
+  never leave the workspace (locality preserved).
+- **Degrade — three states, not a binary.** (a) **Input-gated / empty snapshot** — no events yet; the portal
+  shows an explicit "projection input-gated — no dev-sprint events recorded yet" notice (not a silent green).
+  (b) **Stale / SHA-mismatch** — snapshot exists and is non-empty but commit hash doesn't match; stale
+  banner shown. (c) **Fresh + populated** — SHA matches AND snapshot is non-empty. The authored layer always
+  renders in full in all three states.
 
 ## 1. Role & surfaces
 
@@ -44,37 +48,75 @@ Deployed (CF Worker), rebuilt on PR merge. A portal index/nav (reused from be-ci
 - **Analytics** — conformance · AX · trends (projection overlay + git); input-gated, thin pre-launch.
 
 **Access — fail-closed, never public.** The portal exposes the operator's whole strategic surface (vision,
-strategy, the work-ledger, the graph, analytics) — so the deployed surface is **private by default**:
-**Cloudflare Access (Zero Trust)** in front of the Worker, scoped to the **single operator identity**; the
-Worker **rejects unauthenticated requests** (no anonymous read). The **snapshot store** (KV/R2) is
-**not publicly readable** — the Worker reads it server-side, never a public URL. No write/command surface is
-exposed. This is a build-blocking contract, not a nice-to-have: the portal must be incapable of serving
-anonymously before A3b ships.
+strategy, the work-ledger, the graph, analytics) — so the deployed surface is **private by default**.
+
+The deployed portal is **static assets served by a Cloudflare Worker with no worker code** (Workers Static
+Assets). Access control is **solely Cloudflare Access (Zero Trust)** at the edge, scoped to the **single
+operator identity** (email allowlist or operator IdP); default deny. There is **no application-layer
+second gate** — a request blocked by CF Access never reaches the assets, but if CF Access is
+misconfigured there is nothing behind it to catch the error. This means **correct CF Access configuration
+is a hard, verified release gate**: the deploy is not live until an anonymous `curl` to the Worker route
+returns the Access challenge (302/403), not 200.
+
+The **projection snapshot** (`/portal-projection.json`) is a **sanitized static asset behind the same CF
+Access gate** — not a private server-side store. It is safe to serve this way because the publisher emits
+only sanitized aggregates (ids, stages, timestamps, numeric metrics — no raw events or secrets). No write
+or command surface is exposed. This is a build-blocking contract, not a nice-to-have.
+
+*(Future hardening: a real Worker that validates the `Cf-Access-Jwt-Assertion` JWT on every request would
+add an application-layer defense-in-depth gate, but it is not built yet.)*
 
 ## 2. Freshness + merge-governance
 
-**Rebuild on PR merge** (CF Worker), **debounced/batched** (not one build per tiny mutation). A **two-tier
-merge policy with guards** (auto-merge is *validated*, never blind):
+**Rebuild on PR merge** (CF Worker), **debounced/batched** (not one build per tiny mutation).
 
-- **Auto-merge tier** — the operational ledger, but only after a **diff classifier + CI invariants** pass
-  (auto-merge is *validated*, never blind):
-  - **Classifier (path + field allowlist):** auto-merge **only when every changed path** is under the
-    work-ledger surface (`items/<id>.md`, `items/manifest.json`, `sprints/<id>.md`) **and every changed
-    frontmatter field** is in the allowlist — `lifecycle_state`, `gate_decisions[]`, `stage_override`, and
-    curator content (`risk_state`, `outcome_link`, `value_prop_link`, `tier`, `links`, `disposition`) + the
-    body. **Any** other path or field → PR-approval tier.
+**Snapshot freshness — three states (not a binary).** A snapshot is one of:
+- **(a) Input-gated / empty** — no carriers or nodes in the projection (expected state pre-exercise, before
+  any dev-sprint events exist). The portal renders the authored layer in full and shows an explicit
+  **"projection input-gated — no dev-sprint events recorded yet"** notice (not a silent green). This is the
+  expected degraded state for a factory build or a git-connected CI build (which has no `.stack-graph/`).
+- **(b) Stale / SHA-mismatch** — the snapshot exists and is non-empty, but its `provenance.commit` does not
+  match the current build's commit SHA. Render authored layer + a stale-snapshot banner.
+- **(c) Fresh + populated** — SHA matches the current commit AND the snapshot is non-empty (carriers and
+  nodes present). The portal renders live projection data.
+
+Note: SHA-match alone is insufficient — a snapshot whose `generated_at` predates the commit it claims is
+also suspect. The portal must surface the snapshot's `generated_at` age alongside the SHA match, and a
+snapshot older than the commit it claims should be flagged as potentially stale. (The publisher already
+suffixes `-dirty` for dirty trees, so a dirty publish degrades to state b.)
+
+**Merge policy.** The two-tier merge policy below is the **target state**. **Auto-merge MUST remain
+disabled** until the classifier + CI invariants ship as **required** CI status checks. Until then, all
+merges are PR-reviewed.
+
+- **Auto-merge tier (target — not active until guards ship)** — the operational ledger, after a **diff
+  classifier + CI invariants** pass:
+  - **Classifier — deep, typed JSON-path leaf diff.** Auto-merge **only when every changed path** is under
+    the work-ledger surface (`items/<id>.md`, `items/manifest.json`, `sprints/<id>.md`) **and every changed
+    frontmatter leaf** is in the allowlist — `lifecycle_state`, `gate_decisions[]`, and curator content
+    (`risk_state`, `outcome_link`, `value_prop_link`, `tier`, `disposition`) + the body. The diff is a
+    **deep, typed JSON-path leaf diff**: every changed leaf must resolve to a path in the allowlist;
+    `links` and `risk_state` are **closed schemas** (known sub-keys only — no open maps); **YAML
+    anchors/aliases/merge-keys are rejected** in ledger frontmatter. **Any** other path, field, or
+    unexpected key → PR-approval tier.
+  - **`stage_override` → PR-approval tier.** `stage_override` overrides the projection and can
+    misrepresent live state with no automatic gate. It is therefore a **PR-approval-tier field** — not in the
+    auto-merge allowlist. Where an operator must override, the commit must carry an authored justification
+    (a `gate_decision` entry or a matching gate token); failing that, the classifier routes it to PR
+    approval.
   - **CI invariants (block → route to PR, never auto-merge on failure):** (a) **schema-valid**
-    (`work-item-schema`); (b) **`gate_decisions[]` append-only** — the diff must be a pure append, no
-    edit/delete of an existing entry; (c) **the gate-token rule** — any `lifecycle_state` change **must** be
-    accompanied by a newly-appended `gate_decision` whose `decision` authorises it; a lifecycle change
-    *without* its gate entry is blocked (so a lifecycle/gate auto-merge always *reflects an
-    already-operator-approved gate* — the `gate_decision` **is** the approval token, not a bypassed review);
-    (d) **manifest stale-check** — `manifest.json` matches a fresh `refresh-index`.
+    (`work-item-schema`); (b) **`gate_decisions[]` append-only** — the diff must be a pure append; the
+    append-only invariant is enforceable only against a **stable-identity log** (each entry carries a
+    monotonic `seq` + a content hash — see §6 / `work-item-schema`); (c) **the gate-token rule** — any
+    `lifecycle_state` change **must** be accompanied by a newly-appended `gate_decision` whose `decision`
+    authorises it; a lifecycle change *without* its gate entry is blocked (so a lifecycle/gate auto-merge
+    always *reflects an already-operator-approved gate* — the `gate_decision` **is** the approval token,
+    not a bypassed review); (d) **manifest stale-check** — `manifest.json` matches a fresh `refresh-index`.
   - **Content edits** (why, `risk_state`, links, disposition) are durable product memory, but auto-merge is
     safe because they are schema-valid, within-surface, carry the **curator's integrate-gate provenance**
     (the authoring approval), and are git-recoverable — no separate token needed.
 - **PR-approval tier** — handbook/canon, sprint-plan, objectives/OKRs, strategy/vision, graph/node changes,
-  **and anything the classifier rejects**.
+  `stage_override`, **and anything the classifier rejects**.
 
 Maps onto the gate model + the curator's integrate gate.
 
@@ -88,9 +130,19 @@ Maps onto the gate model + the curator's integrate gate.
   HTML via `renderShell`); the **graph browser** (DOT→SVG from the committed graph structure +
   `graph-viewer.js` + the two health traffic-lights + node click-sidebar); the **analytics views**.
 - **The projection-snapshot publisher** — a small local job (run on rebuild/merge) that reads `.stack-graph/`
-  + emits the sanitized `portal-projection.json` to the deploy store, keyed by commit SHA.
-- **Reuse `portal/`** as the index/nav; **deploy** via a CF Worker (reuse be-civic's `wrangler` pattern),
-  rebuilt on merge. The build needs **full git history** (not a shallow checkout) for `last-updated`.
+  + emits the sanitized `portal-projection.json` (ids/stages/timestamps/numeric aggregates only) into the
+  `workspace/dist/` output before `wrangler deploy`. The snapshot is a static asset served behind CF Access
+  — **not** a private server-side store; it is safe because the publisher emits only sanitized content.
+- **Reuse `portal/`** as the index/nav; **deploy** via a CF Worker (Workers Static Assets, no worker code;
+  reuse be-civic's `wrangler` pattern), rebuilt on merge. The build needs **full git history** (not a
+  shallow checkout) for `last-updated`.
+- **Git-connected CF Workers Builds** (the "push to `main`" path) **always produces an authored-only /
+  input-gated portal** — the CI environment has no `.stack-graph/` (gitignored), so the publisher emits an
+  empty snapshot → the portal shows the authored layer + the input-gated notice (state a above). To surface
+  live projection on the deployed portal the operator must run `wrangler deploy` **locally** (where
+  `.stack-graph/` exists) after running the publisher. A future alternative — publishing the snapshot to CF
+  KV/R2 and a Worker that reads it at request time — is an **input-gated decision to revisit once the loop
+  produces real events** (no projection exists yet; premature now).
 
 ## 4. Branding — swappable layer
 
@@ -105,10 +157,10 @@ the renderer or panels.
 |---|---|---|---|
 | Handbook | `handbook/content/` (bound) | committed | n/a (always present) |
 | Work-ledger (authored) | work-items + `manifest.json` + objectives + strategy (bound) | committed | render as-is |
-| Work-ledger `current_stage` / in-flight | `portal-projection.json` | snapshot | stale/unknown + banner |
+| Work-ledger `current_stage` / in-flight | `portal-projection.json` (static asset behind CF Access) | snapshot | input-gated notice (empty) · stale + banner (SHA-mismatch) |
 | Graph structure | the **committed/vendored** graph (record), single sourced — *not* `.stack-graph/` | committed/vendored | n/a |
 | Graph `last-updated` | git history | committed | "—" if shallow |
-| Graph `last-used` / health / AX | `portal-projection.json` | snapshot | stale + banner |
+| Graph `last-used` / health / AX | `portal-projection.json` (static asset behind CF Access) | snapshot | input-gated notice (empty) · stale + banner (SHA-mismatch) |
 
 (Path note: the **factory** keeps `graph/graph-record.json` as the committed source-of-truth structure;
 a harness vendors it with the plugin; the *generated/local* `.stack-graph/` copy is **not** the portal's
@@ -125,21 +177,45 @@ pipeline — host code supplies brand + content, never the reverse.
   "palette": { "<token>": "<css-value>", … }, "theme_key": string }
 ```
 
-**Projection snapshot** (`portal-projection.json`; published outside git, keyed by SHA):
+**Projection snapshot** (`portal-projection.json`; a static asset in `dist/`, served behind CF Access):
 ```
 { "provenance": { "commit": sha, "generated_at": iso8601, "generator_version": string },
   "carriers": { "<item-id>": { "current_stage": stage|null, "transition_summary": [ { "stage": s, "at": iso } ] } },
   "nodes":    { "<node-id>": { "last_used": iso|null, "traversals_30d": int } },
-  "ax":       { "<node-id>": { … aggregate metrics } } }
+  "ax":       { "<node-id>": { "tokens_total": int, "tokens_to_outcome": int, "duration_ms": int,
+                               "latency_ms": int, "steps": int, "steps_to_outcome": int,
+                               "tool_calls": int, "backtracks": int } } }
 ```
+
+The `ax` shape is a **closed numeric leaf set** — the publisher drops any field not in the allowlist above.
+An empty `"carriers": {}` and `"nodes": {}` is valid JSON but signals the **input-gated / no-events** state
+(state a in §2); the portal renders the authored layer + the input-gated notice rather than treating it as
+a fresh projection.
 
 **Dashboard data model** (what the panels consume — the *join* result): per item, the authored fields from
 `work-item-schema` (`lifecycle_state`, `gate_decisions[]`, content) **+** the snapshot's
-`carriers[id].current_stage`; objectives from `okr-schema`; each marked `source: committed | snapshot`.
+`carriers[id].current_stage`; objectives from `okr-schema`. The "each field marked `source: committed |
+snapshot`" annotation is a **future display nicety** — not built yet. What the current build does: authored
+fields always render in full; snapshot-sourced fields are shown with a degraded/stale visual (banner or
+indicator) when the snapshot is absent, empty, or SHA-mismatched.
+
+**Terminal items — recorder-freeze invariant.** A terminal `lifecycle_state` (`shipped`/`live`/`parked`/
+`killed`) should always imply `frozen_timeline` present (see `work-item-schema` §3 and `artefacts-design`
+§5). The CI build should treat a terminal item **lacking** `frozen_timeline` as a **data-integrity
+warning** — rendered with a visible flag rather than silently omitting the timeline. This is an invariant
+the recorder enforces and CI validates.
 
 **Degradation contract:** every snapshot-sourced field has a defined fallback (table §5) — render
-`stale`/`unknown` + a provenance banner (snapshot `generated_at` + `commit`, and whether its SHA matches the
-build); the authored layer always renders in full. A panel **never** blanks or errors on a missing snapshot.
+`stale`/`unknown` + a provenance banner (snapshot `generated_at` + `commit`, and whether its SHA matches
+the build, and the age of the snapshot relative to the commit); the authored layer always renders in full.
+A panel **never** blanks or errors on a missing snapshot.
+
+**Markdown sanitization — Phase-C release gate.** Markdown bodies are currently rendered with raw-HTML
+passthrough (`marked` has no sanitizer). This is safe while all content is operator-authored canon in this
+factory repo. Before a harness renders untrusted product content (`--root`/`DASHBOARD_ROOT` pointed at a
+product ledger — Phase C), markdown HTML **must** be sanitized: escape raw HTML, drop `<script>` tags and
+non-`http(s)` hrefs, applied per-surface (trust the handbook canon; sanitize product ledger content). This
+is a **Phase-C release gate** (input-gated: no untrusted content renders in the factory today).
 
 ## Spec touchpoints
 
@@ -153,8 +229,11 @@ build); the authored layer always renders in full. A panel **never** blanks or e
 
 ## 7. Open / deferred
 
-- **Snapshot publisher mechanics** (CF KV vs R2 vs build artifact; the local job's trigger) — decided at
-  build (A3b); KV keyed by SHA is the leading option.
+- **Snapshot as a build artifact (static in `dist/`)** — the current, as-built model. The alternative
+  (CF KV/R2 + a Worker that reads it at request time) would allow live projection without a local deploy,
+  but is an **input-gated decision** — no projection events exist yet; revisit once the loop runs.
+- **Application-layer JWT validation** — a future Worker that validates `Cf-Access-Jwt-Assertion` would add
+  defense-in-depth; not built. Until then, correct CF Access configuration is the only gate.
 - **Interactivity** — not now (read-only); a command surface is out of scope.
 - **The DOT→SVG pipeline** — reuse be-civic's KG approach if suitable, else a small Graphviz step.
 - Graduates → built in A3b, **once the data model + merge-guard contract above are the build's spec.**
