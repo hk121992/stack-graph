@@ -577,16 +577,28 @@ const DASHBOARD_STYLES = `
 .stage-stale { color: var(--st-building); }
 
 /* ── Pills ── */
-.lifecycle-tag, .tier-badge, .risk-pill, .iu-status, .iu-size {
+.lifecycle-tag, .tier-badge, .iu-size {
   font-family: var(--mono); font-size: .68rem; border-radius: 999px; padding: .1em .55em; font-weight: 500; white-space: nowrap; }
 .lifecycle-tag { background: var(--code-bg); border: 1px solid var(--hair); color: var(--fg-soft); }
 .tier-badge { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent);
   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
+
+/* Status-light chips (iu status + risk): a glowing LED dot + a label on a faint
+   tinted chip. The dot is the status "light"; --lt carries the colour per state. */
+.risk-pill, .iu-status { --lt: var(--st-planned);
+  display: inline-flex; align-items: center; gap: .42em;
+  font-family: var(--mono); font-size: .68rem; font-weight: 500; white-space: nowrap;
+  border-radius: 999px; padding: .12em .6em .12em .5em;
+  background: color-mix(in srgb, var(--lt) 13%, transparent);
+  border: 1px solid color-mix(in srgb, var(--lt) 34%, var(--hair)); color: var(--fg); }
+.risk-pill::before, .iu-status::before { content: ""; flex: none; width: .5em; height: .5em; border-radius: 999px;
+  background: var(--lt);
+  box-shadow: 0 0 0 .13em color-mix(in srgb, var(--lt) 26%, transparent), 0 0 5px color-mix(in srgb, var(--lt) 55%, transparent); }
 /* risk_state values are EVIDENCE STRENGTH: low evidence = high risk (red); strong evidence = safe (green). */
-.risk-low { background: color-mix(in srgb, var(--st-blocked) 14%, transparent); color: var(--st-blocked); }
-.risk-moderate { background: color-mix(in srgb, var(--st-building) 16%, transparent); color: #9a7400; }
-.risk-strong { background: color-mix(in srgb, var(--st-done) 14%, transparent); color: var(--st-done); }
-.risk-unknown { background: var(--code-bg); color: var(--mute); }
+.risk-low { --lt: var(--st-blocked); }
+.risk-moderate { --lt: var(--st-building); }
+.risk-strong { --lt: var(--st-done); }
+.risk-unknown { --lt: var(--st-planned); }
 .stale-tag { font-family: var(--mono); font-size: .66rem; background: color-mix(in srgb, var(--st-building) 18%, transparent);
   color: #9a7400; border-radius: 3px; padding: 0 4px; margin-left: .3em; }
 
@@ -597,11 +609,10 @@ const DASHBOARD_STYLES = `
 .iu-head { display: flex; align-items: center; gap: .4em; margin-bottom: .3em; }
 .iu-id { font-family: var(--mono); font-size: .72rem; color: var(--accent); }
 .iu-size { background: var(--bg); border: 1px solid var(--hair); color: var(--mute); }
-.iu-status { color: #fff; }
-.iu-st-done { background: var(--st-done); }
-.iu-st-building { background: var(--st-building); color: #3a2e00; }
-.iu-st-blocked { background: var(--st-blocked); }
-.iu-st-planned { background: var(--st-planned); }
+.iu-st-done { --lt: var(--st-done); }
+.iu-st-building { --lt: var(--st-building); }
+.iu-st-blocked { --lt: var(--st-blocked); }
+.iu-st-planned { --lt: var(--st-planned); }
 .iu-title { font-weight: 600; font-size: .9rem; color: var(--fg); margin-bottom: .25em; }
 .iu-goal { font-size: .82rem; color: var(--fg-soft); margin-bottom: .35em; }
 .iu-files code, .iu-improves code { font-family: var(--mono); font-size: .72rem; background: var(--bg);
