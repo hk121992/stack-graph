@@ -23,10 +23,17 @@ The specifications are authored next. Nothing is built yet.
 
 ## Layout
 
-- `handbook/` — the specification (and, later, the authoring/review surface for the
-  graph). Start at [`handbook/content/index.json`](handbook/content/index.json).
-- `.claude-plugin/`, `skills/`, `agents/`, `hooks/`, `lib/` — the plugin surfaces;
-  **built from the handbook in a later phase** (currently stubs).
+- `handbook/` — the specification and the authoring/review reference for the graph. Start
+  at [`handbook/content/index.json`](handbook/content/index.json).
+- `graph/` — the authored nodes + shared references (`graph/_refs/`); the build's input.
+- `build/vendor.ts` — projects the graph into the installable plugin (`bun run vendor`).
+- `stack-graph-plugin/` — **git submodule**: the clean, vendored-only plugin repo
+  ([hk121992/stack-graph-plugin](https://github.com/hk121992/stack-graph-plugin)). The
+  build writes its `skills/`, `agents/`, `references/`, and `.claude-plugin/` here; it is
+  never hand-edited. Clone the factory with `git clone --recurse-submodules`.
+- `tooling/` — dev-time maintenance skills (graph-maintainer, handbook-curator, advisory
+  council); installed by symlink, not shipped in the plugin.
+- `workspace/` — the operator portal (handbook / graph / dashboard / analytics surfaces).
 
 ## Licence
 

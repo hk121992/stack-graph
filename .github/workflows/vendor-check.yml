@@ -1,0 +1,33 @@
+name: vendor-check
+
+# Freshness gate (G1): the vendored plugin in the stack-graph-plugin/ submodule must be
+# byte-identical to a fresh `build/vendor.ts` run. Guards the factory→plugin carve so the
+# submodule can never drift from the authored graph.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "graph/**"
+      - "build/**"
+      - ".github/workflows/vendor-check.yml"
+  pull_request:
+    paths:
+      - "graph/**"
+      - "build/**"
+      - ".github/workflows/vendor-check.yml"
+
+jobs:
+  vendor-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: vendor --check (G1 freshness + G2 load-verify)
+        run: bun run build/vendor.ts --check
