@@ -183,9 +183,12 @@ function buildDot(rec: GraphRecord): { dot: string; drawnEdgeKeys: Set<string> }
     const n = rec.nodes[id];
     const kind = n.primitive || "_default";
     const st = KIND_STYLE[kind] ?? KIND_STYLE._default;
-    const label = `${id}\\n(${kind})`;
+    // Escape id + kind individually and keep the `\n` as a RAW DOT newline. Running
+    // dotEscape over the whole label double-escaped the backslash, so Graphviz drew a
+    // literal "\n" instead of a line break (QA finding).
+    const labelText = `${dotEscape(id)}\\n(${dotEscape(kind)})`;
     lines.push(
-      `  "${dotEscape(id)}" [label="${dotEscape(label)}", shape=${st.shape}, ` +
+      `  "${dotEscape(id)}" [label="${labelText}", shape=${st.shape}, ` +
       `fillcolor="${st.fill}", color="${st.stroke}"];`,
     );
   }
