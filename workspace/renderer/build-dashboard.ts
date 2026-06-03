@@ -256,6 +256,8 @@ function loadProjection(): ProjectionResult {
       ? "Could not determine git HEAD (not in a git repo?)."
       : !snapshotCommit
       ? "Snapshot has no commit recorded."
+      : snapshotCommit.endsWith("-dirty")
+      ? "Snapshot was published from a dirty working tree (uncommitted changes) — it degrades until you commit and rebuild."
       : `Snapshot commit ${snapshotCommit.slice(0, 8)} ≠ HEAD ${gitHead.slice(0, 8)}.`;
     return { projection, fresh: false, staleReason: reason, gitHead };
   }
