@@ -3,28 +3,35 @@ title: Research report for align-context
 type: research-report
 status: complete
 authored: 2026-06-01
-last_updated: 2026-06-01
-amended: []
-sources_lifted: 0
+last_updated: 2026-06-03
+amended:
+  - date: 2026-06-03
+    note: Backfill external analogue search — CE ce-brainstorm + Anthropic best-practices lifted; challenge findings added; External analogues searched table authored; frontmatter fields set.
+sources_lifted: 2
+external_analogue_found: true
+external_corpora_searched:
+  - gstack live skills (office-hours, context-save, context-restore, investigate, retro, learn)
+  - CE plugin skills (ce-brainstorm, ce-plan, ce-work, ce-work-beta, ce-strategy, ce-sessions)
+  - be-civic plugin skills (bc-onboarding, bc-discovery, bc-path-traversal, bc-session-close)
+  - Anthropic published best-practice (code.claude.com/docs/en/best-practices)
+  - Anthropic research (building-effective-agents, trustworthy-agents, effective-context-engineering-for-ai-agents)
 researcher_adequacy_note: |
-  No source-material was lifted: align-context is authored directly from the governed design
-  spec (docs/dev-sprint-front-design.md — the "## align-context" section + the "## Governed
-  decisions" that apply to all three front stages) and the map (docs/graph-map.md), mirroring
-  the shape and voice of two already-built nodes (graph/explore/explore.md, the agent it
-  invokes; graph/review/review.md, a collaborative front skill that orchestrates a fan-out).
-  The primitive/mode/determinism decision (skill · collaborative · generative) is high-confidence
-  and pre-settled by the design ("All three: primitive: skill, mode: collaborative, determinism:
-  generative"). Edges were determined directly from the design's "**Edges:**" line for the stage
-  and are conservative: composes-into dev-sprint @align-context; invokes explore; references
-  handbook (external, on-demand); precedes design (the one process edge with an existing endpoint,
-  authored now). can-follow debrief is DEFERRED (F7 — debrief absent) and described in prose. The
-  carrier touch is the governed "projected model": align-context READS the carrier and EMITS
-  node-enter/-exit events, carries NO write-edge, and does NOT advance current_stage. The
-  carrier / personas / value-prop reads are via BINDINGS (D49 — a convention, a reference read
-  on demand), NOT edges — so they do not appear in the edge block. Goals were framed directly
-  from the design's three goals as outcomes without difficulty. Recommendation: proceed to
-  synthesis; the one item flagged for the translator is the deferred can-follow debrief edge
-  (prose, not frontmatter) and the no-edge binding reads (prose, not frontmatter).
+  External search covered all mandated corpora: gstack live skills (office-hours, context-save,
+  context-restore are session-level tools, not task intent-alignment tools — no analogue); CE plugin
+  (ce-brainstorm is the strongest structural analogue — it operationalises the same job at product
+  level: interrogate intent, surface rigor gaps, align scope before any downstream execution; ce-plan
+  and ce-work were also inspected); be-civic (bc-onboarding is authentication/setup, not intent
+  alignment — no analogue); Anthropic published docs (best-practices "Explore first/plan/code" and
+  "Let Claude interview you" patterns are the canonical Anthropic-blessed form of what align-context
+  operationalises; building-effective-agents and trustworthy-agents confirm the pattern). Two sources
+  lifted verbatim. The challenge findings reveal six substantive gaps where the node is weaker than
+  its analogues: missing a formal rigor-gap taxonomy, under-specified operator dialogue discipline,
+  no peer-level scope challenge, absence of integration-check before closing, no clear exit condition
+  for the alignment conversation, and weak description of the non-solicitation discipline (asking vs
+  telling). Primitive/mode (skill, collaborative, generative) is high confidence and confirmed by
+  the analogues. Goals are correctly framed as outcomes. Recommend: proceed to translator; the
+  amendment target is the Phase 3 body (operator interaction discipline) — the gap is real and
+  actionable.
 ---
 
 # Research report for align-context
@@ -36,6 +43,10 @@ dev-sprint arc and the first of the three collaborative **front** stages
 `graph/review/review.md` (a collaborative front skill that owns orchestration + operator
 interaction and fans out to an isolated worker) and `graph/explore/explore.md` (the isolated
 context-gathering agent align-context invokes) for node shape and voice.
+
+Backfilled 2026-06-03: external analogue search conducted; two sources lifted into
+`graph/align-context/source-material/`; challenge findings and External analogues searched
+sections added.
 
 ## Identity
 
@@ -99,6 +110,10 @@ front-loaded — aligning intent and design — and returns to close"). It is ne
 returns-a-summary shape, so `agent` is ruled out. The design pre-settles this for all three
 front stages: `primitive: skill`, `mode: collaborative`. High confidence, no ambiguity.
 
+Confirmed by the analogues: both CE `ce-brainstorm` and Anthropic's "Let Claude interview you"
+pattern are explicitly collaborative — they run in the main thread, hold state across turns,
+and block until the operator agrees.
+
 **`determinism:`** `generative`
 
 **Rationale:** align-context exercises judgment throughout — what the real intent is beneath the
@@ -136,17 +151,49 @@ the design (`determinism: generative` for all three front stages). High confiden
   align-context "writes," and it is emitted, not a carrier mutation. Completing the stage is the
   observable signal the carrier projection / curator picks up to advance `current_stage`.
 
+## External analogues searched
+
+Record of the real-world search — what was searched, what was found, and what was lifted.
+
+| corpus searched | query / what you looked for | found? | lifted to source-material? |
+|---|---|---|---|
+| gstack live skills: `office-hours` | Pre-task intent framing, scope alignment before work begins | Partial — office-hours does YC-style demand validation (what is worth building), not task-level intent alignment before execution | — |
+| gstack live skills: `context-save`, `context-restore` | Session-level intent preservation and handoff | No — these are session-continuity tools (save/restore working state), not intent-alignment | — |
+| gstack live skills: `investigate`, `retro`, `learn`, `health`, `landing-report` | Pre-work scoping or intent-clarification phases | No — these are post-hoc or diagnostic, not pre-task alignment | — |
+| CE plugin: `ce-brainstorm` | Collaborative pre-work intent clarification, scope assessment, rigor-gap probing, operator dialogue before downstream execution | **Yes — primary external analogue.** ce-brainstorm operationalises the same job at product level: assess scope tiers, probe for rigor gaps, run collaborative dialogue to align on *what* before any execution, produce a durable artifact | `ce-brainstorm-SKILL.md` |
+| CE plugin: `ce-plan`, `ce-work` | Pre-execution planning phase, context read-once pattern | Partial — ce-plan's Phase 0 "Source and Scope" + ce-work's "Input Triage" Phase 0 have intent-routing logic; not a direct analogue but corroborate the scope-triage pattern | — |
+| CE plugin: `ce-strategy`, `ce-sessions` | Strategic grounding before work, session-history context | No — ce-strategy maintains a product anchor doc; ce-sessions searches past sessions. Neither is a per-task alignment stage | — |
+| be-civic: `bc-onboarding`, `bc-discovery`, `bc-path-traversal`, `bc-session-close` | Work-item intake, intent clarification, procedure matching | No — be-civic's intake is domain-specific procedure matching + auth setup, not a general task intent-alignment stage | — |
+| Anthropic published best-practice: code.claude.com/docs/en/best-practices | "Explore first, then plan, then code" pattern; "Let Claude interview you" pattern; subagent investigation pattern | **Yes — canonical Anthropic-blessed form of the pattern.** Three sections directly operationalise what align-context does: the Explore→Plan phase separation, the AskUserQuestion interview pattern for pre-task spec-writing, and the subagent-for-investigation pattern | `anthropic-claude-code-best-practices-explore-plan-code.md` |
+| Anthropic research: building-effective-agents, trustworthy-agents | Pre-task scope alignment, ambiguity handling, clarification-before-action doctrine | Yes — confirms the "clarify before proceeding" doctrine; describes the plan-mode oversight pattern; distinguishes resolvable gaps from preference/intent gaps that only the user can settle. Not lifted verbatim (online doc, summarised) | — |
+| Anthropic research: effective-context-engineering-for-ai-agents | Context-gathering once vs re-gathering; just-in-time retrieval | Partial — addresses "just in time" context retrieval and token efficiency; does not address intent alignment; corroborates the "gather once" discipline but from a different angle | — |
+| Agile methodology: Scrum Definition of Ready (scrum.org) | Pre-sprint intent alignment gate; criteria for work-item readiness | Searched but web pages returned empty content. DoR is the relevant agile analogue (see Challenge findings) — it gates work into a sprint on verified intent, acceptance criteria, and scope clarity. Not lifted (page fetch failed) | — |
+
+**Primary external analogue:** CE `ce-brainstorm` (`source-material/ce-brainstorm-SKILL.md`) is
+the strongest real-world counterpart. It is a live, deployed skill in the CE plugin that does
+exactly the same job as align-context but at product/feature level rather than per-task/work-item
+level: it runs collaborative dialogue with the operator before any execution begins, assesses
+scope (lightweight/standard/deep tiers — directly mirrors align-context's four modes), probes
+for rigor gaps, settles intent, and hands a durable artifact forward. The structural seams
+(scope-tier branching, operator interrogation, rigor-probe list, integration check before
+closing) are the concrete patterns align-context should match or consciously diverge from.
+
+**Secondary external analogue:** Anthropic's own best-practices page (lifted as
+`source-material/anthropic-claude-code-best-practices-explore-plan-code.md`) describes the
+canonical "Explore → Plan → Code" separation and the "Let Claude interview you" pattern, which
+is the published, first-party design principle behind what align-context operationalises. This
+gives the node a first-party grounding from Anthropic and corroborates the design decisions.
+
 ## Source inventory
 
 | file | status | notes |
 |------|--------|-------|
-| `docs/dev-sprint-front-design.md` (the `## align-context` section + the `## Governed decisions`) | keep (primary) | The governing design: goals, the four modes, the edge set, the carrier projected-model, the per-task-only scope. Authored directly to this — not lifted into source-material. |
-| `docs/graph-map.md` (backbone row for `align-context`; the arc diagram; explore consumers) | keep | The map: align-context is backbone stage 1 (skill · C · "shared, correct intent + constraints before design"; invokes explore; modes lightweight/standard/deep/spec), `debrief → align-context` is the seed-next loop, and explore lists align-context among its consumers. |
-| `graph/explore/explore.md` | keep (shape/voice mirror) | The agent align-context invokes; its spawn-bundle contract (scope/mode selector + target + scope-rules/planning-context summary) is the seam align-context fills. Mirrored for voice. |
-| `graph/review/review.md` | keep (shape/voice mirror) | A collaborative front skill that owns orchestration + operator interaction and fans out to an isolated worker, deferring a process edge to a not-yet-built neighbour in prose (the build loop). The closest structural sibling. |
-
-No `source-material/` directory: this node is authored from the settled in-repo design, not
-from lifted external prior art.
+| `docs/dev-sprint-front-design.md` (the `## align-context` section + the `## Governed decisions`) | keep (primary design input) | The governing design: goals, the four modes, the edge set, the carrier projected-model, the per-task-only scope. This is design input, not an external analogue. |
+| `docs/graph-map.md` (backbone row for `align-context`; the arc diagram; explore consumers) | keep (design input) | The map: align-context is backbone stage 1. Design input, not external analogue. |
+| `graph/explore/explore.md` | keep (shape/voice mirror) | The agent align-context invokes; its spawn-bundle contract. Internal sibling, not external analogue. |
+| `graph/review/review.md` | keep (shape/voice mirror) | Closest structural sibling in the factory graph. Internal sibling. |
+| `source-material/ce-brainstorm-SKILL.md` | **keep (primary external analogue)** | CE plugin's pre-work intent-clarification skill. Lifted verbatim 2026-06-03. Key sections: scope-tier assessment (§0.3), rigor-gap taxonomy (§1.2), collaborative dialogue discipline (§1.3 Interaction Rules), integration-check before exit (§1.3 "Before exiting Phase 1.3"). |
+| `source-material/anthropic-claude-code-best-practices-explore-plan-code.md` | **keep (secondary external analogue)** | Anthropic best-practices "Explore → Plan → Code" + "Let Claude interview you" patterns. Lifted verbatim 2026-06-03. Canonical Anthropic-blessed form of the pre-execution intent phase. |
 
 ## Keep / Drop
 
@@ -247,12 +294,18 @@ D34: align-context owns its own branching (mode selection) and sequencing (read 
 fan explore → interrogate intent → settle + hand forward), so it is a node. The four modes
 share one contract (establish shared/correct intent + constraints; gather context once; close a
 real alignment) and the same earns-keep, differing only in **depth** — how thin or deep the
-explore fan-out is, how many operator rounds, and whether the handbook/touchpoints work runs.
+explore fan-out is, how many operator rounds the alignment takes, and whether the handbook /
+touchpoint work runs.
 By D34 that makes them **branches in one skill body, not separate nodes**; there is no
 node-count divergence between the authoring view and the rendered `.claude` skill. A mode would
 graduate to its own 1:1 primitive only if it earned a *distinct measurable goal* — none does
 today (all four serve the same three outcomes), so they stay branches. This mirrors `review`
 (one skill, four interaction-policy modes) and `explore` (one agent, five source modes).
+
+The analogue comparison confirms fit: ce-brainstorm uses identical tier branching
+(lightweight / standard / deep) inside one skill rather than three separate skills — the same
+structure. The Anthropic best-practices pattern uses a mode-sensitive callout ("if you could
+describe the diff in one sentence, skip the plan") rather than a separate primitive.
 
 ## Edges
 
@@ -277,14 +330,6 @@ today (all four serve the same three outcomes), so they stay branches. This mirr
 - **`loads`:** none. align-context loads no other node into its context; it *invokes* explore
   (isolated) and *references* the handbook.
 
-**A note on `precedes design` and authoring order.** The design instructs authoring
-`align-context precedes design` now because both endpoints exist after the parallel front batch.
-If `design` is validated *before* it is authored, the `precedes` target will not resolve and
-validate will (correctly) fail. The orchestrator batch-validates all front nodes **together at
-the end**, after `design` exists — so the edge resolves at that point. (If this node is ever
-validated standalone before `design` lands, expect that one unresolved-target failure; it clears
-once design is authored.)
-
 ## Conformance
 
 **`primitive:`↔`mode:` agreement:** `primitive: skill` ↔ `mode: collaborative` — agree
@@ -306,6 +351,134 @@ Confirmed.
   front batch); declared now per the design, validated in the end-of-batch sweep.
 - `can-follow: debrief` — **not declared** (deferred, F7); prose only.
 
+## Challenge findings
+
+These findings are derived by comparing align-context against its primary external analogues
+(CE `ce-brainstorm` SKILL.md and Anthropic's published best-practices "Explore first / Let Claude
+interview you" patterns) and against the Agile "Definition of Ready" principle. They identify
+where the node is weaker than real-world practice and what the node body may be missing.
+
+### CF1 — No formal rigor-gap taxonomy (severity: high)
+
+**Counterpart:** `ce-brainstorm` §1.2 ("Product Pressure Test") names four explicit rigor-gap
+lenses per scope tier: evidence gap, specificity gap, counterfactual gap, attachment gap (and
+durability gap at product tier). Each gap maps to a specific probe question and a specific
+failure mode that downstream stages will encounter if the gap is not closed.
+
+**align-context's gap:** Phase 3 ("Interrogate the intent to alignment") names four general
+activities ("surface assumptions", "ask disambiguating questions", "reconcile with personas",
+"settle scope") but does NOT name the category of gaps to look for or the specific probe that
+closes each one. The node tells Claude *that* it should interrogate, not *what classes of
+ambiguity* to probe for. This means the alignment conversation will find what happens to be
+obvious, rather than systematically closing the gaps that actually cause rework downstream.
+
+**Recommendation:** Phase 3 of the node body should add a rigor-gap taxonomy — at minimum:
+intent gap (is the stated intent actually what the operator wants?), scope-boundary gap (what is
+explicitly out?), constraint gap (what binds this item technically, product-wise, or in time?),
+and user-alignment gap (does this item serve a real persona?). Map these to the mode tiers.
+
+### CF2 — Under-specified operator dialogue discipline (severity: high)
+
+**Counterpart:** `ce-brainstorm` §1.3 Interaction Rules prescribes: one question per turn, prefer
+the platform's blocking question tool, open-ended questions only when genuinely open (and only
+when specific enough to elicit a substantive answer), do not narrate the form choice, no
+yes/no traps, no warmth wrappers. The Anthropic best-practices "interview" pattern specifies
+using `AskUserQuestion`, keeping interviewing until everything is covered, and then writing a
+spec. Both specify *how* the dialogue runs, not just that it should happen.
+
+**align-context's gap:** Phase 3 specifies *what* the alignment conversation must cover but
+gives almost no guidance on *how* the dialogue should be conducted. There is no equivalent of
+"one question per turn", no guidance on using `AskUserQuestion`, no guidance on what makes a
+question too vague to be useful, and no discipline preventing Claude from firing a battery of
+questions in one turn (which dilutes the answers and signals to the operator that the stage is
+not holding them accountable).
+
+**Recommendation:** Add an interaction discipline section to Phase 3 or as a preamble to the
+phase. At minimum: one question per turn; use the platform's blocking question tool; prefer
+specific, answerable questions over open-ended sweeps; do not stack sub-questions.
+
+### CF3 — No peer-level scope challenge (severity: medium)
+
+**Counterpart:** `ce-brainstorm` explicitly instructs Claude to "be a thinking partner — suggest
+alternatives, challenge assumptions, and explore what-ifs instead of only extracting
+requirements." The Anthropic "interview" pattern specifies: "Don't ask obvious questions, dig
+into the hard parts I might not have considered." `office-hours` takes the strongest stance:
+anti-sycophancy rules, explicit pushback posture ("state your position AND what evidence would
+change it").
+
+**align-context's gap:** Phase 3 instructs Claude to "surface assumptions" and "ask
+disambiguating questions", but the body does not ask Claude to *challenge* the stated intent or
+push back on it. Alignment can pass by rubber-stamping the operator's first statement if the
+operator sounds confident. There is no instruction to name a mismatch ("this item as stated
+does not serve the stated persona"), take a position, or propose an alternative framing.
+
+**Recommendation:** Add to Phase 3 a brief "peer posture" instruction: if the stated intent has
+a detectable gap (misaligned to persona, scope that is broader than the mode warrants, an
+assumption that, if wrong, would send design off-track), name it and give the operator the
+opportunity to correct it or explicitly accept the gap. Align-context should be a peer reviewer,
+not a passive recorder.
+
+### CF4 — No integration check before closing (severity: medium)
+
+**Counterpart:** `ce-brainstorm` §1.3 specifies a mandatory "integration check" before exiting
+Phase 1: "Mentally combine what the user has said so far and surface any non-obvious consequences
+the dialogue hasn't probed. If user-stated X plus user-stated Y plus your-default-Z produces a
+downstream effect the user is unlikely to have tracked through one-question-at-a-time dialogue,
+probe it now."
+
+**align-context's gap:** Phase 3 continues until "the operator agrees the intent statement is
+correct and the constraints are settled" but there is no integration-check step before closing.
+A complete alignment conversation might still miss the interaction between two constraints (e.g.
+"this item must ship by Friday" AND "this item touches auth" — neither is problematic alone, but
+together they may make the scope negotiation urgent) if each is addressed separately and no
+synthesis step is performed.
+
+**Recommendation:** Add an integration check before Phase 4 (Settle and hand forward): before
+closing, combine the settled intent + constraints and identify any non-obvious interactions
+between them that the operator has not been alerted to. If one is found, surface it as a final
+probe.
+
+### CF5 — Unclear exit condition for the alignment conversation (severity: medium)
+
+**Counterpart:** `ce-brainstorm` specifies: "**Exit condition:** Continue until the idea is clear
+AND no integration-check questions are pending, OR the user explicitly wants to proceed." The
+Anthropic interview pattern says: "Keep interviewing until we've covered everything." Both give
+Claude a concrete exit condition that prevents premature closing.
+
+**align-context's gap:** Phase 3 says "Continue until the operator agrees the intent statement is
+correct and the constraints are settled." This is operator-gated but not agent-enforced — it
+depends on the operator saying "yes" rather than requiring Claude to verify that the gaps it
+identified are actually closed. On a lightweight item with a confident operator, Claude may
+accept a one-word acknowledgment as "agreement" and close before the gaps are genuinely settled.
+
+**Recommendation:** Specify a two-part exit condition: (a) all rigor gaps identified in the
+opening are closed (operator has explicitly addressed them or Claude has verified they don't
+apply), AND (b) the operator explicitly agrees the intent is correct. Only when both conditions
+hold does the alignment close. On lightweight items, condition (a) may have zero gaps — that is
+fine and fast; the point is that the check is explicit, not implicit.
+
+### CF6 — No explicit non-solicitation discipline (severity: low)
+
+**Counterpart:** Anthropic's "Let Claude interview you" pattern specifies that after the spec is
+complete, Claude should "start a fresh session to execute it" — the spec phase and the execution
+phase are separated to prevent context bleed and premature action. `ce-brainstorm` enforces this
+by being a standalone skill that explicitly does not implement code ("This skill does not
+implement code. It explores, clarifies, and documents decisions for later planning or
+execution.").
+
+**align-context's gap:** The node body states that align-context "does not perform the context
+search yourself" and "does not resolve the design questions or author a design doc", but it does
+not include a matching hard statement that *prohibits Claude from starting to propose design
+solutions during the alignment conversation*. On a novel item, an eager Claude running this
+stage might surface candidate implementation approaches while "surfacing assumptions" — which
+both confirms assumptions AND predisposes the design toward a direction before the intent is
+settled.
+
+**Recommendation:** Add a brief hard boundary: during the alignment conversation, do not propose
+design approaches or implementation directions. The alignment closes when the intent is settled;
+design candidates arrive in the `design` stage. Surface assumptions as questions, not as
+embedded proposals.
+
 ## Open questions
 
 - **`precedes design` resolution timing.** Authored now per the design (endpoints exist after the
@@ -319,3 +492,13 @@ Confirmed.
 - **Touchpoints inlined.** The `spec` mode captures a starting touchpoint set inline (extracting a
   `spec-touchpoints-table` reference is deferred per the governed decision — minor). The body
   describes the touchpoint capture in prose; no reference edge for it yet.
+- **Challenge finding remediation.** CF1–CF6 above are findings for the node body (align-context.md),
+  not this report. None of them require changing the edges, primitive, mode, or goals. They
+  are Phase 3 body improvements. An `amend` pass on the node canonical is the appropriate
+  follow-on; this report's job is to name them.
+- **Agile DoR as a parallel.** The Scrum "Definition of Ready" is a meaningful external parallel —
+  it gates work items from entering execution on verified intent + acceptance criteria + scope
+  clarity + estimability, and is designed to prevent the same failure mode align-context targets
+  (rework from mis-stated intent). The scrum.org page fetch failed during this research session;
+  a follow-on search could lift the DoR criteria as a third source to deepen CF1 (rigor-gap
+  taxonomy). Low priority — the CE and Anthropic analogues already make the gaps concrete.

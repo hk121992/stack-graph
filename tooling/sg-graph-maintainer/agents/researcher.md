@@ -46,7 +46,9 @@ You also return a structured summary to the driver:
 ```yaml
 summary:
   mode: new | amend
-  sources_lifted: <int>                # files placed in source-material/
+  sources_lifted: <int>                # files placed in source-material/ (verbatim external analogues)
+  external_corpora_searched: <list>    # REQUIRED — corpora actually searched (e.g. operator skills, reference plugins, product harness, published best-practice). Names, not machine paths.
+  external_analogue_found: true | false # REQUIRED — did a real external counterpart exist after the search?
   edges_declared: <int>                # edges surfaced in § Edges
   goals_authored: <int>                # goals authored in § Goals
   researcher_adequacy_note: |
@@ -75,11 +77,32 @@ summary:
 
 ### `mode: new` steps
 
-3. **Locate source material.** Search for existing `.claude` primitives (skills,
-   agents, commands, scripts) and relevant documentation that this node should be
-   modelled on or that it absorbs. Likely locations: `skills/`, `agents/`, `hooks/`,
-   `handbook/`. Lift verbatim copies into `graph/<id>/source-material/` — one file
-   per source. Do NOT edit the lifted content.
+3. **Locate source material — external search is MANDATORY.** A node authored only from
+   in-repo design docs is the failure mode this step exists to prevent (it produces a
+   research-report that cannot challenge the node against how the job is really done). Search
+   **all** of these corpora before concluding anything is unavailable:
+
+   - **In-repo primitives and docs** — `tooling/`, `graph/`, `handbook/`, `docs/` (the settled
+     design is input, but it is *not* an external analogue — it cannot corroborate or challenge).
+   - **Real `.claude` skill sets on the machine** — the operator's own skills, any reference
+     plugins present, and the consuming product's harness. These are where a real counterpart to
+     this node most likely lives (a real `review`/`plan`/`build`/`ship` skill, a real curator).
+     Their concrete paths are environment-provided — take them from the `scope_hint`, or ask the
+     driver for the reference-corpus roots if none are given. Do **not** hardcode machine paths
+     here; this skill stays general.
+   - **Published best practice** — Anthropic's skill/agent/prompt docs for *how* to build the
+     primitive, and any named methodology or framework relevant to the node's **domain** (the
+     body of practice the node operationalises). Cite these in the report even when nothing is
+     lifted verbatim.
+
+   Lift verbatim copies of every external analogue into `graph/<id>/source-material/` — one file
+   per source. Do NOT edit lifted content.
+
+   **Recording is required whether or not anything is lifted.** If, after a real search, no
+   external analogue exists, that is a finding — name *what corpora you searched and with what
+   query* in the report's `## External analogues searched` section and in the adequacy note. A
+   bare "no source-material needed" or `sources_lifted: 0` with no record of the search is a
+   contract violation: the next reader cannot tell a real gap from a skipped step.
 
 4. **Write `_provenance.json`.** For each lifted file, record:
    ```json
@@ -163,6 +186,9 @@ summary:
 ### Final steps (both modes)
 
 10. **Compose the `researcher_adequacy_note`.** REQUIRED. 4–6 sentences covering:
+    - **Which external corpora were searched and what was found** — name the corpora and the
+      queries; if no external analogue exists, say so explicitly as a searched-and-absent finding,
+      not silence. (This is the check the acceptance gate challenges hardest.)
     - Which sources were lifted and why.
     - How edges were determined (invokes vs loads vs composes-into).
     - Confidence in the `primitive:`/`mode:` decision.
@@ -175,6 +201,11 @@ summary:
 
 - **MUST set `researcher_adequacy_note`.** 4–6 sentences minimum. Single-sentence
   notes are a contract violation.
+- **MUST perform and record an external search (`mode: new`).** Set `external_corpora_searched`
+  and `external_analogue_found` in the summary and populate `## External analogues searched` in
+  the report. `sources_lifted: 0` is acceptable only when accompanied by a record of *what was
+  searched*; an unrecorded zero-lift is a contract violation. In-repo design docs are input, not
+  an external analogue — they never satisfy this requirement on their own.
 - **MUST NOT touch `graph/<id>/<id>.md` (the canonical node file).** Your job ends
   at `research-report.md`.
 - **MUST refuse `mode: new` if `graph/<id>/research-report.md` already exists.**

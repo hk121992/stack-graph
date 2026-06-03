@@ -3,7 +3,7 @@
 id: pr-author
 primitive: agent
 title: PR author
-description: Stateless agent that composes a canon PR description — the operator's proposal surface — from settled edits, per the canon PR shape and the what-belongs gates. Returns the body as a string.
+description: Stateless agent that composes a canon PR description from settled edits. Returns the body as a string.
 when-to-use: A change to the canon (curator raise; a specify/reconcile spec PR) is settled and needs its PR description composed to the canonical shape, terse enough to decide in under a minute.
 # classification — graph lens
 mode: autonomous

@@ -3,7 +3,7 @@
 id: build
 primitive: skill
 title: Build
-description: Execute the planned implementation units to spec across a long autonomous span — kick off collaboratively, then run autonomously through build, checkpointing each unit on acceptance and surfacing blockers rather than improvising past them.
+description: Execute the planned implementation units to spec across an autonomous span.
 when-to-use: A plan is settled and its implementation units are ready to execute — the commit-to-build gate has passed and the work is moving from defined to in-delivery. Use inline for a single small unit, serial for a sequenced set, parallel for independent units that can run concurrently in isolated worktrees.
 # classification — graph lens
 mode: collaborative

@@ -114,7 +114,10 @@ summary:
       one of `skill`, `agent`, `command`, `script`. If the research-report is
       ambiguous, choose the most defensible option and note in summary `notes`.
    c. `title` — from research-report `## Identity`.
-   d. `description` — one sentence; synthesised from research-report content.
+   d. `description` — synthesised per the description-shape standard
+      (`handbook/content/00-overview/03-agent-surfaces.md` §description-shape): two parts —
+      what it does + a `Use when …` trigger clause; third person; the routing signal only,
+      ~200–350 chars. Cut anything that does not change *when* the node is selected.
    e. `when-to-use` — one sentence; the operator trigger condition.
    f. `mode` — derived from `primitive`: `skill` → `collaborative`;
       `agent` → `autonomous`. These must agree; a mismatch is a hard abort.
@@ -147,6 +150,14 @@ summary:
    Structure the body logically for the node's function. Use headings (H2/H3) for
    distinct phases or sections. Use numbered lists for sequenced steps. Use bullet
    lists for non-ordered items.
+
+   **Write tight (prose economy).** The body loads on every run — every line is standing cost.
+   Apply the core test: would removing a line cause an agent to make a mistake? If not, cut it.
+   No throat-clearing ("simply", "it's worth noting"); if a sentence could be a bullet, make it a
+   bullet; if a bullet could be cut, cut it; one term per concept. Split a body past ~100 lines
+   into an on-demand reference. Doctrine: `handbook/content/00-overview/03-agent-surfaces.md`
+   §prose-economy. **Safety exception:** never compress security warnings, irreversible-action
+   confirmations, or order-bearing steps.
 
    For shared content several primitives need (a schema, the instrumentation preamble, a
    shared protocol), do **not** inline a copy and do **not** use any `{{token}}` injection.

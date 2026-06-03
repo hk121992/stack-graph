@@ -3,7 +3,7 @@
 id: {{node-id}}
 primitive: skill                   # skill | agent | command | script
 title: {{Node title}}
-description: {{One-sentence description of what this node does.}}
+description: {{What it does + "Use when [triggers]." Routing signal, third person, ~200–350 chars — see handbook 00-overview/03-agent-surfaces §description-shape.}}
 when-to-use: {{One-sentence operator trigger condition.}}
 model: opus                        # optional; omit if not node-specific
 allowed-tools: [Read, Edit, Agent] # optional; omit if not node-specific

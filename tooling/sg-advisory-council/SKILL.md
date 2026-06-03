@@ -1,6 +1,6 @@
 ---
 name: sg-advisory-council
-description: Convene a NON-AUTHORITATIVE methodology-grounding board over a graph pack. Reads the pack's methodology-provenance manifest and dispatches the relevant source-custodian advisors (Cagan/SVPG, Osterwalder/Strategyzer, Blank/Customer Development) to surface fidelity / gap / grounding / seam findings for the operator to filter. Two modes — convene (default: select seats, run the mandatory seam pass, dispatch in parallel, synthesise an advisory report) and roster (print the board, methods, triggers, sources; no dispatch). Dev-time tooling for building stack-graph itself; advisory only — never gates, never mutates, never auto-applies, never vendored. Do NOT use it to judge a product decision, and do NOT use it for context-loading.
+description: Convenes a non-authoritative methodology-grounding board over a graph pack — dispatches source-custodian advisors (Cagan/SVPG, Osterwalder/Strategyzer, Blank/Customer Development) to surface fidelity / gap / grounding / seam findings. Modes — convene (run the board, synthesise an advisory report) and roster (print the board; no dispatch). Advisory only — never gates, never mutates, never auto-applies. Use when a graph pack needs methodology grounding or an advisory critique. Do NOT use to judge a product decision or for context-loading.
 ---
 
 # sg-advisory-council

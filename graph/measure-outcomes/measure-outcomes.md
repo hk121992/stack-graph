@@ -3,7 +3,7 @@
 id: measure-outcomes
 primitive: agent
 title: Measure outcomes
-description: Deterministic measurement agent that computes per-work-item and per-node metrics against each node's earns-keep criterion, reading the instrumentation timeline. Returns a structured metrics report; writes nothing and makes no judgments.
+description: Deterministic measurement agent that computes per-work-item and per-node metrics against each node's earns-keep criterion. Returns a structured metrics report; writes nothing and makes no judgments.
 when-to-use: The debrief stage needs hard numbers against the earns-keep of each node the sprint touched, before the operator assesses whether outcomes were met.
 # classification — graph lens
 mode: autonomous
