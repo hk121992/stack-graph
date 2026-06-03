@@ -1,9 +1,72 @@
-/* stack-graph brand overrides.
+/* stack-graph brand — the per-instance identity layer.
  *
- * Loaded by the shell AFTER the vendored bc-renderer-core style.css, so any
- * --brand-* / semantic token re-declared here wins. Generated/augmented from
- * brand.config.json `palette` at build time (see brand.ts paletteCss()).
+ * Loaded AFTER the vendored bc-renderer-core style.css, so anything re-declared
+ * here wins. This is the swappable seam: a consuming product ships its own
+ * brand-overrides.css to re-skin without touching the renderer. See DESIGN.md.
  *
- * Default: empty — the portal inherits be-civic's palette as-is (per the
- * "use the be-civic template as-is for now, swappable later" decision).
+ * stack-graph identity: neutral operator-instrument — Geist + near-monochrome
+ * + one teal accent (harmonised with the logo mark).
  */
+
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/geist-sans.woff2") format("woff2");
+  font-weight: 100 900; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/fonts/geist-mono.woff2") format("woff2");
+  font-weight: 100 900; font-style: normal; font-display: swap;
+}
+
+:root {
+  /* Type */
+  --display: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --body: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Accent → teal. --brand-gold is the vendored accent token (hovers, active,
+     underlines); repointing it re-skins those without editing the core CSS. */
+  --brand-gold: #1b7f93;
+  --accent: #1b7f93;
+  --accent-hover: #13606f;
+
+  /* Cool neutrals (light) */
+  --brand-white: #ffffff;
+  --brand-cream: #f8f9fa;
+  --brand-cream-soft: #d4d6da;
+  --brand-ink: #1b1d1f;
+  --brand-ink-body: #3a3d42;
+  --brand-mute-light: #6b7177;
+  --brand-hairline-light: #e6e8eb;
+
+  /* Spacing + radius scale (used by app/full-bleed surfaces) */
+  --s-2xs: 2px; --s-xs: 4px; --s-sm: 8px; --s-md: 12px; --s-lg: 16px;
+  --s-xl: 24px; --s-2xl: 32px; --s-3xl: 48px; --s-4xl: 64px;
+  --r-sm: 4px; --r-md: 6px; --r-lg: 8px;
+}
+
+html.dark {
+  --brand-gold: #46b0c4;
+  --accent: #46b0c4;
+  --accent-hover: #5cbdcf;
+  --brand-black: #0c0d0e;
+  --brand-cream: #f2f3f4;
+  --brand-cream-soft: #c5c8cc;
+  --brand-mute-dark: #8b9097;
+  --brand-hairline-dark: #26282b;
+}
+
+/* Wordmark: hexagon mark + Geist text */
+.wordmark { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.wordmark-img { height: 24px; width: auto; display: block; }
+.wordmark-text { font-family: var(--display); letter-spacing: -0.01em; }
+
+/* Top-bar right group: "← workspace" link + theme toggle */
+.nav-right { margin-left: auto; display: inline-flex; align-items: center; gap: 0.6rem; }
+.nav-cta { color: var(--mute); text-decoration: none; font-size: 0.875rem; }
+.nav-cta:hover { color: var(--fg); }
+
+/* Body links carry the teal accent (DESIGN.md). */
+.content a { color: var(--accent); text-decoration: none; }
+.content a:hover { color: var(--accent-hover); text-decoration: underline; text-underline-offset: 2px; }

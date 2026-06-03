@@ -5,10 +5,11 @@
 // /fonts/ + /style.css references resolve at the deploy root).
 // Run: bun run workspace/renderer/build-portal.ts
 
-import { writeFileSync, mkdirSync, copyFileSync, existsSync } from "node:fs";
+import { writeFileSync, mkdirSync, copyFileSync, existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { wordmarkSlot, brand } from "./brand/brand.js";
+import { wordmarkSlot, brand, faviconHead } from "./brand/brand.js";
+import { assetBasenames } from "./vendor/bc-renderer-core/src/index.js";
 
 const rendererDir = path.dirname(fileURLToPath(import.meta.url));
 const distRoot = path.join(rendererDir, "..", "dist");
@@ -18,17 +19,23 @@ const brandDir = path.join(rendererDir, "brand");
 mkdirSync(distRoot, { recursive: true });
 
 // Root-level shared assets (the hub's own + the site-root /fonts/ the surfaces' CSS references).
-for (const a of ["style.css", "tags.css", "theme.js"]) {
+for (const a of assetBasenames) {
   const src = path.join(vendorAssetsDir, a);
   if (existsSync(src)) copyFileSync(src, path.join(distRoot, a));
 }
-for (const a of ["brand-overrides.css", "favicon.svg"]) {
-  const src = path.join(brandDir, a);
-  if (existsSync(src)) copyFileSync(src, path.join(distRoot, a));
+if (existsSync(path.join(brandDir, "brand-overrides.css")))
+  copyFileSync(path.join(brandDir, "brand-overrides.css"), path.join(distRoot, "brand-overrides.css"));
+// The full favicon set → deploy root (head links use absolute paths).
+const faviconDir = path.join(brandDir, "favicons");
+if (existsSync(faviconDir)) {
+  for (const f of readdirSync(faviconDir)) {
+    if (f === "head-snippet.html") continue;
+    copyFileSync(path.join(faviconDir, f), path.join(distRoot, f));
+  }
 }
 // Fonts served at the deploy root /fonts/ (style.css @font-face uses absolute paths).
 mkdirSync(path.join(distRoot, "fonts"), { recursive: true });
-for (const f of ["manrope-700.woff2", "manrope-800.woff2"]) {
+for (const f of ["manrope-700.woff2", "manrope-800.woff2", "geist-sans.woff2", "geist-mono.woff2"]) {
   const src = path.join(brandDir, "fonts", f);
   if (existsSync(src)) copyFileSync(src, path.join(distRoot, "fonts", f));
 }
@@ -74,13 +81,13 @@ const html = `<!doctype html>
 <meta name="robots" content="noindex,nofollow">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="brand-overrides.css">
-<link rel="icon" href="favicon.svg">
+${faviconHead()}
 <style>${HUB_CSS}</style>
 ${FOUC}
 </head>
 <body class="portal-hub">
 <header class="site-nav">
-  ${wordmarkSlot("./")}
+  ${wordmarkSlot("./", "/favicon.svg")}
   <button class="theme-toggle" type="button" aria-label="Toggle light/dark theme">◐</button>
 </header>
 <main class="hub">
@@ -107,12 +114,12 @@ const notFound = `<!doctype html>
 <meta name="robots" content="noindex,nofollow">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="brand-overrides.css">
-<link rel="icon" href="favicon.svg">
+${faviconHead()}
 <style>${HUB_CSS}</style>
 ${FOUC}
 </head>
 <body class="portal-hub">
-<header class="site-nav">${wordmarkSlot("./")}</header>
+<header class="site-nav">${wordmarkSlot("./", "/favicon.svg")}</header>
 <main class="hub">
   <h1>Not found</h1>
   <p class="lede">That page does not exist. <a href="./">Return to the workspace hub.</a></p>

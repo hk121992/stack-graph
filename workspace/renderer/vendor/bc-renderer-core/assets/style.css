@@ -684,3 +684,31 @@ dialog.requires-graph-modal .requires-graph-stage {
 ::-webkit-scrollbar-thumb { background: var(--hair); border-radius: 6px; border: 2px solid transparent; background-clip: padding-box; }
 ::-webkit-scrollbar-thumb:hover { background: var(--muted); background-clip: padding-box; border: 2px solid transparent; }
 ::-webkit-scrollbar-corner { background: transparent; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Layout variants (stack-graph) — every surface declares one via the shell.
+   docs (default) keeps the original 3-column grid; app/full-bleed below.
+   ───────────────────────────────────────────────────────────────────────── */
+.layout-app {
+  grid-template-columns: 220px minmax(0, 1fr);
+  max-width: 1440px;
+}
+.layout-app .toc { display: none; }
+.layout-app .content,
+.layout-app .content > p,
+.layout-app .content > ul,
+.layout-app .content > ol { max-width: none; }
+
+.layout-full {
+  grid-template-columns: 1fr;
+  max-width: none;
+  gap: 0;
+  padding: 0;
+}
+.layout-full .sidebar,
+.layout-full .toc { display: none; }
+.layout-full .main { padding: 0; min-width: 0; }
+.layout-full .content,
+.layout-full .content > p,
+.layout-full .content > ul,
+.layout-full .content > ol { max-width: none; }

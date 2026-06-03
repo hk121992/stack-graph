@@ -33,6 +33,11 @@ export interface ShellArgs {
    *  emits its own header via preBodySlot or owns the title inside bodyHtml. */
   suppressHeader?: boolean;
 
+  /** Page layout shape. docs = 3-col (nav · prose · toc); app = nav · fluid
+   *  content, no toc; full-bleed = edge-to-edge canvas, no nav/toc chrome.
+   *  Defaults to "docs". */
+  layoutVariant?: "docs" | "app" | "full-bleed";
+
   /** Slots — each returns a string (possibly empty). All optional. */
   wordmark?: () => string;            // top-left brand
   topbarRight?: () => string;         // search form, nav-cta, theme toggle, etc.
@@ -49,7 +54,7 @@ export function renderShell(args: ShellArgs): string {
     page, nav, bodyHtml,
     assetUrl, pageHref, pageLabel,
     siteTitle, siteDescription,
-    showToc, suppressHeader,
+    showToc, suppressHeader, layoutVariant,
     wordmark, topbarRight, breadcrumb, preBodySlot, postBodySlot,
     headExtras, footer, bodyScripts,
   } = args;
@@ -104,7 +109,7 @@ ${FOUC}
   ${topbarRightHtml}
   <button class="nav-hamburger" type="button" aria-label="Open navigation" aria-expanded="false">☰</button>
 </header>
-<div class="layout">
+<div class="layout layout-${layoutVariant ?? "docs"}">
   <aside class="sidebar" id="sidebar">${sidebarHtml}</aside>
   <main id="main" class="main">
     ${breadcrumbHtml}
