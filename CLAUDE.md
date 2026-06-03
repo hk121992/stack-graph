@@ -39,6 +39,11 @@ built. **Read `handbook/content/index.json` at task start** — it lists every p
   elements (the Claude Directory taxonomy).
 - **Canonical = real `.claude` files** (not gbrain). The graph is the authoring/review
   lens; the plugin is **vendored from the handbook**.
+- **Plugin lives in its own repo, mounted as a submodule.** The clean, vendored-only
+  plugin is `hk121992/stack-graph-plugin`, mounted at `stack-graph-plugin/`. `build/vendor.ts`
+  reads `graph/` from the factory root and writes the plugin tree into the submodule; the
+  plugin repo is never hand-edited. Clone with `--recurse-submodules`. (Mirrors be-civic's
+  `*-plugin-dev ⊃ *-plugin` pattern, factory = wrapper.)
 - **Graph is cyclic** (loops are first-class), not a DAG.
 - **Not everything is a node/edge** — MCP calls are typically inline in a node.
 - **Customisation = additive local overlay** (entry nodes + connecting edges); the
@@ -46,8 +51,8 @@ built. **Read `handbook/content/index.json` at task start** — it lists every p
 
 ## Building the graph — dev tooling
 
-Three dev-time skills live in `tooling/` (kept separate from the built `skills/` plugin
-surface) and install by per-skill symlink into `~/.claude/skills/`:
+Three dev-time skills live in `tooling/` (kept separate from the vendored plugin in the
+`stack-graph-plugin/` submodule) and install by per-skill symlink into `~/.claude/skills/`:
 
 - **`sg-graph-maintainer`** — author and maintain graph nodes. Modes: `new` (gather
   source-material → write research-report → synthesise the canonical node file per

@@ -11,14 +11,18 @@
  *
  * CONTRACT (the build contract is `handbook/content/03-plugin-spec/README.md`)
  * ---------------------------------------------------------------------------
- * Inputs  (REPO_ROOT resolved by walking up to the `graph/` + `.claude-plugin/` marker):
- *   graph/<id>/<id>.md          — 28 node files (15 skill + 13 agent)
- *   graph/_refs/<id>.md         — 16 shared references
- *   graph/graph-record.json     — the maintainer-owned record (read-only parity check)
- *   .claude-plugin/plugin.json  — manifest (version bumped 0.0.0 -> 0.1.0)
+ * The plugin is a SEPARATE repo, vendored into the factory as a git submodule at
+ * `stack-graph-plugin/`. Inputs are read from the FACTORY root; outputs are written
+ * into the submodule (the PLUGIN root = <factoryRoot>/stack-graph-plugin/).
  *
- * Outputs (emitted into the plugin tree at REPO_ROOT):
- *   skills/<id>/SKILL.md        — built skill nodes (15)
+ * Inputs  (factory root resolved by walking up to the `graph/` + `handbook/` marker):
+ *   graph/<id>/<id>.md          — 29 node files (16 skill + 13 agent)
+ *   graph/_refs/<id>.md         — 17 shared references
+ *   graph/graph-record.json     — the maintainer-owned record (read-only parity check)
+ *   stack-graph-plugin/.claude-plugin/plugin.json — manifest (version bumped)
+ *
+ * Outputs (emitted into the plugin submodule at <factoryRoot>/stack-graph-plugin/):
+ *   skills/<id>/SKILL.md        — built skill nodes (16)
  *   agents/<id>.md              — built agent nodes (13)
  *   skills/<id>/references/<refid>.md      — per-skill reference copies
  *   references/<agent-id>/<refid>.md       — per-agent reference copies
@@ -100,6 +104,11 @@ const NATIVE_KEY_ORDER = [
 
 const PLUGIN_VERSION = "0.2.0";
 
+// The plugin lives in its own repo, vendored into the factory as a git submodule
+// at this path. Inputs (graph/) are read from the factory root; outputs are written
+// into <factoryRoot>/<PLUGIN_SUBDIR>/.
+const PLUGIN_SUBDIR = "stack-graph-plugin";
+
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 
 // ----------------------------------------------------------------------------
@@ -134,13 +143,15 @@ interface EmittedFile {
 }
 
 // ----------------------------------------------------------------------------
-// Repo-root resolution (walk up for the graph/ + .claude-plugin/ marker)
+// Factory-root resolution (walk up for the graph/ + handbook/ marker).
+// The plugin's .claude-plugin/ now lives in the submodule, so it is no longer a
+// root marker; graph/ + handbook/ are the factory-stable markers.
 // ----------------------------------------------------------------------------
 
 function resolveRepoRoot(): string {
   let cur = SCRIPT_DIR;
   for (let i = 0; i < 12; i++) {
-    if (existsSync(join(cur, "graph")) && existsSync(join(cur, ".claude-plugin"))) {
+    if (existsSync(join(cur, "graph")) && existsSync(join(cur, "handbook"))) {
       return cur;
     }
     const parent = dirname(cur);
@@ -148,7 +159,7 @@ function resolveRepoRoot(): string {
     cur = parent;
   }
   fail(
-    "vendor: cannot resolve repo root (no graph/ + .claude-plugin/ marker found walking up from " +
+    "vendor: cannot resolve factory root (no graph/ + handbook/ marker found walking up from " +
       SCRIPT_DIR +
       ").",
   );
@@ -487,8 +498,8 @@ interface BuildResult {
   emitted: Map<string, { outPath: string; pointers: string[] }>;
 }
 
-function runBuild(root: string): BuildResult {
-  const graphDir = join(root, "graph");
+function runBuild(inputRoot: string, outputRoot: string): BuildResult {
+  const graphDir = join(inputRoot, "graph");
   const refsRoot = join(graphDir, "_refs");
 
   // Discover node files: graph/<id>/<id>.md (the canonical node file is named
@@ -532,8 +543,8 @@ function runBuild(root: string): BuildResult {
     emitted.set(node.id, { outPath, pointers: resolvedPaths });
   }
 
-  // plugin.json bump.
-  files.push(buildPluginManifest(root));
+  // plugin.json bump (the manifest lives in the plugin/output root).
+  files.push(buildPluginManifest(outputRoot));
 
   return { files, nodes, counts: { skills, agents, refCopies }, emitted };
 }
@@ -725,12 +736,19 @@ function fail(msg: string): never {
 
 function main(): void {
   const check = process.argv.includes("--check");
-  const root = resolveRepoRoot();
+  const factoryRoot = resolveRepoRoot();
+  const pluginRoot = join(factoryRoot, PLUGIN_SUBDIR);
+  if (!existsSync(pluginRoot)) {
+    fail(
+      `vendor: plugin submodule not found at ${pluginRoot}. ` +
+        `Run \`git submodule update --init ${PLUGIN_SUBDIR}\` first.`,
+    );
+  }
 
-  const build = runBuild(root);
+  const build = runBuild(factoryRoot, pluginRoot);
 
-  // Stage 4 — index parity (structural; a mismatch aborts before any write).
-  const parityErrors = checkIndexParity(root, build.nodes);
+  // Stage 4 — index parity (structural; reads graph-record.json from the factory).
+  const parityErrors = checkIndexParity(factoryRoot, build.nodes);
   if (parityErrors.length > 0) {
     console.error("vendor: index parity FAILED (Stage 4):");
     for (const e of parityErrors) console.error(`  - ${e}`);
@@ -738,7 +756,7 @@ function main(): void {
   }
 
   // G2 — load-verify (runs against the in-memory build set, before writing).
-  const g2 = loadVerify(root, build);
+  const g2 = loadVerify(pluginRoot, build);
   if (g2.length > 0) {
     console.error("vendor: G2 load-verify FAILED:");
     for (const f of g2) console.error(`  - ${f}`);
@@ -747,7 +765,7 @@ function main(): void {
 
   if (check) {
     // G1 freshness gate.
-    const drift = checkBuild(root, build);
+    const drift = checkBuild(pluginRoot, build);
     if (drift.length > 0) {
       console.error("vendor --check: committed output is STALE vs a fresh build (G1):");
       for (const d of drift) console.error(`  - ${d}`);
@@ -761,7 +779,7 @@ function main(): void {
     return;
   }
 
-  writeBuild(root, build);
+  writeBuild(pluginRoot, build);
   console.log(
     `vendor: emitted ${build.counts.skills} skills + ${build.counts.agents} agents + ` +
       `${build.counts.refCopies} reference copies; plugin.json -> ${PLUGIN_VERSION}. ` +

@@ -1,0 +1,3 @@
+[submodule "stack-graph-plugin"]
+	path = stack-graph-plugin
+	url = git@github.com:hk121992/stack-graph-plugin.git
