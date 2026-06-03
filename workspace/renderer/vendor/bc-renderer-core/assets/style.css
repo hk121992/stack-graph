@@ -691,7 +691,7 @@ dialog.requires-graph-modal .requires-graph-stage {
    ───────────────────────────────────────────────────────────────────────── */
 .layout-app {
   grid-template-columns: 220px minmax(0, 1fr);
-  max-width: 1440px;
+  max-width: none;
 }
 .layout-app .toc { display: none; }
 .layout-app .content,

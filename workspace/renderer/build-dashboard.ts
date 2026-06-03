@@ -363,10 +363,9 @@ function iuStatusPill(s?: string): string {
   return `<span class="iu-status ${cls}">${esc(st)}</span>`;
 }
 
+// Compact, clickable IU card — full detail lives in the right-hand pop-out drawer.
 function iuCard(iu: IU): string {
-  const files = (iu.fm.files || []).map((f) => `<code>${esc(f)}</code>`).join(" ");
-  const acc = iu.fm.acceptance || [];
-  return `<div class="iu-card">
+  return `<div class="iu-card" data-popout="${esc(iu.id)}" role="button" tabindex="0" aria-label="${esc(iu.fm.title || iu.id)} — open detail">
   <div class="iu-head">
     <span class="iu-id">${esc(iu.id)}</span>
     ${iuStatusPill(iu.fm.status)}
@@ -374,10 +373,45 @@ function iuCard(iu: IU): string {
   </div>
   <div class="iu-title">${esc(iu.fm.title || iu.id)}</div>
   ${iu.fm.goal ? `<div class="iu-goal">${esc(iu.fm.goal)}</div>` : ""}
-  ${files ? `<div class="iu-files">${files}</div>` : ""}
-  ${acc.length ? `<ul class="iu-acc">${acc.map((a) => `<li>${esc(a)}</li>`).join("")}</ul>` : ""}
-  ${iu.fm.improves ? `<div class="iu-improves">improves <code>${esc(iu.fm.improves)}</code></div>` : ""}
 </div>`;
+}
+
+// The full IU detail, rendered into the pop-out drawer.
+function iuDetailHtml(iu: IU): string {
+  const f = iu.fm;
+  const files = (f.files || []).map((x) => `<code>${esc(x)}</code>`).join(" ");
+  const deps = (f.dependencies || []).map((x) => `<code>${esc(x)}</code>`).join(" ");
+  const acc = f.acceptance || [];
+  const bodyHtml = iu.body.trim()
+    ? renderMarkdown(iu.body, { page: { path: iu.id, fm: {} as Record<string, unknown>, raw: iu.body } }).html
+    : "";
+  const group = [f.channel, f.parent ? `parent ${f.parent}` : "", f.improves ? `improves ${f.improves}` : ""]
+    .filter(Boolean).map((s) => esc(s)).join(" · ");
+  return [
+    group ? `<div class="po-group">${group}</div>` : "",
+    `<h2 class="po-title">${esc(f.title || iu.id)}</h2>`,
+    `<div class="po-badges">${iuStatusPill(f.status)}${f.size ? `<span class="iu-size">${esc(f.size)}</span>` : ""}</div>`,
+    f.goal ? `<div class="po-section"><div class="po-label">Goal</div><p>${esc(f.goal)}</p></div>` : "",
+    files ? `<div class="po-section"><div class="po-label">Files</div><p>${files}</p></div>` : "",
+    deps ? `<div class="po-section"><div class="po-label">Depends on</div><p>${deps}</p></div>` : "",
+    acc.length ? `<div class="po-section"><div class="po-label">Acceptance</div><ul>${acc.map((a) => `<li>${esc(a)}</li>`).join("")}</ul></div>` : "",
+    bodyHtml ? `<div class="po-section"><div class="po-label">Notes</div>${bodyHtml}</div>` : "",
+  ].filter(Boolean).join("\n");
+}
+
+// The shared pop-out drawer markup + the per-page detail sidecar (read by popout.js).
+function popoutFor(ius: IU[]): string {
+  const items: Record<string, { code: string; html: string }> = {};
+  for (const iu of ius) items[iu.id] = { code: iu.id, html: iuDetailHtml(iu) };
+  const sidecar = JSON.stringify({ items }).replace(/<\//g, "<\\/");
+  return `<aside class="popout" data-open="false" aria-hidden="true">
+  <div class="popout-backdrop" data-close></div>
+  <div class="popout-panel" role="dialog" aria-modal="true" aria-label="Implementation unit detail">
+    <div class="popout-head"><span class="popout-code">—</span><button class="popout-close" type="button" data-close aria-label="Close detail">×</button></div>
+    <div class="popout-body"></div>
+  </div>
+</aside>
+<script type="application/json" id="popout-data">${sidecar}</script>`;
 }
 
 // ── Stage display ────────────────────────────────────────────────────────────
@@ -462,17 +496,13 @@ function itemCard(item: WorkItem, proj: ProjectionResult, detailSlug: string): s
 
 // ── Nav ───────────────────────────────────────────────────────────────────────
 
-function buildNav(items: WorkItem[]): NavGroup[] {
-  const itemPages: string[] = items.map((it) => `item/${it.id}`);
+function buildNav(_items: WorkItem[]): NavGroup[] {
+  // Work items are NOT listed in the sidebar — the board is the index; items open
+  // as detail pages from their cards, and their IUs open in the pop-out drawer.
   return [
     {
       group: "Product dashboard",
-      pages: [
-        "dashboard",
-        { group: "Work items", pages: itemPages },
-        "progress",
-        "strategy",
-      ],
+      pages: ["dashboard", "progress", "strategy"],
     },
   ];
 }
@@ -682,7 +712,8 @@ ${columnsHtml}
   <section class="ch-panel ch-panel-incr">
     ${incrHtml}
   </section>
-</div>`;
+</div>
+${popoutFor(standaloneIUs)}`;
 
   const page: CorePage = {
     path: "dashboard",
@@ -699,6 +730,7 @@ ${columnsHtml}
     pageLabel: labelFn,
     layoutVariant: "app",
     suppressHeader: false,
+    bodyScripts: () => `<script src="/popout.js" defer></script>`,
     extraHead: () => DASHBOARD_STYLES,
   });
 }
@@ -837,6 +869,8 @@ ${renderRiskDetail(item.fm.risk_state)}
 ${transitionHtml ? `<h2>Dev-stage traversal</h2>\n${transitionHtml}` : ""}
 
 ${item.fm.frozen_timeline ? `<h2>Frozen timeline</h2>\n${renderFrozenTimeline(item.fm.frozen_timeline)}` : ""}
+
+${popoutFor(childIUs)}
 `;
 
   const page: CorePage = {
@@ -855,6 +889,7 @@ ${item.fm.frozen_timeline ? `<h2>Frozen timeline</h2>\n${renderFrozenTimeline(it
     pageLabel: labelFn,
     showToc: false,
     layoutVariant: "app",
+    bodyScripts: () => `<script src="/popout.js" defer></script>`,
     extraHead: () => DASHBOARD_STYLES,
   });
 }

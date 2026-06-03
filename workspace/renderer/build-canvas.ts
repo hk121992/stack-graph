@@ -37,7 +37,7 @@ function esc(s: unknown): string {
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
-interface Entry { text: string; evidence?: string; }
+interface Entry { id?: string; text: string; evidence?: string; detail?: string; }
 interface CanvasData {
   title?: string; note?: string;
   bmc: Record<string, Entry[]>;
@@ -51,15 +51,34 @@ function evPill(ev?: string): string {
   return `<span class="ev ${cls}">${esc(e)}</span>`;
 }
 
-function entries(list: Entry[] | undefined): string {
+// Per-entry detail sidecar (read by popout.js); populated as entries render.
+const sidecar: Record<string, { code: string; html: string }> = {};
+function slugify(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48) || "entry";
+}
+function entryDetailHtml(e: Entry, group: string): string {
+  return [
+    group ? `<div class="po-group">${esc(group)}</div>` : "",
+    `<h2 class="po-title">${esc(e.text)}</h2>`,
+    `<div class="po-badges">${evPill(e.evidence)}</div>`,
+    e.detail
+      ? `<div class="po-section"><div class="po-label">Why this bet</div><p>${esc(e.detail)}</p></div>`
+      : `<div class="po-section"><p>No further detail recorded yet — the strategy-curator fills this in.</p></div>`,
+  ].filter(Boolean).join("\n");
+}
+function entries(list: Entry[] | undefined, group: string): string {
   if (!list || !list.length) return `<li class="cv-empty">—</li>`;
-  return list.map((e) => `<li>${esc(e.text)} ${evPill(e.evidence)}</li>`).join("\n");
+  return list.map((e) => {
+    const id = e.id || `${slugify(group)}-${slugify(e.text)}`;
+    sidecar[id] = { code: id, html: entryDetailHtml(e, group) };
+    return `<li data-popout="${esc(id)}" role="button" tabindex="0">${esc(e.text)} ${evPill(e.evidence)}</li>`;
+  }).join("\n");
 }
 
 function block(cls: string, label: string, list: Entry[] | undefined): string {
   return `<div class="cv-cell ${cls}">
   <div class="cv-cell-label">${esc(label)}</div>
-  <ul class="cv-list">${entries(list)}</ul>
+  <ul class="cv-list">${entries(list, label)}</ul>
 </div>`;
 }
 
@@ -114,7 +133,17 @@ const vpcHtml = `<div class="vpc">
 
 const segment = typeof data.vpc.segment === "string" ? data.vpc.segment : "";
 
-const bodyHtml = `<p class="cv-lede">${esc(data.note ?? "The strategy canvas — bets recorded by evidence state.")}</p>
+const popoutSidecar = JSON.stringify({ items: sidecar }).replace(/<\//g, "<\\/");
+const popoutHtml = `<aside class="popout" data-open="false" aria-hidden="true">
+  <div class="popout-backdrop" data-close></div>
+  <div class="popout-panel" role="dialog" aria-modal="true" aria-label="Canvas entry detail">
+    <div class="popout-head"><span class="popout-code">—</span><button class="popout-close" type="button" data-close aria-label="Close detail">×</button></div>
+    <div class="popout-body"></div>
+  </div>
+</aside>
+<script type="application/json" id="popout-data">${popoutSidecar}</script>`;
+
+const bodyHtml = `<p class="cv-lede">${esc(data.note ?? "The strategy canvas — bets recorded by evidence state.")} <span class="cv-hint">Click any entry for detail.</span></p>
 <div class="cv-legend"><span class="cv-legend-title">Evidence</span> ${evPill("assumed")} ${evPill("tested")} ${evPill("confirmed")}</div>
 
 <h2>Business Model Canvas</h2>
@@ -124,7 +153,8 @@ ${bmcHtml}
 ${segment ? `<p class="cv-segment">Segment: <strong>${esc(segment)}</strong></p>` : ""}
 ${vpcHtml}
 
-${data.fit ? `<h2>Fit</h2>\n<div class="cv-fit">${esc(data.fit)}</div>` : ""}`;
+${data.fit ? `<h2>Fit</h2>\n<div class="cv-fit">${esc(data.fit)}</div>` : ""}
+${popoutHtml}`;
 
 const CSS = `<style>
 .cv-lede { color: var(--mute); margin: 0 0 .8em; }
@@ -141,7 +171,10 @@ const CSS = `<style>
 .cv-cell-label { font-family: var(--mono); font-size:.64rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color: var(--mute); margin-bottom:.45em; }
 .cv-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.4em; }
 .cv-list li { font-size:.82rem; color: var(--fg-soft); line-height:1.4; }
+.cv-list li[data-popout] { border-radius:4px; padding:.05em .25em; margin:0 -.25em; transition: background .12s; }
+.cv-list li[data-popout]:hover { color: var(--fg); background: color-mix(in srgb, var(--accent) 8%, transparent); }
 .cv-empty { color: var(--mute); font-style:italic; }
+.cv-hint { color: var(--mute); font-size:.85em; }
 .bmc-kp { grid-column:1; grid-row:1 / span 2; }
 .bmc-ka { grid-column:2; grid-row:1; }
 .bmc-kr { grid-column:2; grid-row:2; }
@@ -180,6 +213,7 @@ const out = renderSurfacePage({
   pageLabel: () => "Business model",
   showToc: false,
   layoutVariant: "app",
+  bodyScripts: () => `<script src="/popout.js" defer></script>`,
   extraHead: () => CSS,
 });
 

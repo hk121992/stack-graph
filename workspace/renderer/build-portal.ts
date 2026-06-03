@@ -33,6 +33,9 @@ if (existsSync(faviconDir)) {
     copyFileSync(path.join(faviconDir, f), path.join(distRoot, f));
   }
 }
+// Shared client script for the detail pop-out drawer (dashboard IUs + canvas entries).
+const popoutSrc = path.join(rendererDir, "assets", "popout.js");
+if (existsSync(popoutSrc)) copyFileSync(popoutSrc, path.join(distRoot, "popout.js"));
 // Fonts served at the deploy root /fonts/ (style.css @font-face uses absolute paths).
 mkdirSync(path.join(distRoot, "fonts"), { recursive: true });
 for (const f of ["manrope-700.woff2", "manrope-800.woff2", "geist-sans.woff2", "geist-mono.woff2"]) {
