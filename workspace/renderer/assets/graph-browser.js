@@ -165,6 +165,7 @@
       if (e.button !== 0) return; // primary button only
       dragging = { startX: e.clientX, startY: e.clientY, startVB: Object.assign({}, ctx.viewBox), captured: false, pid: e.pointerId };
       moved = false;
+      ctx._pointerRecent = true; // suppress focus-auto-pan for this pointer gesture
       // Do NOT capture the pointer here. Capturing on a plain click retargets the
       // follow-up `click` event to the <svg>, so e.target.closest('g.node') is null
       // and the node-click → detail drawer silently breaks. Capture only once the
@@ -191,6 +192,8 @@
       if (dragging.captured) { try { svg.releasePointerCapture(dragging.pid); } catch (_) {} }
       svg.__sgDragged = moved;
       dragging = null;
+      // Keep suppressing focus-pan briefly: the click + its focus fire just after pointerup.
+      setTimeout(function () { ctx._pointerRecent = false; }, 400);
     };
     svg.addEventListener('pointerup', endDrag);
     svg.addEventListener('pointercancel', endDrag);
@@ -291,6 +294,7 @@
 
   function installKeyboardFocusPan(ctx) {
     ctx.svg.addEventListener('focusin', (e) => {
+      if (ctx._pointerRecent) return; // a click/drag focus — never auto-pan on pointer
       const node = e.target.closest('g.node');
       if (!node) return;
       panToNode(ctx, node);
@@ -298,19 +302,22 @@
   }
 
   function panToNode(ctx, node) {
-    let bbox;
-    try { bbox = node.getBBox(); } catch (_) { return; }
-    const cx = bbox.x + bbox.width / 2;
-    const cy = bbox.y + bbox.height / 2;
-    const { viewBox } = ctx;
-    const margin = 40;
-    const onLeft  = cx < viewBox.x + margin;
-    const onRight = cx > viewBox.x + viewBox.w - margin;
-    const onTop   = cy < viewBox.y + margin;
-    const onBot   = cy > viewBox.y + viewBox.h - margin;
-    if (!(onLeft || onRight || onTop || onBot)) return;
-    viewBox.x = cx - viewBox.w / 2;
-    viewBox.y = cy - viewBox.h / 2;
+    var bbox, ctm;
+    try { bbox = node.getBBox(); ctm = node.getCTM(); } catch (_) { return; }
+    if (!ctm || !ctx.svg.createSVGPoint) return;
+    // Map the node centre from its (graphviz-transformed, negative-Y) LOCAL space
+    // into the SVG viewBox coordinate system. Using raw getBBox coords against the
+    // viewBox was the bug that panned the graph off-screen on focus.
+    var p = ctx.svg.createSVGPoint();
+    p.x = bbox.x + bbox.width / 2;
+    p.y = bbox.y + bbox.height / 2;
+    var c = p.matrixTransform(ctm);
+    var vb = ctx.viewBox;
+    var margin = 40;
+    var off = c.x < vb.x + margin || c.x > vb.x + vb.w - margin || c.y < vb.y + margin || c.y > vb.y + vb.h - margin;
+    if (!off) return;
+    vb.x = c.x - vb.w / 2;
+    vb.y = c.y - vb.h / 2;
     applyViewBox(ctx);
   }
 
