@@ -771,3 +771,53 @@ step performed in the product user (which the admin/tooling user cannot even wri
 (the plugin ships the harness-instantiation capability). *Status:* Accepted; built + vendored. The
 exercise (Phase C) is a be-civic session running `harness-init` → `product-dashboard-curator`
 add-item → `align-context`→`design`.
+
+## Authoring rigor & language
+
+**D55 — Research reports must cite real external analogues; a Pocock-derived skill-language
+standard cuts token cost; both bake into the maintainer.** An audit found ~21 of 29 authored
+nodes (the whole dev-sprint backbone + the PM-pack) were authored from in-repo design docs only
+— `sources_lifted: 0`, no comparison against how the job is really done. The *instructions* were
+fine (`researcher.md` step 3 already said "search for `.claude` primitives"); the *execution*
+skipped the external search and nobody caught it. **Three fixes.** (1) **Sourcing rigor** —
+`researcher.md` step 3 now mandates AND records an external search across the real corpora
+(operator `.claude` skills, reference plugins, the product harness, published best practice),
+with an `external_corpora_searched` + `external_analogue_found` summary; the acceptance gate
+**challenges** `sources_lifted: 0` / `external_analogue_found: false` instead of waving it
+through; the report template gains an `## External analogues searched` section + frontmatter
+fields; handbook `05` gains an "Adequate sourcing" rule (in-repo design docs are *input*, not an
+external analogue; the sin is the unrecorded skip, not the honest absence). (2) **Skill-language
+standard** — distilled from Matt Pocock's `write-a-skill` / `caveman` / `improve-codebase-
+architecture` (MIT; lifted verbatim into `tooling/sg-language-reviewer/source-material/` with
+provenance): a **description shape** (two parts — what + `Use when …`; routing signal; ~200–350
+chars) and **prose economy** (the core test; no throat-clearing; one term per concept; split past
+~100 lines), canonical in `00-overview/03-agent-surfaces`, with a **safety exception** (never
+compress security warnings, irreversible-action confirmations, order-bearing steps). (3) **A new
+dev-tooling skill `sg-language-reviewer`** (modes `descriptions` + `tighten`; grades against
+`references/skill-language-standard.md`; proposes, never silently rewrites; honours the safety
+exception) — and the same discipline baked into `sg-graph-maintainer`'s translator + a hard
+constraint + the templates, so new nodes are born tight ("just how we do things", not a new mode).
+The 21 thin reports are being **deepened + challenged against their real analogues via a Workflow**
+(reports + a triage table only; node amendments are a follow-up operator session). *Spec:*
+00-overview/03-agent-surfaces, 05-maintenance-skill. *Status:* Phase 1+2 built; backfill +
+description-sweep running; node amendments deferred to the operator.
+
+**D56 — The incremental-improvement workflow (standalone-IU light loop) is designed +
+Codex-reviewed; build deferred.** A second, lighter loop beside the heavyweight dev-sprint, for
+small traceable improvement (the factory's most common change shape — it improves itself).
+Modelled on Pocock's tracer-bullet / vertical-slice discipline. The unit is a **standalone IU**
+(a carrier-lite — no parent work-item, no front), which must be a **vertical slice with proper
+testing**. A new `incremental` arc (`triage → specify-slice → build → review → land`) **reuses**
+build/review/land and adds two front nodes; standalone IUs stay **off** the product-dashboard
+work-ledger (their own `improvements-root` surface). Keeps the Workspace — **no GitHub move**.
+Design at `docs/incremental-improvement-design.md` (7 operator forks A–G with recommendations).
+**Codex review (6 findings, all accepted):** the `standalone` variant must be a strict **`oneOf`**
+(child-IU vs carrier shapes, hard field exclusions), not "IU + a flag"; the **lifecycle writers**
+must split (proposed/in-delivery = authored/event-driven, only the terminal transition is
+gate-written) or it violates three-writers; **`promote` needs a new one-way `escalates` edge
+type**, not gated `precedes` (which would pollute traversal/projection); reused nodes need
+**carrier-keyed projection (carrier id + kind + arc) + an explicit carrier interface**; the
+**promote/`improves` provenance bridge is mandatory**. Resolutions folded into design §9. *Spec:*
+per the design's Spec-touchpoints table (02-graph-spec incl. the new `escalates` edge, 01-concepts,
+07-decomposition, 04-harness, 06-analytics, 08-devops, IU-schema, work-item-schema). *Status:*
+Designed + reviewed; **build deferred to a follow-up session** per the operator.

@@ -34,6 +34,48 @@ which loads into a live or isolated context on every run.
 - **Calibrate autonomy to reversibility.** Encourage local, reversible actions; require a check
   before hard-to-reverse or shared-system actions.
 
+## Description shape {#description-shape}
+
+A `description` is **pure standing cost**: it loads in every session for every installed skill,
+whether or not the skill is ever used. So write it as the routing signal and nothing more — it
+answers *"should I load this?"*, not *"what is inside?"*. Two sentences:
+
+1. **What it does** — the capability, in the first sentence.
+2. **`Use when …`** — the trigger, as the specific phrases an operator would actually say or the
+   contexts that should fire it. Triggers route; process summaries do not.
+
+Write in the third person. Pocock's hard ceiling is 1024 characters; aim well under — most
+descriptions need **~200–350 characters**. A longer one earns its length only when the extra
+text resolves a routing ambiguity (e.g. distinguishing two near-siblings, or listing the modes
+a dispatcher must tell apart). If a sentence in a description does not change *when* the skill is
+selected, cut it.
+
+## Prose economy {#prose-economy}
+
+The body loads on every run, so the [core test](#the-core-test) is the floor, not the ceiling.
+Apply, in order of impact:
+
+- **No throat-clearing.** Drop "it's worth noting that", "simply", "basically", "in order to",
+  and the like. Say the thing.
+- **If a sentence could be a bullet, make it a bullet. If a bullet could be cut, cut it.**
+- **One idea per bullet.** A bullet doing two jobs is two bullets or one cut.
+- **Examples over prose** where an example steers format or judgment more reliably than a
+  description of it — but a *few* diverse ones, not a catalogue.
+- **One term per concept.** Pick the word and keep it; synonym drift ("module" / "component" /
+  "unit" for the same thing) reads as noise and costs precision. Where a node has a working
+  vocabulary, state it and name the words to avoid.
+- **Split past ~100 lines.** When a body outgrows ~100 lines, move reference material to a
+  companion file (a `references/` reference, on-demand) and keep the body the procedure.
+
+**The safety exception (never compress these):** security warnings, irreversible-action
+confirmations, and ordered steps whose order is load-bearing. Concision serves correctness; it
+never overrides it. When in doubt on a destructive or hard-to-reverse instruction, spell it out.
+
+The description-shape and prose-economy rules above are distilled from Matt Pocock's
+`write-a-skill`, `caveman`, and `improve-codebase-architecture` skills (MIT); the operational
+checklist the `sg-language-reviewer` tool grades against lives in
+`tooling/sg-language-reviewer/references/skill-language-standard.md`.
+
 ## Subagent (agent-node) instructions specifically
 
 An agent runs in an **isolated context** and receives only what the dispatch prompt passes.

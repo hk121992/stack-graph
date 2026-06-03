@@ -3,26 +3,46 @@ title: Research report for product-dashboard-curator
 type: research-report
 status: complete
 authored: 2026-06-01
-last_updated: 2026-06-01
+last_updated: 2026-06-03
+amended:
+  - date: 2026-06-03
+    note: "Backfill external-analogue search: lifted 4 files (bc-roadmap-curator, bc-roadmap-discipline, bc-handbook-curator, ce-product-pulse); added External analogues searched table, Source inventory update, Challenge findings section, updated researcher adequacy note."
 sources_lifted: 4
+external_analogue_found: true
+external_corpora_searched:
+  - "be-civic operational harness (bc-workspace/.claude/agents/*, bc-operations/bc-skills/)"
+  - "be-civic handbook (bc-workspace/handbook/content/06-workspace/)"
+  - "CE plugin (ce-plugin/plugins/compound-engineering/skills/)"
+  - "gstack live skills (~/.claude/skills/gstack/)"
+  - "Published best practice: Teresa Torres / producttalk.org (Opportunity Solution Tree, continuous discovery)"
+  - "Published best practice: SVPG / svpg.com (opportunity backlog, outcome-driven work items)"
+  - "Published best practice: Scrum.org / ScrumAlliance (product backlog refinement)"
 researcher_adequacy_note: |
-  Sources are the PM-pack design docs (no source-material/ dir — this node is specified
-  directly by the design, like its sibling strategy-curator): the product-dashboard design
-  (§2 work ledger, §6 relationships), the PM function design (the delivery coupling), the
-  graph map (the product-dashboard-curator row + Edges-at-a-glance), and the two refs it
-  imports (work-item-schema, okr-schema). Edges fall straight out of the graph-map row and
-  were each confirmed to resolve on disk: invokes pr-author + queue-checker (the shared
-  graduation machinery, both node files present); references work-item-schema + okr-schema
-  (import) + bundling-rules (on-demand) — all present in graph/_refs/. primitive/mode = skill
-  / collaborative is unambiguous: it is the operator-facing dispatcher of the curator family,
-  the exact shape of the already-authored strategy-curator and handbook-curator siblings.
-  Goals were straightforward to frame as outcomes (laddered + problem-framed content; durable
-  record / no destructive loss; small forward view; single gated content path with zero
-  state/gate writes). The one thing to watch on render: the **content-only contract** must read
-  as a hard line in the body (no current_dev_stage write, no lifecycle advance, no gate
-  decision) — it is the node's defining constraint and the reason it carries no composes-into.
-  Recommendation: proceed; the node is a faithful sibling of strategy-curator tuned to the
-  work-ledger surface.
+  External search covered all four corpora in the task brief plus web. The primary
+  analogue found is bc-roadmap-curator (be-civic operational harness) — explicitly
+  named in the node's own description as the prior art it generalises. A second
+  strong source is the be-civic handbook page bc-roadmap-discipline, which gives the
+  concrete data model (id/tier/stage/opened/shipped frontmatter) and the 12-stage
+  lifecycle that the node generalises. bc-handbook-curator was lifted as the real
+  operational sibling-curator whose graduation machinery (queue-checker + pr-author +
+  labelled PRs) is the claimed structural counterpart. ce-product-pulse was lifted
+  from the CE plugin as the closest CE-world analogue to product-level reporting and
+  backlog grounding; it is not a direct counterpart but surfaces discipline gaps. The
+  gstack live skills set (retro, landing-report, ship, document-release, investigate)
+  was searched; none address the curator/backlog-content-maintenance job directly —
+  they are delivery/report skills, not ledger-content curators. Web search confirmed
+  Torres' Opportunity Solution Tree and SVPG's opportunity-backlog as the published
+  methodology the node operationalises; SVPG URLs returned 403, so the Torres
+  producttalk.org fetch succeeded and is cited. Challenge findings are the core new
+  value: bc-roadmap-discipline reveals that the real prior art schema has NO
+  problem/why, no outcome_link, no value_prop_link, no risk_state, no disposition —
+  the generalisation claim is correct but these are additions, not distillations, and
+  the node should name them as such. The bc-handbook-curator lift grounds the
+  graduation-machinery claim and exposes a mode-set gap (no `integrate` / `queue`
+  equivalents for the work-ledger surface). Recommendation: proceed to translator with
+  the challenge findings applied; the content/state contract is the node's strongest
+  claim and is well-grounded; the mode-completeness gap is an open question for the
+  operator.
 ---
 
 # Research report for product-dashboard-curator
@@ -111,17 +131,34 @@ Imports `work-item-schema` + `okr-schema`; reads `bundling-rules` on demand at t
 All five graduate **content** through one path; none writes projected stage, advances lifecycle,
 or records a gate.
 
-## Source inventory
+## External analogues searched
 
-No `source-material/` dir — this node is specified directly by the PM-pack design (as its sibling
-`strategy-curator` was). The defining sources:
+Record of the real-world search. This section grounds the Challenge findings section below.
+
+| corpus searched | query / what you looked for | found? | lifted to source-material? |
+|---|---|---|---|
+| be-civic operational harness (`bc-workspace/.claude/agents/`) | `bc-roadmap-curator` — the named prior art, agent that manages be-civic roadmap items + sprint files | yes | `bc-roadmap-curator.md` |
+| be-civic handbook (`bc-workspace/handbook/content/06-workspace/`) | `05-roadmap-discipline.md` — the data model and lifecycle the roadmap-curator is governed by | yes | `bc-roadmap-discipline.md` |
+| be-civic operational harness (`bc-operations/bc-skills/bc-handbook-curator/`) | `bc-handbook-curator` — the real operational sibling-curator (handbook surface); same graduation machinery | yes | `bc-handbook-curator.md` |
+| CE plugin (`ce-plugin/plugins/compound-engineering/skills/`) | `ce-product-pulse` — closest CE analogue for product-level reporting / backlog grounding; `ce-strategy` for OKR layer | yes (ce-product-pulse); ce-strategy examined but not lifted | `ce-product-pulse.md` |
+| gstack live skills (`~/.claude/skills/gstack/`) | retro, landing-report, ship, document-release, investigate — any skill that curates a product work ledger or maintains a durable item record | no direct counterpart (delivery/report skills, not ledger-content curators) | — |
+| Published best practice: Teresa Torres / producttalk.org | Opportunity Solution Tree: problem-framing discipline, laddering to outcomes, disposition/culling | yes (producttalk.org fetch succeeded; SVPG 403) | not lifted verbatim (web fetch summary used in challenge findings) |
+| Published best practice: SVPG / svpg.com | opportunity backlog, outcome-driven framing, anti-portfolio concept | partial (403 on direct pages; summary from search results) | — |
+| Published best practice: Scrum.org / ScrumAlliance | product backlog refinement best practices, problem-framing discipline | found; confirms problem-vs-solution framing as standard practice | — |
+
+**Primary analogue:** `source-material/bc-roadmap-curator.md` (be-civic operational harness) — the
+explicitly named prior art. The roadmap-discipline handbook page (`source-material/bc-roadmap-discipline.md`)
+is the strongest challenge source: it exposes the concrete schema the node claims to generalise.
+
+## Source inventory
 
 | file | status | notes |
 |------|--------|-------|
-| `docs/product-dashboard-design.md` | keep (defining) | §2 the work ledger (forward view + record + sprint-record §2.5); §2.3 the entry = carrier state **+** record content, split by who-writes; §6 "the curator(s)" — *content only, not projected stage, not gates*. The authoritative source for what the node maintains and the content/state line. Drop the rendering / Vision / Progress-panel detail (adjacent surfaces, not this node). |
-| `docs/product-management-design.md` | keep | The delivery coupling (loop B): the carrier state model, gates as operator records, the maturity × tier dial, the product-dashboard surface row ("product-dashboard-curator, light gate"), and the BC roadmap-curator prior art it generalises. Drop the strategy/discovery loop, the outcome layer, and the product-lens (separate nodes/surfaces). |
-| `docs/pm-graph-map.md` | keep (edge-defining) | The **product-dashboard-curator row** (primitive, modes, the exact target edge set), Edges-at-a-glance (invokes pr-author + queue-checker; references work-item-schema + okr-schema import; **does NOT composes-into dev-sprint** — stage is projected). Every edge below traces here. Drop the rows for the other PM nodes. |
-| `graph/_refs/work-item-schema.md` + `graph/_refs/okr-schema.md` | keep (imported) | The work-item structure (content fields + the who-writes split + invariants) and the objective structure (`outcome_link` target). Imported, not restated in the body. |
+| `source-material/bc-roadmap-curator.md` | keep (defining — prior art) | The minimal agent stub: defines PR labelling convention (`--label Roadmap`), points at roadmap-discipline for schema. Its brevity is itself a finding: the real curator is a thin wrapper that defers all discipline to the handbook page, whereas product-dashboard-curator carries the discipline inline. |
+| `source-material/bc-roadmap-discipline.md` | keep (challenge — schema reference) | The canonical be-civic data model: `id/title/tier/stage/opened/shipped/spec_pr/build_plan/notes_md_path` frontmatter, the 12-stage lifecycle, sprint conventions, branch model. KEY CHALLENGE SOURCE: the schema has no `problem/why`, no `outcome_link`, no `value_prop_link`, no `risk_state`, no `disposition` — these are additions by product-dashboard-curator, not distillations. Also: the be-civic lifecycle allows direct-push to main for ops-trio surfaces; product-dashboard-curator requires labelled PRs for all content changes, a stronger gating rule. |
+| `source-material/bc-handbook-curator.md` | keep (sibling-curator analogue) | The real operational sibling-curator — same graduation machinery (queue-checker + pr-author + labelled PRs). CHALLENGE SOURCE: bc-handbook-curator has a `queue` mode (read-only queue view), an `integrate` mode (operator weekly triage across all open PRs), and a `refresh-index` mode — none of which have equivalents in product-dashboard-curator. Exposes the mode-completeness gap for operator triage of queued ledger PRs. Also: strict `what-belongs.md` gatekeeping reference and a `decision-doc` mode for pivot-shaped decisions — neither has an analogue in the node. |
+| `source-material/ce-product-pulse.md` | edge-only (different domain — analytics, not ledger content) | ce-product-pulse is a time-windowed analytics/tracing report skill, not a ledger-content curator. Different job. CHALLENGE SOURCE: first-run interview with hard pushback rules (SMART bar), strategy-seeded grounding from STRATEGY.md, explicit cadence/scheduling recommendation, read-only discipline. These discipline patterns are absent from product-dashboard-curator. ce-product-pulse also shows what a mature skill does for its "stale data" equivalent: it applies the 15-minute trailing buffer and update cadence — product-dashboard-curator has no equivalent cadence recommendation for the `reprioritise` mode. |
+| In-repo design docs (product-dashboard-design.md, pm-graph-map.md, etc.) | keep (defining — used in original report) | These remain the authoritative factory sources. Not external analogues — cannot challenge the node. |
 
 ## Keep / Drop
 
@@ -155,6 +192,8 @@ No `source-material/` dir — this node is specified directly by the PM-pack des
   `strategy-curator` + the outcome layer; read here (for `outcome_link`) but not owned.
 - The dashboard's **rendering** of the four surfaces (largely a read/assembled surface) — not the
   curator's content job.
+- bc-roadmap-discipline's `spec_pr` / `build_plan` / `notes_md_path` fields — product-specific;
+  absorbed into the generic `links` field in `work-item-schema`.
 
 **Edge only (separate node):**
 - **Composing the graduation PR description** → `pr-author`. `invokes`, from the shared graduation
@@ -251,6 +290,145 @@ files (verified on disk). `references` set is `work-item-schema` / `okr-schema` 
 `bundling-rules` (on-demand) — all present in `graph/_refs/` (verified on disk). No `external` and
 no forward references; everything resolves now.
 
+## Challenge findings
+
+These findings come from comparing the node against its real external analogues and published best
+practice. They identify where the node is weaker than its counterparts, what it omits, and what
+claims are unsupported or under-specified.
+
+### CF-1 — The "generalises bc-roadmap-curator" claim understates the delta (HIGH)
+
+**Finding:** The node description says it "generalises Be Civic's roadmap-curator — the prior art."
+The real bc-roadmap-curator (`source-material/bc-roadmap-curator.md`) is a thin agent stub (24
+lines) that defers all discipline to the handbook. The actual prior-art schema
+(`source-material/bc-roadmap-discipline.md`) has fields `id / title / tier / stage / opened /
+shipped / spec_pr / build_plan / notes_md_path` — **no `problem/why`, no `outcome_link`, no
+`value_prop_link`, no `risk_state`, no `disposition`**. The node adds all five. The node should
+accurately describe these as **additions** to the prior art (informed by Torres/SVPG) rather than
+distillations of it — the claim "generalises" risks implying the prior art already contained
+problem-framing and laddering, which it did not.
+
+**Recommendation:** Amend the node body's opening sentence to distinguish what is generalised
+(graduation machinery, tier, sprint-record, PR-gating) from what is added (problem-framing,
+`outcome_link`, `value_prop_link`, `risk_state`, `disposition`). The latter are the node's unique
+contribution; the prior art provides the structural skeleton only.
+
+---
+
+### CF-2 — No operator-triage / queue-view mode (MEDIUM)
+
+**Finding:** The real sibling curator `bc-handbook-curator` has a `queue` mode (read-only print of
+the open PR queue with collision detection) and an `integrate` mode (operator weekly triage walk
+across all open PRs, merge in confirmed order). Product-dashboard-curator has no equivalent. In a
+real harness with multiple concurrent agents opening ledger PRs, the operator has no way to see
+the queue depth, collisions, or age without going to GitHub directly. bc-handbook-curator treats
+this as a first-class mode; the omission is a functional gap.
+
+**Recommendation:** Add a `queue` mode (read-only: show open ledger PRs with collision detection)
+as an optional future mode, or at minimum call it out in Open questions. If the graduation
+machinery is shared (same `queue-checker` + `pr-author`), the `queue` mode is likely a thin
+wrapper around a queue-checker call — low cost to add. A weekly `integrate`-equivalent for the
+work ledger may be lower priority (the ledger is one surface, not a multi-repo queue).
+
+---
+
+### CF-3 — No reprioritise cadence recommendation; stale-bet culling is under-specified (MEDIUM)
+
+**Finding:** The node's `reprioritise` mode says "stale bets culled or re-validated" but gives no
+cadence guidance. The real prior art (`bc-roadmap-discipline.md`) specifies sprint cadence
+(biweekly post-launch, ≤5 medium items). Teresa Torres' continuous discovery practice specifies
+refreshing the opportunity space every 3-4 customer interviews (roughly monthly). ce-product-pulse
+specifies a scheduling/cadence recommendation in its Phase 1 interview and proactively offers to
+set up a recurring run. The node tells the operator nothing about when to run `reprioritise`
+or what signals should trigger it. Without a cadence anchor, the mode is reactive rather than
+systematic — which is how backlogs accumulate.
+
+**Recommendation:** Add a cadence note to the `reprioritise` mode body: the operator should run it
+at the start of each sprint or when a customer discovery session materially shifts the evidence
+base. Name the signals ("forward view has grown past N items", "oldest item hasn't had evidence
+advance in X sprints") that should trigger an unscheduled cull. This is the Torres cadence pattern
+applied to the work-ledger surface.
+
+---
+
+### CF-4 — `triage` mode lacks a pushback / quality bar (MEDIUM)
+
+**Finding:** The `triage` mode frames the raw idea as a problem-shaped work item and surfaces
+whether it is worth a work item at all. But there is no specified pushback discipline analogous to
+the SMART bar in ce-product-pulse (Specific, Measurable, Actionable, Relevant, Timely applied to
+each metric), the Torres pushback rule ("Is there more than one way to address this? If not, it is
+a solution"), or the SVPG opportunity assessment questions ("What problem are we trying to solve?",
+"Who are we trying to solve it for?", "How will we know if we succeed?"). The mode gives the
+curator latitude to frame the problem, but no rule about *when to refuse* (e.g. an item that can
+only be stated as a feature with no observable outcome is not ready). Without an explicit refusal
+criterion, `triage` has no teeth — it becomes a transcription service rather than a quality gate.
+
+**Recommendation:** Add an explicit triage refusal criterion to the mode body: an item that cannot
+be stated as a problem/opportunity (i.e. only a feature label) or that cannot be laddered to any
+objective must be returned to the operator as "not ready for a work item" rather than framed under
+duress. One test from Torres applies directly: "Is there more than one way to address this? If
+not, it is a solution disguised as an opportunity." This refusal rule is present implicitly in the
+two invariants section but should be stated in the mode steps as an explicit stop gate.
+
+---
+
+### CF-5 — The sprint-record / sprint-plan mode conflates two distinct jobs (LOW-MEDIUM)
+
+**Finding:** The real be-civic sprint model (`bc-roadmap-discipline.md`) separates the sprint file
+(`sprints/YYMMDD-SNN-<name>.md`) from the item files (`items/<id>.md`). The sprint file carries
+goal, items, and retro — the sprint record as a standalone document. The node's `sprint-plan` mode
+assembles "a thin view beside the ledger" — but the distinction between "a view" (read-only
+assembly) and "an authored sprint-record document" (write output) is not sharp. The body says
+"reads the projected traversal; writes no stage" but does not specify what file or format the
+sprint-record output takes. If the sprint-record is a written document (as in be-civic), it has a
+home path, a naming convention, and a graduation path. If it is a rendered view with no persistent
+file, it has no graduation path. The current body sits between these two, which is a seam risk.
+
+**Recommendation:** Clarify in the `sprint-plan` mode whether the sprint-record is (a) a file
+written to a harness-supplied `sprints/` path (analogous to be-civic's sprint files — graduated as
+a labelled PR) or (b) an ephemeral assembled view that lives only in the current session. If (a),
+the mode needs a graduation step and a harness binding for the sprint home path. If (b), it is not
+a curator output at all — and the graduation step in the mode body is misleading (what is being
+PRed?). The current description says "graduated via the graduation steps" which implies (a), but
+"a view assembled beside the ledger" implies (b).
+
+---
+
+### CF-6 — No `what-belongs` equivalent gate for ledger content (LOW)
+
+**Finding:** The real `bc-handbook-curator` has a strict `what-belongs.md` reference (linked from
+the `raise` mode) that gatekeeps what may be added to the handbook. Each proposed edit is tested
+against principles: "Is this inferable from context?" / "Does each line earn its token cost?" /
+"Is the content canonical-and-resolved, or proposed/unresolved?" These are enforced at the mode
+level — the curator refuses to author a PR that violates them. Product-dashboard-curator has no
+equivalent quality-gate reference. The bundling-rules reference (`on-demand` at graduation) covers
+bundling hygiene but not content quality. A work item that is not problem-framed or not laddered
+is supposed to be refused, but this rule is stated as a body invariant rather than an importable
+reference that can be kept current independently.
+
+**Recommendation:** Consider a `ledger-content-rules` reference (analogous to `what-belongs.md`)
+that makes the triage + add-item refusal criteria explicit, importable, and independently
+maintainable. At minimum, the two invariants (problem-framed + laddered; never delete) should be
+tested at each mutating mode as an explicit pre-flight step, not merely stated in the preamble.
+
+---
+
+### CF-7 — Torres OST discipline: sub-opportunity framing absent (LOW)
+
+**Finding:** Teresa Torres' Opportunity Solution Tree structures opportunities hierarchically —
+sub-opportunities (moments in a customer journey, pain points within a larger problem space) nest
+under parent opportunities, which nest under the outcome. The node's `work-item-schema` carries a
+flat ledger of items. The forward view (later/next/now) provides a temporal ordering but no
+hierarchical relationship between items (e.g. "item A is a sub-opportunity of item B which serves
+objective C"). In real product work, a cluster of related items that together address one large
+opportunity is a common structure — and the node has no way to express or enforce it. This is not
+a blocking gap for v0.1.0, but it is the main structural difference from the Torres model.
+
+**Recommendation:** Track as an open question: should `work-item-schema` support a `parent_item`
+link (an item pointing to a higher-level work item that it sub-addresses), enabling a shallow
+hierarchy? This would bring the ledger closer to the OST model and make contribution rollups more
+precise. Defer to v0.2.0 or the first harness that exercises the node.
+
 ## Open questions
 
 - **A single parameterised `surface-curator`?** strategy-curator, handbook-curator, and this node
@@ -265,4 +443,14 @@ no forward references; everything resolves now.
 - **The sprint-record's home.** Whether the sprint-record is a sub-surface of the work-ledger home
   or a sibling surface is an overlay/harness concern (BC's `sprints/*.md` prior art); the node
   treats it as a view assembled beside the ledger and reads the projected traversal — confirmed
-  general, no factory decision needed.
+  general, no factory decision needed. **But see CF-5: the distinction between a view and an authored
+  file needs to be resolved before the `sprint-plan` mode is rendered.**
+- **`queue` mode for the work ledger.** bc-handbook-curator has a `queue` mode (read-only PR queue
+  view with collision detection). Should product-dashboard-curator gain a `queue` mode? The
+  queue-checker is already invoked at each mode's graduation step; a `queue` mode would be a thin
+  wrapper. Low cost, concrete operator value. (See CF-2.)
+- **Triage refusal criterion as an importable reference.** Should the problem-framing and laddering
+  invariants be extracted into a `ledger-content-rules` reference (analogous to `what-belongs.md`)
+  so they can be kept current independently and loaded on demand? (See CF-6.)
+- **`work-item-schema` sub-opportunity link.** Should schema v0.2.0 add a `parent_item` field
+  enabling shallow OST-style hierarchy in the ledger? (See CF-7.)

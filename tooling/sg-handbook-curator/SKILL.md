@@ -1,6 +1,6 @@
 ---
 name: sg-handbook-curator
-description: Maintains the stack-graph handbook at handbook/content/. Use when surfacing handbook drift, raising labelled handbook PRs, inspecting the open-PR queue, or refreshing the page-graph index. Four modes available: sweep (scan for drift — contradictions, stale terminology, broken cross-references, missing canonical pages, index out of sync), raise (author a labelled PR for a specific amendment, with duplicate-PR detection), queue (read-only print of open handbook PRs + cross-PR collisions), refresh-index (regenerate index.json from page frontmatter). The integrate mode (batch-merge cadence) has a recorded contract but is not yet implemented. Dev-time tooling for operators and agents working on stack-graph itself. Do NOT use for context-loading at session start — agents navigate the handbook directly via index.json.
+description: "Maintains the stack-graph handbook at handbook/content/. Modes — sweep (scan for drift: contradictions, stale terminology, broken cross-references, missing canonical pages, index out of sync), raise (author a labelled PR for an amendment, with duplicate-PR detection), queue (list open handbook PRs + cross-PR collisions), refresh-index (regenerate index.json from page frontmatter). Use when surfacing handbook drift, raising labelled PRs, inspecting the open-PR queue, or refreshing the page-graph index. Do NOT use for context-loading — agents navigate the handbook directly via index.json."
 ---
 
 # sg-handbook-curator
