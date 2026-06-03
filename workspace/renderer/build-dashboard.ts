@@ -321,6 +321,63 @@ function loadMarkdownDoc(filePath: string): { fm: Record<string, unknown>; body:
   return { fm, body };
 }
 
+// ── Implementation units (IUs) — first-class, carved out of work items ─────────
+
+interface IUFm {
+  id: string;
+  title?: string;
+  parent?: string;            // omitted ⇒ standalone (incremental channel)
+  channel?: string;           // sprint | incremental
+  status?: string;            // planned | building | done | blocked
+  size?: string;
+  goal?: string;
+  files?: string[];
+  dependencies?: string[];
+  acceptance?: string[];
+  improves?: string;
+  [k: string]: unknown;
+}
+interface IU { id: string; fm: IUFm; body: string; }
+
+function loadIUs(): IU[] {
+  const iusDir = path.join(dashRoot, "ius");
+  if (!existsSync(iusDir)) return [];
+  return readdirSync(iusDir)
+    .filter((f) => f.endsWith(".md"))
+    .sort()
+    .map((f) => {
+      const raw = readFileSync(path.join(iusDir, f), "utf-8");
+      const { fm, body } = parseFrontmatter(raw);
+      return { id: (fm as IUFm).id ?? f.replace(/\.md$/, ""), fm: fm as IUFm, body };
+    });
+}
+
+function iuStatusPill(s?: string): string {
+  const st = (s || "planned").toLowerCase();
+  const cls = st === "done" ? "iu-st-done"
+    : st === "building" ? "iu-st-building"
+    : st === "blocked" ? "iu-st-blocked"
+    : "iu-st-planned";
+  return `<span class="iu-status ${cls}">${esc(st)}</span>`;
+}
+
+function iuCard(iu: IU): string {
+  const files = (iu.fm.files || []).map((f) => `<code>${esc(f)}</code>`).join(" ");
+  const acc = iu.fm.acceptance || [];
+  return `<div class="iu-card">
+  <div class="iu-head">
+    <span class="iu-id">${esc(iu.id)}</span>
+    ${iuStatusPill(iu.fm.status)}
+    ${iu.fm.size ? `<span class="iu-size">${esc(iu.fm.size)}</span>` : ""}
+  </div>
+  <div class="iu-title">${esc(iu.fm.title || iu.id)}</div>
+  ${iu.fm.goal ? `<div class="iu-goal">${esc(iu.fm.goal)}</div>` : ""}
+  ${files ? `<div class="iu-files">${files}</div>` : ""}
+  ${acc.length ? `<ul class="iu-acc">${acc.map((a) => `<li>${esc(a)}</li>`).join("")}</ul>` : ""}
+  ${iu.fm.improves ? `<div class="iu-improves">improves <code>${esc(iu.fm.improves)}</code></div>` : ""}
+</div>`;
+}
+
 // ── Stage display ────────────────────────────────────────────────────────────
 
 function stageDisplay(
@@ -395,6 +452,7 @@ function itemCard(item: WorkItem, proj: ProjectionResult, detailSlug: string): s
     <span class="lifecycle-tag">${esc(item.fm.lifecycle_state)}</span>
   </div>
   ${stageHtml}
+  ${item.fm.children?.length ? `<div class="card-iucount">${item.fm.children.length} implementation unit${item.fm.children.length === 1 ? "" : "s"} →</div>` : ""}
   ${outcomeHtml}
   ${dispositionHtml}
 </div>`;
@@ -431,116 +489,121 @@ function pageLabel(items: WorkItem[]): (slug: string) => string {
 
 const DASHBOARD_STYLES = `
 <style>
+:root { --st-done: #2e9e6b; --st-building: #d9a514; --st-blocked: #d84a3f; --st-planned: #9aa0a6; }
+.dashboard-lede { color: var(--mute); margin: 0 0 1.25em; }
+
+/* ── Channel tabs (CSS-only, CSP-safe) ── */
+.channels { position: relative; }
+.ch-radio { position: absolute; opacity: 0; pointer-events: none; }
+.ch-tabs { display: flex; gap: .25em; border-bottom: 1px solid var(--hair); margin-bottom: 1.5em; }
+.ch-tab { font-family: var(--display); font-size: .9rem; font-weight: 600; cursor: pointer;
+  padding: .5em .9em; color: var(--mute); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.ch-tab:hover { color: var(--fg); }
+#ch-sprint:checked ~ .ch-tabs label[for="ch-sprint"],
+#ch-incr:checked ~ .ch-tabs label[for="ch-incr"] { color: var(--fg); border-bottom-color: var(--accent); }
+.ch-panel { display: none; }
+#ch-sprint:checked ~ .ch-panel-sprint { display: block; }
+#ch-incr:checked ~ .ch-panel-incr { display: block; }
+
 /* ── Provenance banner ── */
-.provenance-banner {
-  display: flex; align-items: flex-start; gap: .6em;
-  background: var(--color-warning-bg, #fef3c7);
-  border: 1px solid var(--color-warning-border, #d97706);
-  border-radius: 6px; padding: .75em 1em; margin-bottom: 1.5em;
-  font-size: .875em; color: var(--color-text, #1a1a1a);
-}
-.dark .provenance-banner {
-  background: #422006; border-color: #92400e; color: #fef3c7;
-}
-.provenance-icon { font-size: 1.1em; line-height: 1.4; flex-shrink: 0; }
-.provenance-body { display: flex; flex-direction: column; gap: .25em; }
-.provenance-detail { color: var(--color-text-muted, #555); margin-top: .2em; }
-.dark .provenance-detail { color: #d6b989; }
+.provenance-banner { display: flex; align-items: flex-start; gap: .6em;
+  background: color-mix(in srgb, var(--st-building) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--st-building) 40%, var(--hair));
+  border-radius: 6px; padding: .7em 1em; margin-bottom: 1.5em; font-size: .85rem; color: var(--fg-soft); }
+.provenance-inputgated { background: color-mix(in srgb, var(--st-planned) 10%, transparent);
+  border-color: color-mix(in srgb, var(--st-planned) 35%, var(--hair)); }
+.provenance-icon { flex-shrink: 0; }
+.provenance-body { display: flex; flex-direction: column; gap: .2em; }
+.provenance-detail { color: var(--mute); font-size: .92em; }
 
-/* ── Ledger columns ── */
-.ledger-columns {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.25em; margin-bottom: 2em;
-}
-.ledger-column { background: var(--color-surface, #f9f9f9); border-radius: 8px; padding: 1em; }
-.dark .ledger-column { background: #1e1e1e; }
-.ledger-column-header { font-size: .8em; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .06em; color: var(--color-text-muted, #666); margin-bottom: .75em; }
-.ledger-column-empty { font-size: .85em; color: var(--color-text-muted, #888); font-style: italic; }
-
-/* ── Record section ── */
-.ledger-record { margin-top: 2em; }
-.ledger-record-header { font-size: .8em; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .06em; color: var(--color-text-muted, #666); margin-bottom: .75em; }
-.ledger-record-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1em;
-}
+/* ── Kanban board ── */
+.ledger-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1em; margin-bottom: 1.5em; align-items: start; }
+.ledger-column { background: var(--code-bg); border: 1px solid var(--hair); border-radius: 8px;
+  padding: .85em; display: flex; flex-direction: column; gap: .6em; }
+.ledger-column-header { font-family: var(--mono); font-size: .68rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .08em; color: var(--mute); }
+.ledger-column-count { color: var(--mute); }
+.ledger-column-empty { font-size: .82rem; color: var(--mute); font-style: italic; }
+.ledger-record { margin-top: 1.5em; }
+.ledger-record-header { font-family: var(--mono); font-size: .68rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .08em; color: var(--mute); margin-bottom: .6em; }
+.ledger-record-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: .8em; }
 
 /* ── Item cards ── */
-.item-card {
-  background: var(--color-bg, #fff); border: 1px solid var(--color-border, #e5e7eb);
-  border-radius: 6px; padding: .85em 1em; display: flex; flex-direction: column; gap: .4em;
-}
-.dark .item-card { background: #111; border-color: #333; }
+.item-card { background: var(--bg); border: 1px solid var(--hair); border-radius: var(--r-md, 6px);
+  padding: .75em .85em; display: flex; flex-direction: column; gap: .4em; }
 .card-header { display: flex; align-items: flex-start; gap: .4em; flex-wrap: wrap; }
-.card-title { font-weight: 600; font-size: .95em; color: var(--color-link, #2563eb);
-  text-decoration: none; flex: 1 1 auto; }
-.card-title:hover { text-decoration: underline; }
+.card-title { font-weight: 600; font-size: .92rem; color: var(--fg); text-decoration: none; flex: 1 1 auto; }
+.card-title:hover { color: var(--accent); }
 .card-tags { display: flex; gap: .3em; flex-wrap: wrap; }
-.card-meta { font-size: .78em; color: var(--color-text-muted, #666); }
-.card-stage { font-size: .8em; }
-.card-disposition { font-size: .78em; color: var(--color-text-muted, #666); font-style: italic; }
-.stage-stale { color: var(--color-warning, #b45309); }
+.card-meta { font-size: .76rem; color: var(--mute); }
+.card-meta a { color: var(--accent); text-decoration: none; }
+.card-stage { font-size: .78rem; color: var(--fg-soft); }
+.card-iucount { font-size: .72rem; color: var(--mute); }
+.card-disposition { font-size: .76rem; color: var(--mute); font-style: italic; }
+.stage-stale { color: var(--st-building); }
 
-/* ── Badges / tags ── */
-.lifecycle-tag { font-size: .72em; background: #e0e7ff; color: #3730a3;
-  border-radius: 4px; padding: 1px 6px; font-weight: 600; }
-.dark .lifecycle-tag { background: #1e1b4b; color: #a5b4fc; }
-.lifecycle-in-delivery .lifecycle-tag { background: #dbeafe; color: #1d4ed8; }
-.lifecycle-shipped    .lifecycle-tag { background: #d1fae5; color: #065f46; }
-.lifecycle-live       .lifecycle-tag { background: #d1fae5; color: #065f46; }
-.lifecycle-parked     .lifecycle-tag { background: #f3f4f6; color: #374151; }
-.lifecycle-killed     .lifecycle-tag { background: #fee2e2; color: #991b1b; }
+/* ── Pills ── */
+.lifecycle-tag, .tier-badge, .risk-pill, .iu-status, .iu-size {
+  font-family: var(--mono); font-size: .68rem; border-radius: 999px; padding: .1em .55em; font-weight: 500; white-space: nowrap; }
+.lifecycle-tag { background: var(--code-bg); border: 1px solid var(--hair); color: var(--fg-soft); }
+.tier-badge { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
+.risk-low { background: color-mix(in srgb, var(--st-done) 14%, transparent); color: var(--st-done); }
+.risk-moderate { background: color-mix(in srgb, var(--st-building) 16%, transparent); color: #9a7400; }
+.risk-strong { background: color-mix(in srgb, var(--st-blocked) 14%, transparent); color: var(--st-blocked); }
+.risk-unknown { background: var(--code-bg); color: var(--mute); }
+.stale-tag { font-family: var(--mono); font-size: .66rem; background: color-mix(in srgb, var(--st-building) 18%, transparent);
+  color: #9a7400; border-radius: 3px; padding: 0 4px; margin-left: .3em; }
 
-.stale-tag { font-size: .75em; background: #fef3c7; color: #92400e;
-  border-radius: 3px; padding: 0 4px; margin-left: .3em; font-weight: 600; }
-.dark .stale-tag { background: #422006; color: #fcd34d; }
-
-.tier-badge { font-size: .72em; border-radius: 4px; padding: 1px 6px; font-weight: 700; }
-.tier-t1 { background: #fef9c3; color: #713f12; }
-.dark .tier-t1 { background: #422006; color: #fde68a; }
-.tier-t2 { background: #e0e7ff; color: #3730a3; }
-.tier-t3 { background: #f3f4f6; color: #374151; }
-
-.risk-pill { font-size: .72em; border-radius: 4px; padding: 1px 6px; }
-.risk-low      { background: #fee2e2; color: #991b1b; }
-.risk-moderate { background: #fef3c7; color: #92400e; }
-.risk-strong   { background: #d1fae5; color: #065f46; }
-.risk-unknown  { background: #f3f4f6; color: #374151; }
+/* ── IU cards + drill-down ── */
+.iu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: .8em; margin: .5em 0 1em; }
+.iu-card { border: 1px solid var(--hair); border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-md, 6px) var(--r-md, 6px) 0; background: var(--code-bg); padding: .7em .8em; }
+.iu-head { display: flex; align-items: center; gap: .4em; margin-bottom: .3em; }
+.iu-id { font-family: var(--mono); font-size: .72rem; color: var(--accent); }
+.iu-size { background: var(--bg); border: 1px solid var(--hair); color: var(--mute); }
+.iu-status { color: #fff; }
+.iu-st-done { background: var(--st-done); }
+.iu-st-building { background: var(--st-building); color: #3a2e00; }
+.iu-st-blocked { background: var(--st-blocked); }
+.iu-st-planned { background: var(--st-planned); }
+.iu-title { font-weight: 600; font-size: .9rem; color: var(--fg); margin-bottom: .25em; }
+.iu-goal { font-size: .82rem; color: var(--fg-soft); margin-bottom: .35em; }
+.iu-files code, .iu-improves code { font-family: var(--mono); font-size: .72rem; background: var(--bg);
+  border: 1px solid var(--hair); border-radius: 3px; padding: 0 .3em; }
+.iu-acc { margin: .35em 0 0; padding-left: 1.1em; font-size: .8rem; color: var(--fg-soft); }
+.iu-acc li { margin: .15em 0; }
+.iu-improves { font-size: .76rem; color: var(--mute); margin-top: .35em; }
+.iu-empty { color: var(--mute); font-style: italic; }
 
 /* ── Detail page ── */
-.item-detail-meta { display: flex; flex-wrap: wrap; gap: .5em; margin-bottom: 1.5em; }
-.meta-row { font-size: .85em; display: flex; gap: .4em; align-items: center; }
-.meta-label { color: var(--color-text-muted, #666); font-weight: 600; font-size: .8em; }
+.item-detail-meta { display: flex; flex-wrap: wrap; gap: .5em; margin-bottom: 1.5em; align-items: center; }
+.meta-row { font-size: .82rem; display: flex; gap: .4em; align-items: center; color: var(--fg-soft); }
+.meta-label { color: var(--mute); font-weight: 600; font-size: .92em; }
+.meta-row a { color: var(--accent); text-decoration: none; }
 .gate-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .6em; }
-.gate-entry { border-left: 3px solid var(--color-border, #e5e7eb); padding-left: .75em; font-size: .9em; }
-.gate-header { font-weight: 700; display: flex; gap: .5em; align-items: center; }
-.gate-go   { color: #065f46; }
-.gate-nogo { color: #991b1b; }
-.gate-meta { font-size: .8em; color: var(--color-text-muted, #666); margin-top: .15em; }
-.gate-evidence { font-size: .8em; color: var(--color-text-muted, #666); margin-top: .15em; }
-.gate-conditions { font-size: .8em; font-style: italic; color: #b45309; margin-top: .15em; }
-.frozen-timeline { background: var(--color-surface, #f9f9f9); border-radius: 6px;
-  padding: .85em 1em; margin-top: 1em; }
-.dark .frozen-timeline { background: #1e1e1e; }
-.frozen-title { font-size: .8em; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .05em; color: var(--color-text-muted, #666); margin-bottom: .5em; }
+.gate-entry { border-left: 3px solid var(--hair); padding-left: .75em; font-size: .9rem; }
+.gate-header { font-weight: 600; display: flex; gap: .5em; align-items: center; }
+.gate-go { color: var(--st-done); }
+.gate-nogo { color: var(--st-blocked); }
+.gate-meta, .gate-evidence { font-size: .8rem; color: var(--mute); margin-top: .15em; }
+.gate-conditions { font-size: .8rem; font-style: italic; color: #9a7400; margin-top: .15em; }
+.frozen-timeline, .progress-gated { background: var(--code-bg); border: 1px solid var(--hair);
+  border-radius: 6px; padding: .8em 1em; margin-top: 1em; }
+.frozen-title { font-family: var(--mono); font-size: .68rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--mute); margin-bottom: .5em; }
 .timeline-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .3em; }
-.timeline-entry { font-size: .85em; display: flex; gap: .75em; }
-.timeline-stage { font-weight: 600; min-width: 80px; }
-.timeline-at { color: var(--color-text-muted, #666); }
-.risk-detail-table th { font-size: .8em; text-align: left; color: var(--color-text-muted, #666); padding: .2em .5em; }
-.risk-detail-table td { font-size: .85em; padding: .2em .5em; }
-.progress-gated { background: var(--color-surface, #f9f9f9); border-radius: 6px;
-  padding: .85em 1em; font-size: .9em; color: var(--color-text-muted, #666);
-  border-left: 3px solid var(--color-border, #e5e7eb); }
-.dark .progress-gated { background: #1a1a1a; }
-
-/* ── OKR cards ── */
-.okr-kr-table { width: 100%; border-collapse: collapse; margin-top: .5em; font-size: .85em; }
-.okr-kr-table th { text-align: left; color: var(--color-text-muted, #666); font-size: .8em; padding: .3em .5em; border-bottom: 1px solid var(--color-border, #e5e7eb); }
-.okr-kr-table td { padding: .35em .5em; border-bottom: 1px solid var(--color-border, #f3f4f6); }
+.timeline-entry { font-size: .84rem; display: flex; gap: .75em; }
+.timeline-stage { font-weight: 600; min-width: 90px; font-family: var(--mono); font-size: .8rem; }
+.timeline-at { color: var(--mute); }
+.risk-detail-table th { font-size: .8rem; text-align: left; color: var(--mute); padding: .2em .5em; }
+.risk-detail-table td { font-size: .84rem; padding: .2em .5em; }
+.progress-gated { color: var(--fg-soft); font-size: .88rem; }
+.okr-kr-table { width: 100%; border-collapse: collapse; margin-top: .5em; font-size: .84rem; }
+.okr-kr-table th { text-align: left; color: var(--mute); font-size: .8rem; padding: .3em .5em; border-bottom: 1px solid var(--hair); }
+.okr-kr-table td { padding: .35em .5em; border-bottom: 1px solid var(--hair); }
 </style>
 `;
 
@@ -551,48 +614,71 @@ function renderLedgerPage(
   proj: ProjectionResult,
   nav: NavGroup[],
   labelFn: (s: string) => string,
+  standaloneIUs: IU[],
 ): string {
   const columns: LedgerColumn[] = ["now", "building", "next", "later"];
-  const recordStates = ["shipped", "live", "parked", "killed"];
-
   const grouped: Record<LedgerColumn, WorkItem[]> = {
     now: [], next: [], later: [], building: [], record: [],
   };
-  for (const item of items) {
-    const col = lifecycleToColumn(item.fm.lifecycle_state);
-    grouped[col].push(item);
-  }
+  for (const item of items) grouped[lifecycleToColumn(item.fm.lifecycle_state)].push(item);
 
   const banner = provenanceBanner(proj);
 
-  // Forward columns (now / building / next / later)
   const columnsHtml = columns.map((col) => {
     const colItems = grouped[col];
     const cardsHtml = colItems.length
       ? colItems.map((it) => itemCard(it, proj, `item/${it.id}/`)).join("\n")
       : `<div class="ledger-column-empty">—</div>`;
     return `<div class="ledger-column">
-  <div class="ledger-column-header">${esc(COLUMN_LABELS[col])}</div>
+  <div class="ledger-column-header">${esc(COLUMN_LABELS[col])} <span class="ledger-column-count">${colItems.length}</span></div>
   ${cardsHtml}
 </div>`;
   }).join("\n");
 
-  // Record section (shipped/live/parked/killed — anti-portfolio: keep killed)
   const recordItems = grouped.record;
   const recordCardsHtml = recordItems.length
     ? `<div class="ledger-record-grid">${recordItems.map((it) => itemCard(it, proj, `item/${it.id}/`)).join("\n")}</div>`
     : `<p class="ledger-column-empty">No closed items yet.</p>`;
 
+  // Incremental channel — standalone IUs grouped by build status.
+  const incrCols: Array<[string, string]> = [
+    ["building", "Building"], ["planned", "Planned"], ["blocked", "Blocked"], ["done", "Done"],
+  ];
+  const incrGrouped: Record<string, IU[]> = { building: [], planned: [], blocked: [], done: [] };
+  for (const iu of standaloneIUs) {
+    const s = (iu.fm.status || "planned").toLowerCase();
+    (incrGrouped[s] ?? incrGrouped["planned"]).push(iu);
+  }
+  const incrHtml = standaloneIUs.length
+    ? `<div class="ledger-columns">${incrCols
+        .filter(([k]) => incrGrouped[k].length)
+        .map(([k, label]) => `<div class="ledger-column">
+  <div class="ledger-column-header">${esc(label)} <span class="ledger-column-count">${incrGrouped[k].length}</span></div>
+  ${incrGrouped[k].map(iuCard).join("\n")}
+</div>`).join("\n")}</div>`
+    : `<p class="ledger-column-empty">No standalone improvements yet. The incremental-improvement workflow files them here.</p>`;
+
   const bodyHtml = `${banner}
-<p class="lede">One ledger of every work item across its lifecycle. Forward workspace on the left; durable record below.</p>
-
-<div class="ledger-columns">
+<p class="dashboard-lede">One ledger across the lifecycle, in two channels: sprint work items (each decomposing into implementation units) and standalone incremental improvements.</p>
+<div class="channels">
+  <input type="radio" name="ch" id="ch-sprint" class="ch-radio" checked>
+  <input type="radio" name="ch" id="ch-incr" class="ch-radio">
+  <div class="ch-tabs">
+    <label class="ch-tab" for="ch-sprint">Sprint · ${items.length}</label>
+    <label class="ch-tab" for="ch-incr">Incremental improvement · ${standaloneIUs.length}</label>
+  </div>
+  <section class="ch-panel ch-panel-sprint">
+    <div class="ledger-columns">
 ${columnsHtml}
-</div>
-
-<div class="ledger-record">
-  <div class="ledger-record-header">${esc(COLUMN_LABELS.record)}</div>
-  ${recordCardsHtml}
+    </div>
+    <div class="ledger-record">
+      <div class="ledger-record-header">${esc(COLUMN_LABELS.record)}</div>
+      ${recordCardsHtml}
+    </div>
+  </section>
+  <section class="ch-panel ch-panel-incr">
+    ${incrHtml}
+  </section>
 </div>`;
 
   const page: CorePage = {
@@ -608,6 +694,7 @@ ${columnsHtml}
     nav,
     bodyHtml,
     pageLabel: labelFn,
+    layoutVariant: "app",
     suppressHeader: false,
     extraHead: () => DASHBOARD_STYLES,
   });
@@ -675,6 +762,7 @@ function renderItemDetailPage(
   proj: ProjectionResult,
   nav: NavGroup[],
   labelFn: (s: string) => string,
+  childIUs: IU[],
 ): string {
   const slug = `item/${item.id}`;
   const stage = stageDisplay(item, proj);
@@ -734,6 +822,9 @@ function renderItemDetailPage(
 <h2>Body</h2>
 ${bodyRendered || "<p><em>No narrative body.</em></p>"}
 
+<h2>Implementation units</h2>
+${childIUs.length ? `<div class="iu-grid">${childIUs.map(iuCard).join("\n")}</div>` : `<p class="iu-empty">No implementation units carved out yet.</p>`}
+
 <h2>Gate decisions</h2>
 ${renderGateDecisions(item.fm.gate_decisions)}
 
@@ -760,6 +851,7 @@ ${item.fm.frozen_timeline ? `<h2>Frozen timeline</h2>\n${renderFrozenTimeline(it
     bodyHtml,
     pageLabel: labelFn,
     showToc: false,
+    layoutVariant: "app",
     extraHead: () => DASHBOARD_STYLES,
   });
 }
@@ -894,6 +986,20 @@ for (const brandAsset of ["brand-overrides.css", "favicon.svg"]) {
 const items = loadItems();
 log(`  loaded ${items.length} work items`);
 
+// IUs — first-class units. Group sprint IUs under their parent; collect standalone (incremental).
+const ius = loadIUs();
+const iusByParent = new Map<string, IU[]>();
+const standaloneIUs: IU[] = [];
+for (const iu of ius) {
+  if (iu.fm.parent) {
+    if (!iusByParent.has(iu.fm.parent)) iusByParent.set(iu.fm.parent, []);
+    iusByParent.get(iu.fm.parent)!.push(iu);
+  } else {
+    standaloneIUs.push(iu);
+  }
+}
+log(`  loaded ${ius.length} implementation units (${standaloneIUs.length} standalone)`);
+
 const projResult = loadProjection();
 if (projResult.fresh) {
   log(`  snapshot: fresh (commit matches HEAD ${projResult.gitHead?.slice(0, 8)})`);
@@ -908,13 +1014,13 @@ const nav = buildNav(items);
 const labelFn = pageLabel(items);
 
 // ── Render: work-ledger index ─────────────────────────────────────────────────
-const ledgerHtml = renderLedgerPage(items, projResult, nav, labelFn);
+const ledgerHtml = renderLedgerPage(items, projResult, nav, labelFn, standaloneIUs);
 writeHtml(path.join(surfaceDir, "index.html"), ledgerHtml);
 log("  [page] dashboard (work ledger index)");
 
 // ── Render: per-item pages ────────────────────────────────────────────────────
 for (const item of items) {
-  const html = renderItemDetailPage(item, projResult, nav, labelFn);
+  const html = renderItemDetailPage(item, projResult, nav, labelFn, iusByParent.get(item.id) ?? []);
   writeHtml(path.join(surfaceDir, "item", item.id, "index.html"), html);
   log(`  [page] item/${item.id} — ${item.fm.title}`);
 }

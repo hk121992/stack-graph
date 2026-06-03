@@ -3,7 +3,7 @@ kind: reference
 id: IU-schema
 title: Implementation-Unit schema — the plan↔build field contract
 description: The field contract for an implementation unit (IU) — the child work item a plan produces and build consumes. Defines the fields a plan's impl-unit carries into build so that build can operate autonomously against a well-specified unit without re-asking what plan already settled.
-status: v0.1.0 — 2026-06-01
+status: v0.3.0 — 2026-06-03
 ---
 
 # Implementation-Unit schema
@@ -24,6 +24,11 @@ against a well-specified unit.
 | `dependencies` | yes (empty if none) | **Other IU `id`s this unit depends on** — the units whose output this unit consumes or assumes. Build uses this list to sequence work and detect when a dependency is unfinished or broken. |
 | `acceptance` | yes | **Verification criteria** — what must be true for build to call this unit done. Stated as observable conditions (tests pass, behaviour X holds, endpoint returns Y), not effort ("implement Z"). |
 | `size` | yes | **Rough effort signal** — `XS \| S \| M \| L \| XL`. Used by build to calibrate depth of autonomous span and by plan's review lens to flag under- or over-scoped units. Not a commitment; updated at build if the estimate was wrong. |
+| `title` | yes | Short human label for the unit (shown on the dashboard IU card). |
+| `parent` | no | Parent work-item id. **Omitted ⇒ standalone** — an IU with no parent carrier (the incremental-improvement workflow). |
+| `channel` | yes | `sprint` (decomposed from a work item) \| `incremental` (standalone improvement). Drives which dashboard channel renders the unit. |
+| `status` | yes | Build-tracking state — `planned \| building \| done \| blocked`. **Lightweight tracking, not carrier lifecycle** (no gates). |
+| `improves` | no | For incremental IUs: the node / surface id this improvement targets. |
 
 ## Invariants
 
@@ -37,10 +42,16 @@ against a well-specified unit.
 - **`acceptance` drives the done signal.** Build does not mark a unit complete on effort; it
   evaluates each acceptance criterion before emitting the unit-complete event. Weak or absent
   criteria are a plan quality gap, flagged at review.
-- **The IU is not the carrier.** It is a child record of the parent work item — a decomposition
-  artefact the plan produces. The parent carrier's `children[]` field tracks the IUs; the IUs
-  themselves are not independent lifecycle entities. They do not hold `lifecycle_state` or
-  `gate_decisions`.
+- **IUs are first-class, self-documented, and trackable — but not carriers.** Each IU has its own
+  file (`ius/<id>.md`) with its own documentation and a lightweight `status` (planned / building /
+  done / blocked). This applies to **all** work, not just incremental: a work item's `children[]`
+  lists its **sprint** IUs (the dashboard renders them as a drill-down under the carrier), while a
+  **standalone** IU (no `parent`, `channel: incremental`) has no carrier at all and renders in the
+  incremental channel. IUs do **not** hold carrier `lifecycle_state` or `gate_decisions` — those stay
+  the carrier's; the IU `status` is build-tracking only.
+- **Shared schema — coordinate with the incremental-improvement workflow.** The standalone-IU half of
+  this schema is co-designed with the incremental session (`docs/incremental-improvement-design.md`);
+  this file is the single source of truth, and both halves must agree before either ships.
 
 ## Example
 
