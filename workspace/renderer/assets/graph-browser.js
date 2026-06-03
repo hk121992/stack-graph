@@ -526,10 +526,16 @@
     // Delegate clicks on node groups. Ignore clicks that were the tail of a
     // pan-drag (the pan handler sets a movement flag on the svg element).
     document.querySelectorAll('figure.requires-graph svg').forEach(function (svg) {
+      // Record the node under the pointer at PRESS time — before any pointer capture
+      // (or SVG event quirk) can retarget the follow-up click to the <svg>. This is
+      // the reliable signal for which node was clicked.
+      svg.addEventListener('pointerdown', function (e) {
+        svg.__pressNode = (e.target && e.target.closest) ? e.target.closest('g.node[data-node-id]') : null;
+      });
       svg.addEventListener('click', function (e) {
         if (svg.__sgDragged) { svg.__sgDragged = false; return; } // ignore the click that ends a pan
-        var node = e.target.closest && e.target.closest('g.node[data-node-id]');
-        // Fallback: if the click retargeted (e.g. pointer capture), hit-test the point.
+        // Prefer the click target; fall back to the press-time node, then a hit-test.
+        var node = (e.target.closest && e.target.closest('g.node[data-node-id]')) || svg.__pressNode;
         if (!node && e.clientX != null) {
           var el = document.elementFromPoint(e.clientX, e.clientY);
           node = el && el.closest ? el.closest('g.node[data-node-id]') : null;
