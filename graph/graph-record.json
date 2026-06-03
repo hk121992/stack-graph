@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-02T00:00:00Z",
+  "generated": "2026-06-03T15:01:01Z",
   "node_count": 29,
   "reference_count": 17,
   "handbook_reference_count": 0,
@@ -812,7 +812,7 @@
     "IU-schema": {
       "kind": "reference",
       "title": "Implementation-Unit schema \u2014 the plan\u2194build field contract",
-      "status": "v0.1.0 \u2014 2026-06-01",
+      "status": "v0.2.0 \u2014 2026-06-03",
       "consumed_by": [
         "build",
         "plan"

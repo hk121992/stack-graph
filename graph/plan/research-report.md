@@ -7,6 +7,8 @@ last_updated: 2026-06-03
 amended:
   - date: 2026-06-03
     note: "Backfill external analogue search: ce-plan (CE plugin), be-civic sprint W24, Anthropic skill authoring best-practice; added External analogues searched table, deepened Source inventory, added Challenge findings section. sources_lifted updated to 5."
+  - date: 2026-06-03
+    note: "build-spine/D57 footprint: Phase-1 field-fill now produces acceptance_check (7-field IU set); added the single-agent-implementable decomposition criterion (harness-tunable ~100k budget; size re-anchored to single-agent fit, L/XL = probably split; tokens_per_iu over-budget share as plan decomposition-quality signal); updated the IU-completeness goal to 'all required fields incl. acceptance_check'. Cross-ref D57 / docs/iu-sizing-design.md. node-edit only, no new edges. CF-1..CF-5 left untouched per scope."
 sources_lifted: 5
 external_analogue_found: true
 external_corpora_searched:
@@ -51,7 +53,7 @@ by the curator and/or projected when build spawns child work-units.
 | outcome | metric | earns-keep |
 |---|---|---|
 | A staged, dependency-annotated plan is produced before build — rework from unsequenced or under-specified work trends down. | Build-stage rework events traced to planning gaps (missing deps, wrong sequencing, thin acceptance criteria) per sprint. | Build-stage planning-rework stays below the pre-plan baseline over N sprints; if plan never lowers it, the stage is cut or restructured. |
-| Each implementation unit carries a complete IU-schema record — goal, files, dependencies, acceptance, size — so build can operate autonomously without re-asking what plan already settled. | Share of IUs entering build with all five IU-schema fields populated; build-stage "what does this IU mean?" re-asks per sprint. | Re-ask rate trends toward zero; a routine re-ask is a plan quality gap, flagged at lens review. |
+| Each implementation unit carries a complete IU-schema record — goal, files, dependencies, acceptance, `acceptance_check`, size — so build can operate autonomously without re-asking what plan already settled. | Share of IUs entering build with all required IU-schema fields populated, incl. `acceptance_check`; build-stage "what does this IU mean?" re-asks per sprint. | Re-ask rate trends toward zero; a routine re-ask is a plan quality gap, flagged at lens review. |
 | Planning principles are taught in-session — the operator leaves with an understanding of how the plan was sequenced and why. | Operator-acknowledged understanding of the sequencing rationale; downstream re-planning traced to a principle the operator didn't understand at plan time. | Downstream re-planning from misunderstood sequencing trends toward zero over N sprints. |
 | The plan is checked by the lens family before advancing — plan-level risks surface here, not at build. | Share of plan sessions where the lens family surfaced ≥1 actioned finding; risks left unexamined at plan that bit at build. | Plan-stage lens findings measurably displace later build/review findings; a lens pass that routinely surfaces nothing real is a tune/cut signal. |
 
@@ -82,9 +84,11 @@ optional mode token (`compose` / `deepen` / `re-plan`), and any re-entry context
 `re-plan` mode, the prior plan doc + the build-stage signal that triggered re-entry).
 
 **Output:** A **plan doc** on a harness surface — an ordered set of implementation units
-each conforming to the IU-schema (id, goal, files, dependencies, acceptance, size), with
-explicit sequencing rationale and dependency annotations. The ranked lens findings over
-the plan doc are surfaced and actioned in-session. No carrier write.
+each conforming to the IU-schema (id, goal, files, dependencies, acceptance,
+`acceptance_check`, size), with explicit sequencing rationale and dependency annotations.
+`acceptance_check` is the runnable command that proves each IU's `acceptance` — build runs
+it and shows the raw output as the done-evidence. The ranked lens findings over the plan
+doc are surfaced and actioned in-session. No carrier write.
 
 ## External analogues searched
 
@@ -119,6 +123,19 @@ corpora searched; this backfill corrects that gap.
 - Lens-consumer invariant: hold finding-contract refs (`findings-schema`, `severity-scale`, `confidence-anchors`, `load: import`) + `lens-dispatch` (`load: on-demand`); dispatch with `target: plan` sequential (strategy-first, then parallel)
 - `invokes explore` — for context gaps in the plan phase
 - `references IU-schema (import)` — the plan↔build field contract
+- Phase-1 IU field-fill: plan produces all seven IU-schema fields per unit — `id`, `goal`,
+  `files`, `dependencies`, `acceptance`, `acceptance_check`, `size`. `acceptance_check` is the
+  runnable command that proves the unit's `acceptance`; build runs it and shows the raw output
+  as done-evidence. A unit with `acceptance` but no `acceptance_check` is an incomplete IU.
+- Phase-1 decomposition criterion (D57): each IU is sized to be a **single-agent-implementable
+  unit** — buildable by one fresh agent within its best-work context budget ("one agent, bounded
+  fresh context, split diligently"). The budget is a **harness-tunable dial** (~100k default;
+  principle durable, number model-dependent — verify, don't bake in). A unit whose context (files
+  + tests + impl) would overflow the budget is too coarse — split it. This re-anchors the `size`
+  field's meaning: `size` is a single-agent-fit signal, and `L`/`XL` read as "probably split,"
+  not a raw effort estimate. Downstream measurement: build emits `tokens_per_iu` per unit-complete
+  event, and a persistently high over-budget share signals plan drew IUs too coarse — a plan
+  decomposition-quality signal that `measure-outcomes` derives and `debrief` reads back.
 - F7 prose: `can-follow specify` and `precedes build` (process neighbours do not yet exist on disk)
 - F7 prose: `plan can-follow build` (the re-plan loop — build does not yet exist)
 - The earns-keep for the commit-to-build gate: the plan is what the gate decides against
@@ -198,6 +215,14 @@ plan runs.
   The exit criterion (what build-stage signal triggers re-entry) is described in the
   `re-plan` mode body and should be enforced when the edge is wired (with an explicit
   `max-attempt` + escalation label per the backbone design).
+- **D57 / single-agent-implementable IUs (build-spine footprint)**: the Phase-1 field-fill set
+  now produces `acceptance_check` (seven fields), and the decomposition criterion is single-agent
+  fit against a harness-tunable context budget (~100k default). Translator: re-anchor the `size`
+  field's meaning to that fit and carry the `tokens_per_iu` over-budget share as the
+  decomposition-quality signal. Grounding: `docs/decisions.md` D57 and `docs/iu-sizing-design.md`
+  (Spec touchpoints → `plan` Phase 1); the updated `graph/_refs/IU-schema.md` (v0.2.0) holds the
+  field + invariant this node produces against. No new edges — plan already holds the IU-schema
+  `references` edge.
 - **See Challenge findings below** — several gaps identified against ce-plan that are
   candidates for amendment proposals before the backbone wiring wave.
 
