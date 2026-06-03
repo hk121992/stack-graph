@@ -17,9 +17,11 @@
 
 ## Status
 
-**Scaffold — pre-specification.** This repo currently holds the handbook skeleton (in
-Be Civic handbook format) with the design questions parked where they'll be answered.
-The specifications are authored next. Nothing is built yet.
+**Pre-release — built and dogfooded internally.** The specification lives in `handbook/`
+(§00–08) and is still settling in places. The graph is built and validated — **29 nodes**
+(16 skills + 13 agents) plus **17 shared references** across **121 edges** — and vendored
+into the plugin (`stack-graph-plugin`, v0.2.0). The operator portal assembles. Public
+release follows internal dogfooding.
 
 ## Layout
 
