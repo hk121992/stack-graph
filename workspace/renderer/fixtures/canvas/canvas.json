@@ -1,22 +1,22 @@
 {
   "title": "stack-graph — business model",
-  "note": "Sample seed. The strategy-curator skill is the eventual write path; this is the read surface.",
+  "note": "Sample seed, modelled on bmc-schema / vpc-schema. The strategy-curator skill is the eventual write path; this is the read surface.",
   "bmc": {
     "key_partnerships": [
-      { "text": "Anthropic — Claude models + Claude Code primitives", "evidence": "confirmed", "detail": "The whole system rides Claude's native primitives (skills, agents, plugins, references). The partnership is structural: stack-graph has no value without the model + harness it instruments." },
+      { "text": "Anthropic — Claude models + Claude Code primitives", "evidence": "confirmed", "detail": "The whole system rides Claude's native primitives (skills, agents, plugins, references). Structural: stack-graph has no value without the model + harness it instruments." },
       { "text": "Cloudflare — Workers + Access hosting", "evidence": "tested", "detail": "The portal deploys as static assets behind Cloudflare Access (Zero-Trust, fail-closed). Proven for be-civic's workspace; the same pattern carries here." }
     ],
     "key_activities": [
-      { "text": "Author + maintain the graph of .claude primitives", "evidence": "confirmed", "detail": "The core ongoing activity: keep the node/edge graph accurate, validated, and indexed as the operating environment evolves." },
-      { "text": "Vendor the plugin + portal renderer", "evidence": "tested", "detail": "Build/vendor.ts projects the graph into an installable plugin; the renderer projects it into the comprehension portal. Both run today; full renderer-via-plugin vendoring is in progress." }
+      { "text": "Author + maintain the graph of .claude primitives", "evidence": "confirmed", "detail": "Keep the node/edge graph accurate, validated, and indexed as the operating environment evolves." },
+      { "text": "Vendor the plugin + portal renderer", "evidence": "tested", "detail": "build/vendor.ts projects the graph into an installable plugin; the renderer projects it into the comprehension portal." }
     ],
     "key_resources": [
       { "text": "The canonical graph + handbook", "evidence": "confirmed", "detail": "The single source of truth. Everything (plugin, portal, analytics) is a projection of it." },
       { "text": "The vendored renderer engine", "evidence": "tested", "detail": "Install-free TS renderer (forked from be-civic's bc-renderer-core) that turns the graph + ledger into the deployed surfaces." }
     ],
     "value_propositions": [
-      { "text": "Model an agent operating environment as a reviewable graph, improved via a PR-gated loop", "evidence": "tested", "detail": "The core bet: making the environment legible and reviewable beats ad-hoc .claude setups. Demonstrated on stack-graph itself; not yet proven with an external product." },
-      { "text": "Instantiate a product harness in hours, not weeks", "evidence": "assumed", "detail": "The harness-init + bindings-contract path is meant to stand up a new product workspace fast. Unvalidated — the be-civic Phase-C exercise is the first real test." }
+      { "text": "Model an agent operating environment as a reviewable graph, improved via a PR-gated loop", "evidence": "tested", "detail": "The core bet: making the environment legible and reviewable beats ad-hoc .claude setups. Demonstrated on stack-graph itself; not yet proven with an external product.", "refs": ["H-VP-01", "F-0003"] },
+      { "text": "Instantiate a product harness in hours, not weeks", "evidence": "assumed", "detail": "The harness-init + bindings-contract path is meant to stand up a new product workspace fast. Unvalidated — the be-civic Phase-C exercise is the first real test.", "refs": ["H-VP-02"] }
     ],
     "customer_relationships": [
       { "text": "Self-serve via the plugin + handbook", "evidence": "assumed", "detail": "Hypothesis: an operator can adopt stack-graph from the plugin + handbook alone. No external operator has done this yet." },
@@ -24,10 +24,10 @@
     ],
     "channels": [
       { "text": "Claude Code plugin marketplace", "evidence": "assumed", "detail": "Intended distribution channel. Not yet published / measured." },
-      { "text": "The workspace portal (this site)", "evidence": "tested", "detail": "The portal is the comprehension + adoption surface; it exists and renders, pending the live deploy." }
+      { "text": "The workspace portal (this site)", "evidence": "tested", "detail": "The comprehension + adoption surface; it exists and renders, pending the live deploy." }
     ],
     "customer_segments": [
-      { "text": "Operators building agent operating environments", "evidence": "tested", "detail": "The primary segment — people who run a non-trivial .claude environment and feel the drift/legibility pain. stack-graph is the first instance of this user (dogfooding)." },
+      { "text": "Operators building agent operating environments", "evidence": "tested", "detail": "The primary segment — people who run a non-trivial .claude environment and feel the drift/legibility pain. stack-graph dogfoods this user.", "refs": ["H-CS-01"] },
       { "text": "Product teams running on Claude Code", "evidence": "assumed", "detail": "A broader segment if the harness model generalises. Unvalidated beyond be-civic." }
     ],
     "cost_structure": [
@@ -35,33 +35,36 @@
       { "text": "Hosting (CF Workers / Access)", "evidence": "confirmed", "detail": "Small fixed cost; static assets behind Access. Negligible relative to inference." }
     ],
     "revenue_streams": [
-      { "text": "Pre-revenue — viability deferred until a product proves demand", "evidence": "assumed", "detail": "No revenue model committed. Viability is the explicit open risk; the factory is built first, monetisation is a later question tied to a product that proves the value." }
+      { "text": "Pre-revenue — viability deferred until a product proves demand", "evidence": "assumed", "detail": "No revenue model committed. Viability is the explicit open risk; the factory is built first." }
     ]
   },
   "vpc": {
     "segment": "Operators building an agent operating environment",
     "customer_jobs": [
-      { "text": "Stand up a reliable, reviewable agent environment", "evidence": "tested", "detail": "The functional job: go from ad-hoc primitives to a system you can trust and reason about." },
-      { "text": "Know which primitives still earn their place", "evidence": "assumed", "detail": "An ongoing job — prune what no longer pays its way. Depends on analytics that are input-gated until the loop runs." }
+      { "text": "Stand up a reliable, reviewable agent environment", "importance": "high", "evidence": "tested", "detail": "The functional job: go from ad-hoc primitives to a system you can trust and reason about." },
+      { "text": "Know which primitives still earn their place", "importance": "medium", "evidence": "assumed", "detail": "An ongoing job — prune what no longer pays its way. Depends on analytics that are input-gated until the loop runs." }
     ],
     "pains": [
-      { "text": "Ad-hoc .claude setups drift and break silently", "evidence": "tested", "detail": "Primitives accrete, conventions diverge, and nothing flags the drift until something breaks. Felt directly while building stack-graph." },
-      { "text": "No way to see the whole system at once", "evidence": "confirmed", "detail": "Before the graph browser, there was no single view of the nodes + edges + health. Confirmed pain — it's why the graph surface exists." }
+      { "text": "Ad-hoc .claude setups drift and break silently", "importance": "high", "evidence": "tested", "detail": "Primitives accrete, conventions diverge, and nothing flags the drift until something breaks." },
+      { "text": "No way to see the whole system at once", "importance": "high", "evidence": "confirmed", "detail": "Before the graph browser, there was no single view of nodes + edges + health. It's why the graph surface exists." }
     ],
     "gains": [
-      { "text": "One comprehension surface over the whole environment", "evidence": "tested", "detail": "The portal unifies handbook + dashboard + graph + canvas + analytics into one navigable space." },
-      { "text": "A PR-gated improvement loop", "evidence": "assumed", "detail": "The desired gain: insight turns into reviewed change. The loop exists; its end-to-end value is unproven at scale." }
+      { "text": "One comprehension surface over the whole environment", "importance": "expected", "evidence": "tested", "detail": "The portal unifies handbook + dashboard + graph + canvas + analytics into one navigable space." },
+      { "text": "A PR-gated improvement loop", "importance": "desired", "evidence": "assumed", "detail": "The desired gain: insight turns into reviewed change. The loop exists; its end-to-end value is unproven at scale." }
     ],
     "products_services": [
       { "text": "The graph + handbook + portal + plugin", "evidence": "confirmed", "detail": "What the operator engages with: the canonical graph, the rendered portal, and the installable plugin." }
     ],
     "pain_relievers": [
-      { "text": "The graph browser makes the whole system legible", "evidence": "tested", "detail": "Directly relieves the no-overview pain — the full graph with type-coloured nodes, typed edges, and health." },
-      { "text": "Conformance analytics catch drift", "evidence": "assumed", "detail": "Meant to relieve the silent-drift pain by flagging where traversals diverge from the authored graph. Input-gated until events exist." }
+      { "text": "The graph browser makes the whole system legible", "evidence": "tested", "detail": "The full graph with type-coloured nodes, typed edges, and health.", "addresses": ["No way to see the whole system at once"] },
+      { "text": "Conformance analytics catch drift", "evidence": "assumed", "detail": "Flags where traversals diverge from the authored graph. Input-gated until events exist.", "addresses": ["Ad-hoc .claude setups drift and break silently"] }
     ],
     "gain_creators": [
-      { "text": "The dev-sprint loop turns insight into PRs", "evidence": "assumed", "detail": "Creates the PR-gated-improvement gain. The backbone is built; the full loop value is not yet evidenced." }
+      { "text": "The dev-sprint loop turns insight into PRs", "evidence": "assumed", "detail": "The backbone is built; the full loop value is not yet evidenced.", "addresses": ["A PR-gated improvement loop"] }
     ]
   },
-  "fit": "Problem-solution fit is claimed on the legibility + drift pains (tested). Product-market fit is unproven (no commercial product yet) — viability is the open risk."
+  "fit": {
+    "problem_solution": { "claim": "The pain relievers (legibility, drift-catching) address the most important pains (no overview, silent drift).", "evidence": "tested" },
+    "product_market": { "claim": "Fit confirmed by evidence of demand from a paying/committed product. Not yet established — no commercial product.", "evidence": "assumed" }
+  }
 }

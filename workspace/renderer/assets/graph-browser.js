@@ -181,6 +181,9 @@
       if (!dragging) return;
       svg.classList.remove('is-panning');
       try { svg.releasePointerCapture(e.pointerId); } catch (_) {}
+      // Record whether this gesture was a drag so the click that follows pointerup
+      // can ignore it (otherwise a pan opens the detail drawer).
+      svg.__sgDragged = moved;
       dragging = null;
     };
     svg.addEventListener('pointerup', endDrag);
@@ -469,7 +472,19 @@
       '<div class="gs-section-title">Edges in (' + (node.edges_in ? node.edges_in.length : 0) + ')</div>' +
       edgeListHtml(node.edges_in, 'in') +
 
-      '<div class="gs-section-title">File</div>' + fileHtml;
+      '<div class="gs-section-title">File</div>' + fileHtml +
+
+      ((node.directory && node.directory.length)
+        ? '<div class="gs-section-title">Directory</div><ul class="gs-dir">' +
+          node.directory.map(function (d) {
+            return '<li><code>' + esc(d.name) + '</code>' +
+              (d.role ? ' <span class="gs-role">— ' + esc(d.role) + '</span>' : '') + '</li>';
+          }).join('') + '</ul>'
+        : '') +
+
+      (node.document_html
+        ? '<div class="gs-section-title">Document</div><div class="gs-doc">' + node.document_html + '</div>'
+        : '');
   }
 
   function initSidebar() {
@@ -504,9 +519,9 @@
     // pan-drag (the pan handler sets a movement flag on the svg element).
     document.querySelectorAll('figure.requires-graph svg').forEach(function (svg) {
       svg.addEventListener('click', function (e) {
+        if (svg.__sgDragged) { svg.__sgDragged = false; return; } // ignore the click that ends a pan
         var node = e.target.closest('g.node[data-node-id]');
         if (!node) return;
-        if (svg.classList.contains('is-panning')) return;
         var id = node.getAttribute('data-node-id');
         if (id) open(id);
       });

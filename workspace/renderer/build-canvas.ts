@@ -37,12 +37,18 @@ function esc(s: unknown): string {
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
-interface Entry { id?: string; text: string; evidence?: string; detail?: string; }
+interface Entry {
+  id?: string; text: string; evidence?: string; detail?: string;
+  importance?: string;   // VPC profile items (jobs/pains/gains) — vpc-schema
+  addresses?: string[];  // value-map items → the profile items they address
+  refs?: string[];       // links to supporting hypotheses / findings — bmc-schema
+}
+interface FitClaim { claim: string; evidence?: string }
 interface CanvasData {
   title?: string; note?: string;
   bmc: Record<string, Entry[]>;
   vpc: Record<string, Entry[] | string>;
-  fit?: string;
+  fit?: { problem_solution?: FitClaim; product_market?: FitClaim };
 }
 
 function evPill(ev?: string): string {
@@ -57,13 +63,17 @@ function slugify(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48) || "entry";
 }
 function entryDetailHtml(e: Entry, group: string): string {
+  const refs = (e.refs || []).map((r) => `<code>${esc(r)}</code>`).join(" ");
+  const addresses = (e.addresses || []).map((a) => `<li>${esc(a)}</li>`).join("");
   return [
     group ? `<div class="po-group">${esc(group)}</div>` : "",
     `<h2 class="po-title">${esc(e.text)}</h2>`,
-    `<div class="po-badges">${evPill(e.evidence)}</div>`,
+    `<div class="po-badges">${evPill(e.evidence)}${e.importance ? `<span class="ev ev-importance">importance: ${esc(e.importance)}</span>` : ""}</div>`,
     e.detail
       ? `<div class="po-section"><div class="po-label">Why this bet</div><p>${esc(e.detail)}</p></div>`
       : `<div class="po-section"><p>No further detail recorded yet — the strategy-curator fills this in.</p></div>`,
+    addresses ? `<div class="po-section"><div class="po-label">Addresses</div><ul>${addresses}</ul></div>` : "",
+    refs ? `<div class="po-section"><div class="po-label">Supporting evidence</div><p>${refs}</p></div>` : "",
   ].filter(Boolean).join("\n");
 }
 function entries(list: Entry[] | undefined, group: string): string {
@@ -143,6 +153,15 @@ const popoutHtml = `<aside class="popout" data-open="false" aria-hidden="true">
 </aside>
 <script type="application/json" id="popout-data">${popoutSidecar}</script>`;
 
+const f = data.fit;
+const fitHtml = f
+  ? `<h2>Fit</h2>
+<div class="cv-fit">
+  ${f.problem_solution ? `<div class="cv-fit-row"><div class="cv-fit-label">Problem–solution ${evPill(f.problem_solution.evidence)}</div><p>${esc(f.problem_solution.claim)}</p></div>` : ""}
+  ${f.product_market ? `<div class="cv-fit-row"><div class="cv-fit-label">Product–market ${evPill(f.product_market.evidence)}</div><p>${esc(f.product_market.claim)}</p></div>` : ""}
+</div>`
+  : "";
+
 const bodyHtml = `<p class="cv-lede">${esc(data.note ?? "The strategy canvas — bets recorded by evidence state.")} <span class="cv-hint">Click any entry for detail.</span></p>
 <div class="cv-legend"><span class="cv-legend-title">Evidence</span> ${evPill("assumed")} ${evPill("tested")} ${evPill("confirmed")}</div>
 
@@ -153,7 +172,7 @@ ${bmcHtml}
 ${segment ? `<p class="cv-segment">Segment: <strong>${esc(segment)}</strong></p>` : ""}
 ${vpcHtml}
 
-${data.fit ? `<h2>Fit</h2>\n<div class="cv-fit">${esc(data.fit)}</div>` : ""}
+${fitHtml}
 ${popoutHtml}`;
 
 const CSS = `<style>
@@ -190,6 +209,10 @@ const CSS = `<style>
 .vpc-side-title { font-family: var(--display); font-weight:600; font-size:.95rem; color: var(--fg); display:flex; align-items:center; gap:.4em; }
 .vpc-glyph { color: var(--accent); }
 .cv-fit { border:1px solid var(--hair); border-left:3px solid var(--accent); border-radius:0 6px 6px 0; background: var(--code-bg); padding:.8em 1em; font-size:.9rem; color: var(--fg-soft); }
+.cv-fit-row { margin-bottom:.7em; } .cv-fit-row:last-child { margin-bottom:0; }
+.cv-fit-label { font-weight:600; color: var(--fg); margin-bottom:.2em; display:flex; align-items:center; gap:.5em; }
+.cv-fit-row p { margin:0; }
+.ev-importance { background: var(--code-bg); color: var(--mute); border:1px solid var(--hair); }
 
 @media (max-width: 900px) {
   .bmc { grid-template-columns: 1fr 1fr; }

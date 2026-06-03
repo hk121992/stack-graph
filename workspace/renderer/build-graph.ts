@@ -24,13 +24,13 @@
 
 import {
   readFileSync, writeFileSync, mkdirSync, copyFileSync,
-  existsSync, rmSync,
+  existsSync, rmSync, readdirSync,
 } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync, execFileSync } from "node:child_process";
 
-import { assetBasenames, type CorePage, type NavGroup } from "./vendor/bc-renderer-core/src/index.js";
+import { assetBasenames, renderMarkdown, type CorePage, type NavGroup } from "./vendor/bc-renderer-core/src/index.js";
 import { renderSurfacePage } from "./shell-host.js";
 
 const rendererDir = path.dirname(fileURLToPath(import.meta.url));
@@ -437,7 +437,33 @@ interface SidecarNode {
   edges_out: SidecarEdge[];
   edges_in: SidecarEdge[];
   file: string | null;
+  document_html: string;
+  directory: { name: string; role: string }[];
   health: { last_updated: { state: Health; iso: string | null }; last_used: { state: Health; note: string } };
+}
+
+/** Read the node's directory listing (with roles) + render its canonical document body —
+ *  the artefact shown in the graph pop-out (directory summary + the skill/agent doc). */
+function readNodeDocument(id: string): { html: string; directory: { name: string; role: string }[] } {
+  const dir = path.join(repoRoot, "graph", id);
+  const out = { html: "", directory: [] as { name: string; role: string }[] };
+  if (!existsSync(dir)) return out;
+  const roleFor = (name: string): string => {
+    if (name === `${id}.md`) return "canonical node — the skill / agent";
+    if (name === "research-report.md") return "source synthesis";
+    if (name === "source-material") return "raw source material (local)";
+    return "";
+  };
+  for (const name of readdirSync(dir).sort()) out.directory.push({ name, role: roleFor(name) });
+  const nodePath = path.join(dir, `${id}.md`);
+  if (existsSync(nodePath)) {
+    const raw = readFileSync(nodePath, "utf8");
+    const m = raw.match(/^---\n[\s\S]*?\n---\n?([\s\S]*)$/);
+    const body = m ? m[1] : raw;
+    try { out.html = renderMarkdown(body, { page: { path: id, fm: {} as Record<string, unknown>, raw: body } }).html; }
+    catch { out.html = ""; }
+  }
+  return out;
 }
 
 function buildSidecar(rec: GraphRecord, lastUpdated: Map<string, string | null>): {
@@ -463,6 +489,7 @@ function buildSidecar(rec: GraphRecord, lastUpdated: Map<string, string | null>)
     const n = rec.nodes[id];
     const kind = n.primitive || "node";
     const meta = readNodeMeta(id);
+    const doc = readNodeDocument(id);
     const iso = lastUpdated.get(id) ?? null;
     const updatedState = recencyLight(iso);
     const usedState: Health = "unknown"; // degraded — no projection snapshot exists yet
@@ -476,6 +503,8 @@ function buildSidecar(rec: GraphRecord, lastUpdated: Map<string, string | null>)
       edges_out: (out.get(id) || []),
       edges_in: (inn.get(id) || []),
       file: nodeFileRel(id),
+      document_html: doc.html,
+      directory: doc.directory,
       health: {
         last_updated: { state: updatedState, iso },
         last_used: { state: usedState, note: "no projection snapshot yet — degraded" },
@@ -615,7 +644,7 @@ html.dark { --health-green: #46c279; --health-amber: #e7bb45; --health-red: #e76
 
 /* detail sidebar */
 #graph-sidebar {
-  position: fixed; top: 0; right: 0; height: 100vh; width: min(380px, 92vw);
+  position: fixed; top: 0; right: 0; height: 100vh; width: min(680px, 52vw);
   background: var(--bg); border-left: 1px solid var(--hair);
   box-shadow: -8px 0 28px rgba(0,0,0,0.16);
   z-index: 50; overflow-y: auto; padding: 1.4em 1.3em 2em;
@@ -660,6 +689,18 @@ html.dark { --health-green: #46c279; --health-amber: #e7bb45; --health-red: #e76
 #graph-sidebar .gs-file { font-size: 0.84rem; }
 #graph-sidebar .gs-file code { word-break: break-all; }
 #graph-sidebar .gs-empty { color: var(--mute); font-style: italic; }
+#graph-sidebar .gs-dir { list-style: none; margin: .2em 0 0; padding: 0; }
+#graph-sidebar .gs-dir li { font-size: .82rem; margin: .25em 0; }
+#graph-sidebar .gs-dir code { font-family: var(--mono); font-size: .78rem; color: var(--fg); }
+#graph-sidebar .gs-dir .gs-role { color: var(--mute); }
+#graph-sidebar .gs-doc { margin-top: .5em; border-top: 1px solid var(--hair); padding-top: 1em; font-size: .88rem; line-height: 1.55; }
+#graph-sidebar .gs-doc h1, #graph-sidebar .gs-doc h2, #graph-sidebar .gs-doc h3 { font-family: var(--display); line-height: 1.25; margin: 1em 0 .4em; color: var(--fg); }
+#graph-sidebar .gs-doc h1 { font-size: 1.15rem; } #graph-sidebar .gs-doc h2 { font-size: 1rem; } #graph-sidebar .gs-doc h3 { font-size: .9rem; }
+#graph-sidebar .gs-doc p, #graph-sidebar .gs-doc li { color: var(--fg-soft); }
+#graph-sidebar .gs-doc pre { background: var(--code-bg); border: 1px solid var(--hair); border-radius: 4px; padding: .6em .7em; overflow-x: auto; font-size: .8rem; }
+#graph-sidebar .gs-doc code { font-family: var(--mono); }
+#graph-sidebar .gs-doc table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+#graph-sidebar .gs-doc th, #graph-sidebar .gs-doc td { border: 1px solid var(--hair); padding: .3em .5em; text-align: left; }
 </style>`;
 }
 
