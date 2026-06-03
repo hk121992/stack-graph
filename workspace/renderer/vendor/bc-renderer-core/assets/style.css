@@ -699,16 +699,16 @@ dialog.requires-graph-modal .requires-graph-stage {
 .layout-app .content > ul,
 .layout-app .content > ol { max-width: none; }
 
-.layout-full {
+.layout-full-bleed {
   grid-template-columns: 1fr;
   max-width: none;
   gap: 0;
   padding: 0;
 }
-.layout-full .sidebar,
-.layout-full .toc { display: none; }
-.layout-full .main { padding: 0; min-width: 0; }
-.layout-full .content,
-.layout-full .content > p,
-.layout-full .content > ul,
-.layout-full .content > ol { max-width: none; }
+.layout-full-bleed .sidebar,
+.layout-full-bleed .toc { display: none; }
+.layout-full-bleed .main { padding: 0; min-width: 0; }
+.layout-full-bleed .content,
+.layout-full-bleed .content > p,
+.layout-full-bleed .content > ul,
+.layout-full-bleed .content > ol { max-width: none; }

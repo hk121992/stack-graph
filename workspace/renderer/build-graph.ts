@@ -126,12 +126,14 @@ function lastUpdatedISO(relFile: string | null): string | null {
 
 // Node styling by primitive (kind). Fills reuse the vendored --node-*-fill
 // tokens so the graph reads in theme; Graphviz needs concrete fallbacks inline.
+// Concrete hex — Graphviz cannot resolve CSS custom properties (var()); it
+// silently falls back to black, which is the black-on-black bug. Light chips +
+// dark label read on both light and dark canvases. Legend swatches mirror these.
 const KIND_STYLE: Record<string, { fill: string; stroke: string; shape: string }> = {
-  skill:  { fill: "var(--node-1-fill, #ffffff)",                                    stroke: "var(--node-1-stroke, #cfcdc6)", shape: "box" },
-  agent:  { fill: "var(--node-2-fill, #eceae2)",                                    stroke: "var(--node-2-stroke, #d8d6cf)", shape: "box" },
-  script: { fill: "var(--node-central-fill, #fae042)",                              stroke: "var(--node-central-stroke, #b7a72e)", shape: "box" },
-  // fallback for anything unexpected
-  _default: { fill: "var(--node-1-fill, #ffffff)", stroke: "var(--node-1-stroke, #cfcdc6)", shape: "box" },
+  skill:    { fill: "#ffffff", stroke: "#c7ccd0", shape: "box" },
+  agent:    { fill: "#e8f1f3", stroke: "#b6ccd2", shape: "box" },
+  script:   { fill: "#fff3c4", stroke: "#e6d28a", shape: "box" },
+  _default: { fill: "#ffffff", stroke: "#c7ccd0", shape: "box" },
 };
 
 // Edge styling/colour by type. The structural edges share an ink tone; the two
@@ -173,7 +175,7 @@ function buildDot(rec: GraphRecord): { dot: string; drawnEdgeKeys: Set<string> }
   lines.push("  pad=0.3;");
   lines.push("  nodesep=0.35;");
   lines.push("  ranksep=0.85;");
-  lines.push('  node [fontname="Helvetica", fontsize=11, penwidth=1.1, margin="0.14,0.09", style="filled,rounded"];');
+  lines.push('  node [fontname="Helvetica", fontsize=11, penwidth=1.1, margin="0.14,0.09", style="filled,rounded", fontcolor="#1b1d1f"];');
   lines.push('  edge [fontname="Helvetica", fontsize=8, penwidth=1.1, arrowsize=0.7];');
 
   // Nodes
@@ -203,12 +205,17 @@ function buildDot(rec: GraphRecord): { dot: string; drawnEdgeKeys: Set<string> }
     drawnEdgeKeys.add(`${e.from}|${e.to}`);
     const st = edgeStyle(e.type);
     const styleAttr = st.style ? `, style=${st.style}` : "";
+    // Cyclic process edges (can-follow / seed-next) must NOT drive rank order —
+    // otherwise Graphviz lays them co-directionally on top of the precedes arrow
+    // and the loop is invisible. constraint=false routes them as visible back-arcs.
+    const constraintAttr =
+      (e.type === "can-follow" || e.type === "seed-next") ? ", constraint=false" : "";
     // No `tooltip` — Graphviz wraps any edge carrying one in an <a> element;
     // we surface the edge type via the SVG <title> and the sidecar instead, so
     // the edge group stays a clean <g class="edge"> with no anchor.
     lines.push(
       `  "${dotEscape(e.from)}" -> "${dotEscape(e.to)}" ` +
-      `[color="${st.color}"${styleAttr}];`,
+      `[color="${st.color}"${styleAttr}${constraintAttr}];`,
     );
   }
 
@@ -549,6 +556,8 @@ function extraHeadCss(): string {
 /* Graph-browser surface styles (A3b-3). Surface-local — never edits vendored style.css. */
 :root {
   --health-green: #2e9e5b; --health-amber: #d9a514; --health-red: #d64545; --health-unknown: #9b9b96;
+  /* legend swatches mirror the concrete node fills baked into the DOT */
+  --node-1-fill: #ffffff; --node-2-fill: #e8f1f3; --node-central-fill: #fff3c4;
 }
 html.dark { --health-green: #46c279; --health-amber: #e7bb45; --health-red: #e76d6d; --health-unknown: #8b8b86; }
 
@@ -586,6 +595,11 @@ html.dark { --health-green: #46c279; --health-amber: #e7bb45; --health-red: #e76
 /* node health badges drawn into the SVG */
 .requires-graph svg .node-health .health-dot { transition: opacity 200ms ease; }
 .requires-graph svg .node[data-node-id] { cursor: pointer; }
+
+/* full-bleed graph: breathing room + a canvas that uses the viewport */
+.layout-full-bleed .content { padding: 1.1rem 1.4rem 1.6rem; }
+.requires-graph { margin: 0; }
+.requires-graph-stage { height: calc(100vh - 240px); min-height: 460px; }
 .requires-graph svg .node[data-node-id]:hover path,
 .requires-graph svg .node[data-node-id]:hover polygon { filter: brightness(0.97); }
 
@@ -709,6 +723,7 @@ const html = renderSurfacePage({
   nav,
   bodyHtml,
   showToc: false,
+  layoutVariant: "full-bleed",
   pageLabel: () => "Graph browser",
   extraHead: () => extraHeadCss(),
   bodyScripts: () => `<script src="graph-browser.js" defer></script>`,
