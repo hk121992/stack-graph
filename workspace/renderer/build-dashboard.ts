@@ -552,9 +552,10 @@ const DASHBOARD_STYLES = `
 .lifecycle-tag { background: var(--code-bg); border: 1px solid var(--hair); color: var(--fg-soft); }
 .tier-badge { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent);
   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
-.risk-low { background: color-mix(in srgb, var(--st-done) 14%, transparent); color: var(--st-done); }
+/* risk_state values are EVIDENCE STRENGTH: low evidence = high risk (red); strong evidence = safe (green). */
+.risk-low { background: color-mix(in srgb, var(--st-blocked) 14%, transparent); color: var(--st-blocked); }
 .risk-moderate { background: color-mix(in srgb, var(--st-building) 16%, transparent); color: #9a7400; }
-.risk-strong { background: color-mix(in srgb, var(--st-blocked) 14%, transparent); color: var(--st-blocked); }
+.risk-strong { background: color-mix(in srgb, var(--st-done) 14%, transparent); color: var(--st-done); }
 .risk-unknown { background: var(--code-bg); color: var(--mute); }
 .stale-tag { font-family: var(--mono); font-size: .66rem; background: color-mix(in srgb, var(--st-building) 18%, transparent);
   color: #9a7400; border-radius: 3px; padding: 0 4px; margin-left: .3em; }

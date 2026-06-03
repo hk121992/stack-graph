@@ -565,7 +565,10 @@ function extraHeadCss(): string {
   /* legend swatches mirror the concrete node fills baked into the DOT */
   --node-1-fill: #ffffff; --node-2-fill: #e8f1f3; --node-central-fill: #fff3c4;
 }
-html.dark { --health-green: #46c279; --health-amber: #e7bb45; --health-red: #e76d6d; --health-unknown: #8b8b86; }
+html.dark { --health-green: #46c279; --health-amber: #e7bb45; --health-red: #e76d6d; --health-unknown: #8b8b86;
+  /* match the legend swatches to the (light, concrete) node fills in dark mode too —
+     the vendored html.dark fills outrank :root, so re-assert here */
+  --node-1-fill: #ffffff; --node-2-fill: #e8f1f3; --node-central-fill: #fff3c4; }
 
 .graph-intro { margin-bottom: 0.8em; }
 
