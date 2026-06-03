@@ -1,0 +1,67 @@
+{
+  "title": "stack-graph — business model",
+  "note": "Sample seed. The strategy-curator skill is the eventual write path; this is the read surface.",
+  "bmc": {
+    "key_partnerships": [
+      { "text": "Anthropic — Claude models + Claude Code primitives", "evidence": "confirmed" },
+      { "text": "Cloudflare — Workers + Access hosting", "evidence": "tested" }
+    ],
+    "key_activities": [
+      { "text": "Author + maintain the graph of .claude primitives", "evidence": "confirmed" },
+      { "text": "Vendor the plugin + portal renderer", "evidence": "tested" }
+    ],
+    "key_resources": [
+      { "text": "The canonical graph + handbook", "evidence": "confirmed" },
+      { "text": "The vendored renderer engine", "evidence": "tested" }
+    ],
+    "value_propositions": [
+      { "text": "Model an agent operating environment as a reviewable graph, then improve it via a PR-gated loop", "evidence": "tested" },
+      { "text": "Instantiate a product harness in hours, not weeks", "evidence": "assumed" }
+    ],
+    "customer_relationships": [
+      { "text": "Self-serve via the plugin + handbook", "evidence": "assumed" },
+      { "text": "Operator-in-the-loop review gates", "evidence": "tested" }
+    ],
+    "channels": [
+      { "text": "Claude Code plugin marketplace", "evidence": "assumed" },
+      { "text": "The workspace portal (this site)", "evidence": "tested" }
+    ],
+    "customer_segments": [
+      { "text": "Operators building agent operating environments", "evidence": "tested" },
+      { "text": "Product teams running on Claude Code", "evidence": "assumed" }
+    ],
+    "cost_structure": [
+      { "text": "Model inference (review / build loops)", "evidence": "tested" },
+      { "text": "Hosting (CF Workers / Access)", "evidence": "confirmed" }
+    ],
+    "revenue_streams": [
+      { "text": "Pre-revenue — viability deferred until a product proves demand", "evidence": "assumed" }
+    ]
+  },
+  "vpc": {
+    "segment": "Operators building an agent operating environment",
+    "customer_jobs": [
+      { "text": "Stand up a reliable, reviewable agent environment", "evidence": "tested" },
+      { "text": "Know which primitives still earn their place", "evidence": "assumed" }
+    ],
+    "pains": [
+      { "text": "Ad-hoc .claude setups drift and break silently", "evidence": "tested" },
+      { "text": "No way to see the whole system at once", "evidence": "confirmed" }
+    ],
+    "gains": [
+      { "text": "One comprehension surface over the whole environment", "evidence": "tested" },
+      { "text": "A PR-gated improvement loop", "evidence": "assumed" }
+    ],
+    "products_services": [
+      { "text": "The graph + handbook + portal + plugin", "evidence": "confirmed" }
+    ],
+    "pain_relievers": [
+      { "text": "The graph browser makes the whole system legible", "evidence": "tested" },
+      { "text": "Conformance analytics catch drift", "evidence": "assumed" }
+    ],
+    "gain_creators": [
+      { "text": "The dev-sprint loop turns insight into PRs", "evidence": "assumed" }
+    ]
+  },
+  "fit": "Problem-solution fit is claimed on the legibility + drift pains (tested). Product-market fit is unproven (no commercial product yet) — viability is the open risk."
+}

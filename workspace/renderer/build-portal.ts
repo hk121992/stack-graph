@@ -44,6 +44,7 @@ interface Card { title: string; href: string; blurb: string; }
 const CARDS: Card[] = [
   { title: "Handbook", href: "handbook/", blurb: "The canon — what stack-graph is and how it's built." },
   { title: "Product-dashboard", href: "dashboard/", blurb: "The work-ledger: vision, progress, and the record of what we built and why." },
+  { title: "Business model", href: "canvas/", blurb: "The Business Model + Value Proposition canvas — the bets, by evidence state." },
   { title: "Graph browser", href: "graph/", blurb: "The whole graph of .claude primitives — nodes, edges, health." },
   { title: "Analytics", href: "analytics/", blurb: "Conformance, agent-experience, and trends (activates once the loop runs)." },
 ];
