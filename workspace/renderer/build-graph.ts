@@ -225,8 +225,14 @@ function buildDot(rec: GraphRecord): { dot: string; drawnEdgeKeys: Set<string> }
 
 // ─── Graphviz ────────────────────────────────────────────────────────────────
 
-function runGraphviz(dot: string): string {
+function runGraphviz(dot: string): string | null {
   const res = spawnSync("dot", ["-Tsvg"], { input: dot, encoding: "utf8" });
+  // Graceful degrade: a consuming workspace may not have Graphviz installed.
+  // Skip the graph SVG (render a notice) rather than failing the whole build.
+  if (res.error && (res.error as NodeJS.ErrnoException).code === "ENOENT") {
+    warn("Graphviz ('dot') not found on PATH — graph SVG skipped; the surface renders a notice. Install graphviz to enable the whole-graph view.");
+    return null;
+  }
   if (res.error || res.status !== 0) {
     const detail = res.error ? String(res.error.message) : (res.stderr || `exit ${res.status}`);
     throw new Error(
@@ -600,6 +606,7 @@ html.dark { --health-green: #46c279; --health-amber: #e7bb45; --health-red: #e76
 .layout-full-bleed .content { padding: 1.1rem 1.4rem 1.6rem; }
 .requires-graph { margin: 0; }
 .requires-graph-stage { height: calc(100vh - 240px); min-height: 460px; }
+.graph-unavailable { padding: 1.5em; border: 1px dashed var(--hair); border-radius: 6px; color: var(--fg-soft); background: var(--code-bg); font-size: .9rem; }
 .requires-graph svg .node[data-node-id]:hover path,
 .requires-graph svg .node[data-node-id]:hover polygon { filter: brightness(0.97); }
 
@@ -675,13 +682,18 @@ log(`  last-updated: ${gitOk}/${nodeIds.length} resolved from git; last-used: de
 // Build sidecar (also yields per-node badge states).
 const { data: sidecar, badges } = buildSidecar(rec, lastUpdated);
 
-// DOT → SVG → post-process.
+// DOT → SVG → post-process. Degrades to a notice when Graphviz is absent.
 const { dot } = buildDot(rec);
 const rawSvg = runGraphviz(dot);
-const { svg, nodeIdCount } = postProcessSvg(rawSvg, badges);
-
-if (nodeIdCount !== nodeIds.length) {
-  warn(`data-node-id count (${nodeIdCount}) != node count (${nodeIds.length}) — investigate.`);
+let svg: string;
+let nodeIdCount = 0;
+if (rawSvg === null) {
+  svg = `<div class="graph-unavailable">The whole-graph view requires <strong>Graphviz</strong> (the <code>dot</code> binary) at build time. Install graphviz and rebuild to render the graph; the legend and per-node detail below still describe the model.</div>`;
+} else {
+  ({ svg, nodeIdCount } = postProcessSvg(rawSvg, badges));
+  if (nodeIdCount !== nodeIds.length) {
+    warn(`data-node-id count (${nodeIdCount}) != node count (${nodeIds.length}) — investigate.`);
+  }
 }
 
 // Clean ONLY the graph surface dir (never the whole dist/).
