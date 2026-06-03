@@ -162,27 +162,33 @@
     let dragging = null;
     let moved = false;
     svg.addEventListener('pointerdown', (e) => {
-      dragging = { startX: e.clientX, startY: e.clientY, startVB: Object.assign({}, ctx.viewBox) };
+      if (e.button !== 0) return; // primary button only
+      dragging = { startX: e.clientX, startY: e.clientY, startVB: Object.assign({}, ctx.viewBox), captured: false, pid: e.pointerId };
       moved = false;
-      svg.classList.add('is-panning');
-      svg.setPointerCapture(e.pointerId);
+      // Do NOT capture the pointer here. Capturing on a plain click retargets the
+      // follow-up `click` event to the <svg>, so e.target.closest('g.node') is null
+      // and the node-click → detail drawer silently breaks. Capture only once the
+      // gesture is actually a drag (past the threshold, below).
     });
     svg.addEventListener('pointermove', (e) => {
       if (!dragging) return;
       const rect = stage.getBoundingClientRect();
+      if (!moved && (Math.abs(e.clientX - dragging.startX) > 3 || Math.abs(e.clientY - dragging.startY) > 3)) {
+        moved = true;
+        svg.classList.add('is-panning');
+        try { svg.setPointerCapture(dragging.pid); dragging.captured = true; } catch (_) {}
+      }
+      if (!moved) return; // a sub-threshold jiggle is a click, not a pan
       const dx = (e.clientX - dragging.startX) * (ctx.viewBox.w / rect.width);
       const dy = (e.clientY - dragging.startY) * (ctx.viewBox.h / rect.height);
-      if (Math.abs(e.clientX - dragging.startX) > 3 || Math.abs(e.clientY - dragging.startY) > 3) moved = true;
       ctx.viewBox.x = dragging.startVB.x - dx;
       ctx.viewBox.y = dragging.startVB.y - dy;
       applyViewBox(ctx);
     });
-    const endDrag = (e) => {
+    const endDrag = () => {
       if (!dragging) return;
       svg.classList.remove('is-panning');
-      try { svg.releasePointerCapture(e.pointerId); } catch (_) {}
-      // Record whether this gesture was a drag so the click that follows pointerup
-      // can ignore it (otherwise a pan opens the detail drawer).
+      if (dragging.captured) { try { svg.releasePointerCapture(dragging.pid); } catch (_) {} }
       svg.__sgDragged = moved;
       dragging = null;
     };
@@ -504,7 +510,9 @@
       // mark the active node in the SVG
       document.querySelectorAll('g.node.is-selected').forEach(function (n) { n.classList.remove('is-selected'); });
       document.querySelectorAll('g.node[data-node-id="' + cssEscape(id) + '"]').forEach(function (n) { n.classList.add('is-selected'); });
-      if (closeBtn) closeBtn.focus();
+      // preventScroll: focusing the (fixed) close button must never scroll the page
+      // to the top — that was the "jumps to top" symptom.
+      if (closeBtn) { try { closeBtn.focus({ preventScroll: true }); } catch (_) { closeBtn.focus(); } }
     }
     function close() {
       sidebar.hidden = true;
@@ -520,7 +528,12 @@
     document.querySelectorAll('figure.requires-graph svg').forEach(function (svg) {
       svg.addEventListener('click', function (e) {
         if (svg.__sgDragged) { svg.__sgDragged = false; return; } // ignore the click that ends a pan
-        var node = e.target.closest('g.node[data-node-id]');
+        var node = e.target.closest && e.target.closest('g.node[data-node-id]');
+        // Fallback: if the click retargeted (e.g. pointer capture), hit-test the point.
+        if (!node && e.clientX != null) {
+          var el = document.elementFromPoint(e.clientX, e.clientY);
+          node = el && el.closest ? el.closest('g.node[data-node-id]') : null;
+        }
         if (!node) return;
         var id = node.getAttribute('data-node-id');
         if (id) open(id);

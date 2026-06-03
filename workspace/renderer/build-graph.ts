@@ -29,6 +29,7 @@ import {
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync, execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 
 import { assetBasenames, renderMarkdown, type CorePage, type NavGroup } from "./vendor/bc-renderer-core/src/index.js";
 import { renderSurfacePage } from "./shell-host.js";
@@ -763,6 +764,9 @@ if (!existsSync(browserSrc)) {
   throw new Error(`graph-browser.js not found at ${browserSrc} — fork it from vendor/.../graph-viewer.js`);
 }
 copyFileSync(browserSrc, path.join(surfaceDir, "graph-browser.js"));
+// Content-hash cache-bust so a normal refresh always serves the current script
+// (the browser was caching a stale graph-browser.js across rebuilds).
+const browserHash = createHash("sha1").update(readFileSync(browserSrc, "utf8")).digest("hex").slice(0, 8);
 
 // Single-page nav.
 const nav: NavGroup[] = [{ group: "Workspace", pages: [""] }];
@@ -785,7 +789,7 @@ const html = renderSurfacePage({
   layoutVariant: "full-bleed",
   pageLabel: () => "Graph browser",
   extraHead: () => extraHeadCss(),
-  bodyScripts: () => `<script src="graph-browser.js" defer></script>`,
+  bodyScripts: () => `<script src="graph-browser.js?v=${browserHash}" defer></script>`,
 });
 
 writeHtml(path.join(surfaceDir, "index.html"), html);
