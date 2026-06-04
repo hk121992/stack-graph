@@ -43,6 +43,7 @@ kind-specific fields, named so the seam is explicit:
 | `risk_state`, `tier`, `frozen_timeline` | work-item only | **must not assume** — tracked-product-work machinery; absent on a carrier-lite. |
 | `improves` | standalone-IU only | the typed pointer to the thing this slice changes (`{kind, id}`). Replaces `outcome_link` for the incremental arc. |
 | `slice_type` | standalone-IU only | `AFK \| HITL` — governs the loop's autonomy. `build`/`review`/`land` read it to decide attended vs unattended modes and the HITL pause. |
+| `hitl_point` | standalone-IU only | `{stage, decision}` — present when `slice_type: HITL`. Names **where** to pause and **what** the human decides. `build` reads `hitl_point.stage` to stop at the right stage; absent on AFK slices. |
 | `verification` | standalone-IU only | `{end_to_end, tests}` — the vertical-slice proof `build` delivers against and `review`'s tests lens checks. |
 
 **The rule:** a reused node reads the **common interface** freely; it reads a **per-kind field only

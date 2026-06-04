@@ -26,7 +26,7 @@ edges:
     - { id: instrumentation-preamble, load: import }
     - { id: carrier-interface,        load: on-demand }
   precedes:
-    - { id: reconcile }
+    - { id: reconcile, arc: dev-sprint }
     - { id: land, arc: incremental }
 # analytics — the loop
 goals:

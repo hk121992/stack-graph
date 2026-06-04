@@ -35,7 +35,7 @@ edges:
     - { id: carrier-interface,        load: on-demand }
   can-follow:
     - { id: review }
-    - { id: reconcile }
+    - { id: reconcile, arc: dev-sprint }
   precedes:
     - { id: review }
 # analytics — the loop
@@ -218,8 +218,9 @@ the addition is the *ordering* and *minimal-code* rules, not a new schema field 
 
 ### HITL pause
 
-A standalone IU carries `slice_type: AFK | HITL`. When it is **HITL**, build **pauses at the named
-human decision point** the slice records — it does not run past it unattended. An **AFK** slice runs
+A standalone IU carries `slice_type: AFK | HITL`. When it is **HITL**, build reads `hitl_point`
+and **pauses at `hitl_point.stage`** — the named human decision point the slice records — surfacing
+`hitl_point.decision`; it does not run past it unattended. An **AFK** slice runs
 the loop above unattended end-to-end. (A HITL point that turns out to be a genuine design fork is a
 *promote* signal, not a build decision.)
 

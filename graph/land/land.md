@@ -20,7 +20,7 @@ edges:
     - { id: instrumentation-preamble, load: import }
     - { id: carrier-interface,        load: on-demand }
   precedes:
-    - { id: debrief }
+    - { id: debrief, arc: dev-sprint }
 # analytics — the loop
 goals:
   - outcome: Every cleared change reaches production (or a confirmed staging deploy) through a sequenced, gated path — not an ad-hoc push.

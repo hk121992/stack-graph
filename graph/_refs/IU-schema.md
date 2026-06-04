@@ -85,7 +85,16 @@ fields below over the common set:
   - `channel: sprint` with no `parent`, or `channel: incremental` with a `parent`, is illegal.
   - **HITL contract.** When `slice_type: HITL`, `hitl_point` (`{stage, decision}`) is **required** —
     the stage + decision `build` pauses on; an `AFK` slice omits it. A HITL slice without
-    `hitl_point` fails validate (build would not know where to stop).
+    `hitl_point` fails validate (build would not know where to stop). `hitl_point` is part of the
+    carrier interface reused nodes read (see `carrier-interface`).
+  - **Staged completeness — the `proposed` stub is valid (R-build).** A standalone IU is scaffolded
+    by `triage` at `lifecycle_state: proposed` carrying only **identity** (`id`, `title`), `channel:
+    incremental`, `improves`, `lifecycle_state: proposed`, `status: planned`, and an empty
+    `gate_decisions[]`. Its **content fields** — `goal`, `files`, `acceptance`, `acceptance_check`,
+    `slice_type`, `verification` (+ `hitl_point` when HITL) — are authored by `specify-slice` and are
+    **required from `in-delivery` onward**. Validate enforces the full standalone shape once
+    `lifecycle_state` is past `proposed`; a `proposed` stub validates against this reduced scaffold.
+    (The `improvements-manifest` `slice_type` is therefore null until `specify-slice` tags it.)
 - **Child IUs are not carriers (scoped — R1).** A **child** IU does **not** hold carrier
   `lifecycle_state` or `gate_decisions` — those stay the parent carrier's; its `status` is
   build-tracking only. *(This invariant is scoped to the child shape. The standalone shape **is** a

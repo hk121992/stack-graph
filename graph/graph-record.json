@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-04T20:23:52Z",
+  "generated": "2026-06-04T20:41:32Z",
   "node_count": 31,
   "reference_count": 20,
   "handbook_reference_count": 0,
@@ -85,7 +85,8 @@
             "id": "review"
           },
           {
-            "id": "reconcile"
+            "id": "reconcile",
+            "arc": "dev-sprint"
           }
         ],
         "precedes": [
@@ -359,7 +360,8 @@
         ],
         "precedes": [
           {
-            "id": "debrief"
+            "id": "debrief",
+            "arc": "dev-sprint"
           }
         ]
       }
@@ -739,7 +741,8 @@
         ],
         "precedes": [
           {
-            "id": "reconcile"
+            "id": "reconcile",
+            "arc": "dev-sprint"
           },
           {
             "id": "land",
@@ -1246,7 +1249,8 @@
     {
       "from": "build",
       "to": "reconcile",
-      "type": "can-follow"
+      "type": "can-follow",
+      "arc": "dev-sprint"
     },
     {
       "from": "build",
@@ -1492,7 +1496,8 @@
     {
       "from": "land",
       "to": "debrief",
-      "type": "precedes"
+      "type": "precedes",
+      "arc": "dev-sprint"
     },
     {
       "from": "lens-correctness",
@@ -1840,7 +1845,8 @@
     {
       "from": "review",
       "to": "reconcile",
-      "type": "precedes"
+      "type": "precedes",
+      "arc": "dev-sprint"
     },
     {
       "from": "review",
