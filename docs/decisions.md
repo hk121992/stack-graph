@@ -877,11 +877,13 @@ one vocabulary.) *Widens* D33. *Spec:* severity-scale.md, spec-diff, reconcile, 
 
 **D59 — The deploy-event homes on the carrier via the event log + terminal freeze, not a bespoke
 store.** The deploy/DORA signal (reconciliation `deploy C3` + `land CF-3`) is **not** a
-`.gstack/deploy-reports/`-style store. It follows the carrier model already locked: `deploy`/`land`
-emit the deploy outcome (merge SHA, URL, mode, timing, status, live-confirmed) on the **existing
+`.gstack/deploy-reports/`-style store. It follows the carrier model already locked: `deploy` emits
+the deploy outcome (merge SHA, URL, mode, timing, status, smoke health) on the **existing
 carrier-keyed `node-exit` event** the instrumentation preamble fires — no new machinery, exactly as
-`tokens_per_iu` rides the unit-complete event (D57); current deploy-state is **projected** from the
-event log (`.stack-graph/`, derived-on-read); and the **recorder freezes** the deploy outcome onto
+`tokens_per_iu` rides the unit-complete event (D57). The log is **append-only**, so `land` does
+**not** mutate that row — it emits its **own** carrier-keyed live-confirmed event and the
+**projection joins the two by carrier id** (`merge_sha`). Current deploy-state is **projected** from
+the event log (`.stack-graph/`, derived-on-read); and the **recorder freezes** the joined outcome onto
 the carrier's closed record at the terminal transition (a `frozen_*` field beside `frozen_timeline`/
 `frozen_metrics` — the one point a derived value enters a committed file). DORA/MTTR = a derivation
 **across** carriers' deploy events (measure-outcomes-family), never a stored aggregate. **D44 held**
