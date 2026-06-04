@@ -50,7 +50,9 @@
       viewBox: Object.assign({}, initialViewBox),
       zoom: 1,
       edgeIndex: indexEdges(svg),
+      _pinnedNodeId: null,
     };
+    figureEl.__sgCtx = ctx;   // so the sidebar's click handler can pin the lineage
 
     installPathHighlight(ctx);
 
@@ -149,6 +151,12 @@
   }
 
   function clearHighlight(ctx) {
+    // If a node is pinned (clicked/selected), keep its lineage lit rather than
+    // clearing — so the traces stay live while the user reads the drawer.
+    if (ctx._pinnedNodeId) {
+      const pinned = ctx.svg.querySelector('g.node[data-node-id="' + cssEscape(ctx._pinnedNodeId) + '"]');
+      if (pinned) { highlightLineage(ctx, pinned); return; }
+    }
     ctx.figureEl.classList.remove('is-highlighting');
     ctx.svg.querySelectorAll('.path-active').forEach((el) => el.classList.remove('path-active'));
   }
@@ -517,6 +525,13 @@
       // mark the active node in the SVG
       document.querySelectorAll('g.node.is-selected').forEach(function (n) { n.classList.remove('is-selected'); });
       document.querySelectorAll('g.node[data-node-id="' + cssEscape(id) + '"]').forEach(function (n) { n.classList.add('is-selected'); });
+      // Pin the lineage highlight to the selected node so the traces stay lit while
+      // the drawer is open (restored after hover, cleared on close / re-select).
+      document.querySelectorAll('figure.requires-graph').forEach(function (fig) {
+        var ctx = fig.__sgCtx; if (!ctx) return;
+        var n = fig.querySelector('g.node[data-node-id="' + cssEscape(id) + '"]');
+        if (n) { ctx._pinnedNodeId = id; highlightLineage(ctx, n); }
+      });
       // preventScroll: focusing the (fixed) close button must never scroll the page
       // to the top — that was the "jumps to top" symptom.
       if (closeBtn) { try { closeBtn.focus({ preventScroll: true }); } catch (_) { closeBtn.focus(); } }
@@ -525,6 +540,12 @@
       sidebar.hidden = true;
       sidebar.classList.remove('is-open');
       document.querySelectorAll('g.node.is-selected').forEach(function (n) { n.classList.remove('is-selected'); });
+      // Unpin + clear the lineage highlight.
+      document.querySelectorAll('figure.requires-graph').forEach(function (fig) {
+        var ctx = fig.__sgCtx; if (!ctx) return;
+        ctx._pinnedNodeId = null;
+        clearHighlight(ctx);
+      });
     }
 
     if (closeBtn) closeBtn.addEventListener('click', close);
