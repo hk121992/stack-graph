@@ -7,6 +7,8 @@ last_updated: 2026-06-03
 amended:
   - date: 2026-06-03
     note: Backfill — deepened with real external analogues (gstack/health, gstack/retro, ce-product-pulse); added all template sections; Challenge findings; corpora recorded.
+  - date: 2026-06-03
+    note: D57 tokens_per_iu read-side — measure-outcomes derives the per-sprint tokens_per_iu distribution + over-budget share from the product-outcomes stream; added context_budget to the spawn-bundle input contract (read-only, n/a degrade); extended an existing goal's metric. Pure-read preserved; no new edges; no write. SCOPE: read-side only — CF-1..CF-4 reconciliation gaps untouched.
 sources_lifted: 3
 external_analogue_found: true
 external_corpora_searched:
@@ -46,7 +48,10 @@ researcher_adequacy_note: |
 sprint. It reads the instrumentation timeline and the `earns-keep` declarations from
 the graph record, computes per-node metrics for every node the sprint touched, diffs
 against a prior-run baseline where one exists, and returns a structured YAML report.
-It writes nothing to any file and emits no judgment. The report is the return value
+The same per-node/per-IU measurement remit covers a **per-IU cost derivation** (D57): from
+the product-outcomes event stream's `tokens_per_iu` measures, it derives the per-sprint
+`tokens_per_iu` distribution and the over-budget share against the harness context-budget
+value. It writes nothing to any file and emits no judgment. The report is the return value
 only; the caller (`debrief`) owns persistence and assessment. Out of scope: assessment
 of whether the earns-keep threshold was actually met (that is the operator/debrief job),
 any generative synthesis or narrative, and any mutation of the timeline or graph record.
@@ -55,8 +60,15 @@ any generative synthesis or narrative, and any mutation of the timeline or graph
 
 | outcome | metric | earns-keep |
 |---------|--------|------------|
-| Every debrief closes with a structured metrics row for each earns-keep criterion of each node the sprint touched — numbers, not narrative. | share of debrief runs that produce a complete metrics row per touched node; missing-metric rate | missing-metric rate trends toward zero; a debrief that omits measurement for a node is a gap, not a valid outcome |
+| Every debrief closes with a structured metrics row for each earns-keep criterion of each node the sprint touched — plus the per-IU cost block (`tokens_per_iu` distribution + over-budget share) — numbers, not narrative. | share of debrief runs that produce a complete metrics row per touched node and a per-IU cost block when the sprint built IUs; missing-metric rate | missing-metric rate trends toward zero; a debrief that omits measurement for a node, or omits the per-IU cost block when IUs were built, is a gap, not a valid outcome |
 | Metrics compound across sprints — each run emits a trend point the next run can compare against, so the earns-keep signal matures over time. | trend-point coverage (share of earns-keep metrics with ≥2 data points after N sprints); delta tracked vs prior run | trend-point coverage grows sprint-over-sprint; a metric that never accumulates a second point is not being read |
+
+**Why no new goal (D57 read-side):** the `tokens_per_iu` distribution + over-budget share are
+*derived* metrics the agent computes and returns — exactly the "compute per-node/per-IU metrics
+against earns-keep" remit Goal 1 already names. The over-budget share *is* the read-side of `build`'s
+own third earns-keep ("over-budget share trends toward zero as decomposition matures"); the agent
+reads and reports it, it does not own a separate outcome. So the derivation extends Goal 1's metric
+rather than minting a goal — consistent with the amendment scope (node-edit; no new goal warranted).
 
 ## Primitive / Mode
 
@@ -88,11 +100,30 @@ touched_nodes: [<node-id>, ...]
 timeline_source: <path>          # path to the local event log for this sprint
 graph_record: <path>             # path to graph-record.json
 baseline: <path> | null          # path to prior debrief metrics snapshot, or null
+context_budget: <int> | null     # harness-tunable per-IU context budget in tokens (~100k
+                                 # documented default); read-only; required only to compute the
+                                 # over-budget share. Absent → over-budget share is n/a (D57)
 ```
+
+The `context_budget` field is **read-only** — it is the harness's tunable dial value
+([06-analytics](../../handbook/content/06-analytics/README.md) "Per-IU cost — `tokens_per_iu`";
+[IU-schema](../_refs/IU-schema.md) Invariants), passed *in*, never written *out*. It is the only
+input the per-IU over-budget derivation needs that the timeline alone cannot supply. If it is
+absent (`null` or omitted), the agent **degrades cleanly**: it still computes the `tokens_per_iu`
+distribution from the stream, but reports the over-budget share as `n/a`. The number is
+model/version-dependent and deliberately not baked into the agent — the harness owns the value.
 
 **Output:** A structured YAML report containing one row per touched node, plus a
 `skipped` list for nodes whose earns-keep could not be resolved, and a `warnings`
-list. The report is the return value only; the node writes nothing to disk.
+list. The report **additionally** carries a per-IU cost block (D57): the per-sprint
+`tokens_per_iu` distribution (e.g. median + p90 across the sprint's IUs) derived from the
+product-outcomes stream's `tokens_per_iu` measures, and the **over-budget share** — the
+fraction of the sprint's IUs whose `tokens_per_iu` exceeded `context_budget` (or `n/a` when
+the budget is absent). The over-budget share is a **decomposition-quality** signal: a
+persistently high share means `plan` drew IUs too coarse — the same shape as "weak acceptance
+is a *plan* gap, not a *build* gap". The report is the return value only; the node writes
+nothing to disk. Computing and returning these metrics introduces **no write and no judgment** —
+the agent stays pure-read; `debrief` reads the block back and the operator assesses it.
 
 ## External analogues searched
 
@@ -184,6 +215,14 @@ measurement job, not independent jobs that would justify splitting. Applying the
 
 Note: `composes-into` is absent — this is a leaf agent. `precedes` is absent — it returns
 to debrief; debrief owns the next step.
+
+**D57 read-side adds no edge.** The `tokens_per_iu` measures are read from the same
+product-outcomes event stream the existing `instrumentation-preamble` reference already covers —
+no new ref or edge target. The `context_budget` value arrives as a **spawn-bundle input field**,
+not a referenced artefact, so it is no edge either. The over-budget share is computed and returned
+in the report; the read-side introduces no new node, ref, or write target. (`build` is the
+producer that emits `tokens_per_iu`, via its own body emit into the analytics stream — that is
+build's edge to own, not measure-outcomes'; measure-outcomes only reads the resulting stream.)
 
 ## Conformance
 

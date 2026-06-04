@@ -7,6 +7,8 @@ last_updated: 2026-06-03
 amended:
   - date: 2026-06-03
     note: "Backfill — external analogue search added (ce-work, Anthropic best-practices, tracer-bullet methodology); source-material lifted; Challenge findings section authored; report deepened to full template structure."
+  - date: 2026-06-03
+    note: "Reconciliation fold-in — CF-1..CF-6 marked ACCEPTED/APPLY with resolutions (per docs/research-backfill-reconciliation.md A-cluster); D57 single-agent-implementable IU + tokens_per_iu emission folded into Contract + body-relevant sections; serial mode re-framed to one-IU-one-fresh-context default. CF-7 (low) left as-is. IU-schema now carries acceptance_check + the single-agent invariant (v0.2.0)."
 sources_lifted: 5
 external_analogue_found: true
 external_corpora_searched:
@@ -50,6 +52,7 @@ What this node should achieve (as outcomes, not activities):
 |---------|--------|------------|
 | Each implementation unit is delivered to its stated acceptance criteria, spec-faithfully, without operator hand-holding through the autonomous span. | IU acceptance-criteria pass-rate at handoff to review; review findings per IU traced to a spec deviation present in the implementation (not a spec gap). | Spec-deviation findings at review trend below the pre-build baseline over N sprints; a build span that routinely fails acceptance criteria it could have verified itself is a process gap, not a capability gap. |
 | Rework is caught and fixed within the build span, not deferred to review. | Fraction of IUs requiring a review→build re-entry vs units where build caught and resolved the issue in-span; average re-entry count per IU. | Re-entry rate trends down as the span matures; a span that never self-corrects despite clear acceptance criteria is a calibration signal for the autonomous depth setting. |
+| The per-IU build cost is measured so the single-agent context budget is an empirical dial and decomposition quality is observable (D57). | `tokens_per_iu` emitted on each unit-complete event into the analytics product-outcomes stream; `measure-outcomes` derives the distribution and the over-budget share against the harness budget. | Over-budget share trends toward zero as decomposition matures; a persistently high share is a `plan` decomposition-quality signal (IUs drawn too coarse), the same shape as "weak acceptance is a *plan* gap, not a *build* gap" — not a build capability gap. |
 
 ## Primitive / Mode
 
@@ -65,9 +68,11 @@ What this node should achieve (as outcomes, not activities):
 
 ## Contract
 
-**Input:** A settled carrier with `lifecycle_state: committed` (or equivalent), its `children[]` IU records (each with `id`, `goal`, `files`, `dependencies`, `acceptance`, `size`), and the operator's mode confirmation (inline / serial / parallel). Build imports the `IU-schema` reference and may invoke `explore` scoped to the IU's target area before the autonomous span begins.
+**Input:** A settled carrier with `lifecycle_state: committed` (or equivalent), its `children[]` IU records (each with `id`, `goal`, `files`, `dependencies`, `acceptance`, **`acceptance_check`** — the runnable command(s) that prove `acceptance`, now carried by `IU-schema` v0.2.0 — and `size`), and the operator's mode confirmation. Build imports the `IU-schema` reference and may invoke `explore` scoped to the IU's target area before the autonomous span begins.
 
-**Output:** The IU set delivered — each unit passing its stated acceptance criteria, evidenced. A unit-complete event per IU (carrying IU `id` + acceptance evidence). A stage-complete event when all units are done. In parallel mode, a merged result assembled from per-worktree worker outputs in dependency order. A blocker report if a scope expansion or spec deviation cannot be resolved in-span.
+**Default execution model (D57 / CF-3):** **one IU = one fresh agent context.** Serial-subagent dispatch for dependent sets (each subagent gets the IU's full context bundle, fresh context, returns a unit-complete summary); parallel-subagent for independent sets (the existing worktree-isolated path). Main-thread `inline` is the **exception** — a single tiny (XS/S) unit, or when the operator deliberately wants context carry-forward between two tightly-coupled units. The mode is confirmed at kick-off, but the default is fresh-context-per-IU, not main-thread serial.
+
+**Output:** The IU set delivered — each unit passing its stated acceptance criteria, evidenced. A **unit-complete event per IU** carrying the IU `id`, the **raw output of the IU's `acceptance_check`** (test stdout / exit code — acceptance evidence is *shown, not asserted*, CF-1), and **`tokens_per_iu`** (the per-IU build token cost, emitted into the analytics product-outcomes event log — D57). A stage-complete event when all units are done. **Incremental commits** through the span — one conventional commit per IU on acceptance + tests-pass (CF-6). In the parallel path, a merged result assembled from per-worktree worker outputs in dependency order, after the worktree-teardown sequence (CF-5). A blocker report if a scope expansion or spec deviation cannot be resolved in-span.
 
 ## External analogues searched
 
@@ -93,12 +98,14 @@ What this node should achieve (as outcomes, not activities):
 ## Keep / Drop
 
 **Kept (absorbed into body from source material):**
-- Verification-gated done signal: the acceptance criteria must produce a runnable check (test output, build exit code, diff against a fixture) — "show evidence, do not assert" principle from Anthropic docs.
-- Vertical slicing discipline: each IU should be an end-to-end slice, not a horizontal layer; the build span should catch integration failures within each IU, not defer them to review.
-- Parallel Safety Check: before parallel dispatch, build a file-to-unit map and check for shared-file overlap; overlap with worktree isolation = predictable conflict surfaced at merge; overlap without isolation = downgrade to serial.
-- Per-IU incremental commit discipline from ce-work: commit when the IU passes acceptance and tests pass; do not commit broken state.
-- Shared-directory fallback constraints (ce-work): when worktree isolation is unavailable, subagents must not stage/commit — the orchestrating span handles that after the full batch completes.
-- Context degradation risk: ce-work's use of serial subagents for 3+ dependent IUs (fresh context per IU) is a real mitigation for the context-fill degradation the Anthropic docs call the primary constraint.
+- Verification-gated done signal, **evidence shown not asserted** (CF-1, ACCEPTED): build reads `acceptance_check` from the IU (now in `IU-schema`), runs it, and the unit-complete event carries the **raw output** (test stdout / exit code), not a prose assertion. Norm: "acceptance evidence is shown, not asserted."
+- **In-span adversarial review** (CF-2, ACCEPTED, RECOMMENDED): after an IU passes its acceptance check and before emitting unit-complete, dispatch a lightweight fresh-context reviewer subagent against the IU diff + acceptance criteria. Cost-gated (recommended for M+ IUs). This is an **in-span pre-check**; it does **not** replace the downstream `review` stage. Described in prose as a dispatched subagent — not a graph node or edge.
+- **One-IU-one-fresh-context as the default execution model** (CF-3 → D57, ACCEPTED): serial-subagent for 3+ dependent IUs (each subagent gets the IU's full context bundle, fresh context, returns a unit-complete summary), parallel-subagent for independent IUs (existing worktree-isolated path). Main-thread `inline` is reserved for a single tiny (XS/S) unit or deliberate context carry-forward between two tightly-coupled units. Serial-in-main-thread becomes the exception, not the rule.
+- **Parallel Safety Check before parallel dispatch** (CF-4, ACCEPTED): (1) build a file-to-unit map from each candidate IU's `files`; (2) check for intersection; (3) overlap decision tree — overlap + worktree isolation available → proceed but log the predicted conflict for the merge step; overlap + isolation unavailable → downgrade that pair to serial with a logged reason; no overlap → safe. Name git-index contention + test interference as why shared-directory concurrency is unsafe.
+- **Worktree teardown in the parallel post-merge sequence** (CF-5, ACCEPTED, order-bearing): unlock → remove worktree → `git branch -d` (lowercase `-d`). SAFETY: name the `-d` vs `-D` distinction explicitly — always lowercase `-d`, which refuses to delete unmerged branches.
+- **Incremental-commit discipline within the autonomous span** (CF-6, ACCEPTED): commit per IU on acceptance + tests-pass, conventional message derived from the IU `goal`; in worktree-isolated parallel mode subagents commit within their branch, in shared-directory fallback only the orchestrator commits; no `WIP:` messages for these.
+- **`tokens_per_iu` emission** (D57): build emits `tokens_per_iu` on each unit-complete event (the same event CF-1 adds raw evidence to) into the analytics product-outcomes event log. Self-contained in the build body — the analytics event log is the named destination; no new measure-outcomes / 06-analytics dependency or edge.
+- Vertical slicing discipline (CF-7, low, unchanged): each IU should be an end-to-end slice, not a horizontal layer; the build span should catch integration failures within each IU, not defer them to review.
 
 **Dropped (out of scope for this node):**
 - Phase 3-4 shipping workflow from ce-work (quality check → code review → PR creation): this is the `review` / `ship` nodes in stack-graph, not the build node's job.
@@ -141,16 +148,16 @@ Build belongs as a single node. It owns the entire execution span from kick-off 
 
 **`primitive:`↔`mode:` agreement:** `skill` + `collaborative` is the correct pairing for a node that is invoked in the current context and opens with an operator interaction before running an autonomous span.
 
-**`goals:` as outcomes:** Both goals read as outcomes (spec-faithful delivery measured against IU pass-rate; in-span rework measured against review re-entry rate), not activities. Earns-keep thresholds are stated.
+**`goals:` as outcomes:** All three goals read as outcomes (spec-faithful delivery measured against IU pass-rate; in-span rework measured against review re-entry rate; per-IU build cost measured against the over-budget share — D57), not activities. Earns-keep thresholds are stated.
 
 **Edge targets resolvable:** `explore` exists (`graph/explore/explore.md`). `IU-schema` exists (`graph/_refs/IU-schema.md`). `dev-sprint` exists. `review` and `reconcile` are declared as deferred wiring-pass edges. `debug` is deferred (wave 2). `instrumentation-preamble` is a build-level injection consistent with sibling nodes.
 
 ## Open questions
 
-- **Context-degradation mitigation for long spans.** ce-work dispatches serial subagents (fresh context per IU) for 3+ dependent IUs specifically to prevent context-fill degradation. Build's current body describes the autonomous span as running in the main thread for serial mode. Is this intentional (trusting compaction), or should the node prescribe per-IU context isolation as the analogue does? This is a design choice with measurable impact on span quality.
-- **Acceptance evidence standard.** The node says "observable, checked, not assumed" but does not prescribe what counts as sufficient evidence (test output vs build exit code vs diff vs screenshot). The Anthropic best-practices doc treats this as the most important configurable gap. Should `IU-schema` carry an `acceptance_evidence_type` field?
-- **Simplify pass between IU clusters.** ce-work includes a "simplify as you go" step after every 2-3 IUs — a cross-unit consolidation pass. Build does not. Is this in scope for the build node or deferred to a post-review reconcile pass?
-- **Post-deploy monitoring section in output.** ce-work's shipping workflow requires a "Post-Deploy Monitoring & Validation" section in the PR description for every change. Stack-graph's build node has no equivalent artefact in its output contract. Is this a gap or intentionally deferred to the `ship` node (not yet authored)?
+- **Context-degradation mitigation for long spans.** RESOLVED via CF-3 → D57: one-IU-one-fresh-context is now the default execution model (serial-subagent for dependent sets, parallel-subagent for independent), with main-thread `inline` reserved for a single tiny unit or deliberate carry-forward.
+- **Acceptance evidence standard.** RESOLVED via CF-1 + D57: `IU-schema` v0.2.0 carries an `acceptance_check` field (the runnable command); build runs it and the unit-complete event carries the **raw output** as evidence — shown, not asserted. Build additionally emits `tokens_per_iu` on the same event into the analytics product-outcomes log (D57). (The earlier `acceptance_evidence_type` framing is superseded by the simpler `acceptance_check` runnable-command field.)
+- **Simplify pass between IU clusters.** STILL OPEN (CF-8, low). ce-work includes a "simplify as you go" step after every 2-3 IUs — a cross-unit consolidation pass. Build does not. Is this in scope for the build node or deferred to a post-review reconcile pass? Not part of the accepted reconciliation batch; left for a later pass.
+- **Post-deploy monitoring section in output.** STILL OPEN. ce-work's shipping workflow requires a "Post-Deploy Monitoring & Validation" section in the PR description for every change. Stack-graph's build node has no equivalent artefact in its output contract. Is this a gap or intentionally deferred to the `ship` node? Not part of the accepted reconciliation batch.
 
 ---
 
@@ -158,7 +165,9 @@ Build belongs as a single node. It owns the entire execution span from kick-off 
 
 This section documents where the `build` node is weaker than its real-world analogues, what best practice it omits, and what structural gaps the external sources surface. Each finding is specific and cites the analogue.
 
-### CF-1 No runnable verification gate (severity: high)
+### CF-1 No runnable verification gate (severity: high) — **ACCEPTED / APPLY**
+
+**Resolution (folded in).** `IU-schema` v0.2.0 now carries an `acceptance_check` field (the runnable command that proves `acceptance`). Build reads `acceptance_check`, runs it, and the unit-complete event carries its **raw output** (test stdout / exit code), not a prose assertion. Body norm: **"acceptance evidence is shown, not asserted."** Reflected in the Contract output + Keep list above.
 
 **Gap.** The build node defines the done signal as "every acceptance criterion in its `acceptance` field is satisfied — observable, checked, not assumed." But it does not prescribe *how* build verifies the criterion or what form the evidence must take. The operator or downstream review node is left to infer this.
 
@@ -170,7 +179,9 @@ This section documents where the `build` node is weaker than its real-world anal
 
 ---
 
-### CF-2 No adversarial review within the build span (severity: high)
+### CF-2 No adversarial review within the build span (severity: high) — **ACCEPTED / APPLY (RECOMMENDED)**
+
+**Resolution (folded in).** Add a RECOMMENDED in-span adversarial review: after an IU passes its acceptance check, before emitting unit-complete, dispatch a lightweight fresh-context reviewer subagent against the IU diff + acceptance criteria. Cost-gated (recommended for M+ IUs). This is an **in-span pre-check** and does **not** replace the downstream `review` stage. It is a dispatched subagent described in prose — **not** a graph node or edge.
 
 **Gap.** Build's autonomous span has no internal cross-check step. The node says "catch and repair in-span" but does not prescribe a mechanism for self-verification that is not authored by the same model instance that did the implementing.
 
@@ -182,7 +193,9 @@ This section documents where the `build` node is weaker than its real-world anal
 
 ---
 
-### CF-3 Context degradation unaddressed for serial multi-IU spans (severity: medium)
+### CF-3 Context degradation unaddressed for serial multi-IU spans (severity: medium) — **ACCEPTED / APPLY → D57**
+
+**Resolution (folded in).** Generalised by **D57**: **one-IU-one-fresh-context is the DEFAULT execution model**, not a serial-mode tweak. Serial-subagent dispatch for 3+ dependent IUs (each subagent gets the IU's full context bundle, fresh context, returns a unit-complete summary); parallel-subagent for independent IUs (existing worktree-isolated path). Main-thread `inline` is reserved for a single tiny (XS/S) unit or when the operator deliberately wants context carry-forward between two tightly-coupled units. The `serial` mode is re-framed accordingly — "main thread one after another" becomes the **exception**, not the default.
 
 **Gap.** Build's serial mode describes "multiple IUs, running in the main thread one after another." For long serial spans (5+ IUs), context accumulation is the primary failure mode — the Anthropic best-practices doc calls this "the most important resource to manage" and notes that "LLM performance degrades as context fills."
 
@@ -194,7 +207,9 @@ This section documents where the `build` node is weaker than its real-world anal
 
 ---
 
-### CF-4 No Parallel Safety Check before parallel dispatch (severity: medium)
+### CF-4 No Parallel Safety Check before parallel dispatch (severity: medium) — **ACCEPTED / APPLY**
+
+**Resolution (folded in).** Add a **Parallel Safety Check before parallel dispatch**: (1) build a file-to-unit map from each candidate IU's `files`; (2) check for intersection; (3) overlap decision tree — overlap + worktree isolation available → proceed but log the predicted conflict for the merge step; overlap + isolation unavailable → downgrade that pair to serial with a logged reason; no overlap → safe. Name **git-index contention + test interference** as the reason shared-directory concurrency is unsafe.
 
 **Gap.** Build's parallel mode says "independent IUs" and "no shared `files`" as the precondition, but the check is described as a pre-flight condition assessed at kick-off from the IU `files` fields. The node does not define what to do when overlap is discovered.
 
@@ -206,7 +221,9 @@ This section documents where the `build` node is weaker than its real-world anal
 
 ---
 
-### CF-5 No worktree cleanup discipline in parallel mode (severity: medium)
+### CF-5 No worktree cleanup discipline in parallel mode (severity: medium) — **ACCEPTED / APPLY**
+
+**Resolution (folded in).** Add **worktree teardown** to the parallel post-merge sequence (order-bearing): unlock → remove worktree → `git branch -d` (lowercase `-d`). SAFETY: name the `-d` vs `-D` distinction explicitly — always lowercase `-d`, which refuses to delete unmerged branches.
 
 **Gap.** Build's parallel mode describes "merges completed units in dependency order before review handoff" but does not describe how per-IU worktrees are cleaned up after merge.
 
@@ -218,7 +235,9 @@ This section documents where the `build` node is weaker than its real-world anal
 
 ---
 
-### CF-6 No commitment to incremental commits during the span (severity: medium)
+### CF-6 No commitment to incremental commits during the span (severity: medium) — **ACCEPTED / APPLY**
+
+**Resolution (folded in).** Add **incremental-commit discipline** to the autonomous span: commit per IU on acceptance + tests-pass, conventional message derived from the IU `goal`. In worktree-isolated parallel mode subagents commit within their branch; in shared-directory fallback only the orchestrator commits. No `WIP:` messages for these.
 
 **Gap.** Build emits a unit-complete event after each IU passes acceptance, but the node does not describe the commit discipline within the span. The operator does not know whether build commits after each IU or accumulates all changes until stage-complete.
 

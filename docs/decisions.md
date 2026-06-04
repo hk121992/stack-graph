@@ -821,3 +821,35 @@ type**, not gated `precedes` (which would pollute traversal/projection); reused 
 per the design's Spec-touchpoints table (02-graph-spec incl. the new `escalates` edge, 01-concepts,
 07-decomposition, 04-harness, 06-analytics, 08-devops, IU-schema, work-item-schema). *Status:*
 Designed + reviewed; **build deferred to a follow-up session** per the operator.
+
+## IU sizing & decomposition
+
+**D57 — The IU is a single-agent-implementable unit; its context budget is a measured dial, and
+tokens-per-IU is a first-class analytics metric.** Today an IU's only sizing signal is `size:
+XS–XL` (rough *effort*), which gives `plan` no checkable decomposition target and leaves the
+actual context cost unmeasured. **Reframe:** an implementation unit should be **buildable by one
+fresh agent within its best-work context budget** — "one agent, bounded fresh context, split
+diligently" (Pocock's tracer-bullet discipline). **Five parts.** (1) **Single-agent-implementable
+invariant** — an IU's `goal`+`files`+`acceptance` must fit one fresh agent; an explicit
+decomposition criterion in `plan` and a soft invariant in `IU-schema`; `L`/`XL` read as "probably
+split." (2) **Budget is a dial, not a constant** — durable *principle*, ~100k tokens as the
+documented **harness-tunable default** (the best-work window is model/version-dependent — verify,
+don't bake in); the harness carries the value, the schema carries the principle. (3)
+**Tokens-per-IU is measured** — `build` emits `tokens_per_iu` on the per-IU **unit-complete event**
+it already emits (no new machinery; rides the same event CF-1 adds runnable evidence to); it lands
+in the analytics event log's product-outcomes stream; `measure-outcomes` derives the distribution +
+**over-budget share** against the budget. This makes the dial empirical (set default → measure →
+tune) **and** a decomposition-quality signal — a high over-budget share means `plan` is drawing IUs
+too coarse (same shape as build's "weak acceptance = a *plan* gap" framing); earns-keep =
+over-budget share trends toward zero. (4) **Build default = one-IU-one-fresh-context** —
+generalises reconciliation **CF-3**: serial-subagent for dependent sets, parallel-subagent for
+independent; main-thread `inline` reserved for a tiny single unit or deliberate carry-forward. (5)
+**Budget is a routing test between the two loops** — a standalone (incremental) IU that won't fit
+one agent's budget is a **promote** signal (it's a work-item, not a slice). *Why:* the operator
+identified tokens-per-IU as a metric the factory must measure, and single-agent-implementability as
+the decomposition target; `size`-as-effort gave neither. *Applies* D50 (backbone), D56 (two-loop
+split / promote); *generalises* reconciliation CF-3, *rides* CF-1 (`acceptance_check` + per-IU
+evidence on the same event). *Spec:* per the design's Spec-touchpoints table (IU-schema, 06-analytics,
+07-decomposition, `plan`, `build`, incremental-improvement-design). *Design:*
+`docs/iu-sizing-design.md`. *Status:* Decided; folds into the reconciliation amend wave (IU-schema
++ plan + build + 06-analytics + measure-outcomes), not a standalone build.

@@ -138,12 +138,28 @@ The event log carries three distinguishable streams sharing the same append-log 
 
 | Stream | Subject | Consumers |
 |---|---|---|
-| **Product outcomes** | Carrier-tagged stage events; outcome metrics per node | Dashboard render; improvement loop |
+| **Product outcomes** | Carrier-tagged stage events; outcome metrics per node; per-IU cost (`tokens_per_iu`) | Dashboard render; improvement loop |
 | **Factory / graph conformance** | Traversal conformance against arc-declared edges; gate events | Factory loop; devops review |
 | **Carrier projection** | Stage position + traversal sequence per carrier id | Surface render; recorder; degraded-mode fallback |
 
 They share machinery but are different subjects with different consumers; keep them
 namespaced so a consumer of one stream does not need to filter noise from another.
+
+### Per-IU cost — `tokens_per_iu`
+
+Under the one-IU-one-fresh-context build model ([decomposition](../07-decomposition/README.md);
+D57), each implementation unit is built in its own fresh agent context. `build` emits a
+**`tokens_per_iu`** measure on each per-IU **unit-complete** event — the token cost of building
+that IU (the subagent's accountable usage, a **hook-captured** subagent-completion event bound to
+the IU id). It is a **Product-outcomes** measure, the "cost per traversal" pattern at IU
+granularity.
+
+`measure-outcomes` derives the per-sprint distribution and the **over-budget share** against the
+harness **context-budget dial** — a tunable value (~100k tokens documented default; the best-work
+window is model-dependent, so the number is verified, not baked in). The over-budget share does two
+jobs: it calibrates the dial per model, and it is a **decomposition-quality** signal back to
+`plan` — a persistently high share means IUs are drawn too coarse (the same shape as "weak
+acceptance is a *plan* gap, not a *build* gap").
 
 ## The improvement loop
 
