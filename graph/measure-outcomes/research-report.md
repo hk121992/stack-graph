@@ -9,6 +9,21 @@ amended:
     note: Backfill — deepened with real external analogues (gstack/health, gstack/retro, ce-product-pulse); added all template sections; Challenge findings; corpora recorded.
   - date: 2026-06-03
     note: D57 tokens_per_iu read-side — measure-outcomes derives the per-sprint tokens_per_iu distribution + over-budget share from the product-outcomes stream; added context_budget to the spawn-bundle input contract (read-only, n/a degrade); extended an existing goal's metric. Pure-read preserved; no new edges; no write. SCOPE: read-side only — CF-1..CF-4 reconciliation gaps untouched.
+  - date: 2026-06-04
+    note: |
+      Cluster-C reconciliation amend (feat/tier1-amend-batch2). Closed CF-2, CF-3, CF-4 per
+      docs/research-backfill-reconciliation.md cluster-C verdicts (all APPLY). CF-2 → added a
+      timeline_incomplete warning (node-enter with no matching node-exit at debrief time) + a
+      pending_earns_keep skip reason for declared-but-uninstrumented metrics (06-analytics
+      degraded-mode covers absent projection; this covers partial events at debrief time). CF-3
+      → added trend_direction: improving|stable|degrading|first_point alongside (not replacing)
+      the baseline-comparison severity: ok|warn|breach|n/a; computed from delta sign × earns-keep
+      direction, first_point when baseline null. CF-4 → added earns_keep_requires_judgment to the
+      skipped.reason enum; qualitative earns-keep stays the operator's/debrief's job (hardens the
+      deterministic boundary, D10). NOT TOUCHED: D57 tokens_per_iu / over-budget content (left as
+      is); severity stays the metric-vs-baseline verdict ok|warn|breach|n/a, NOT P0–P3 (D58 —
+      different axis from findings-severity, out of scope). CF-1 + OQ4 are debrief-side / author-ref
+      (DROP/split per cluster C), not this node's amend. Pure-read preserved; no new edges; no write.
 sources_lifted: 3
 external_analogue_found: true
 external_corpora_searched:
@@ -124,6 +139,43 @@ persistently high share means `plan` drew IUs too coarse — the same shape as "
 is a *plan* gap, not a *build* gap". The report is the return value only; the node writes
 nothing to disk. Computing and returning these metrics introduces **no write and no judgment** —
 the agent stays pure-read; `debrief` reads the block back and the operator assesses it.
+
+Each metric in a row carries **two distinct axes**, not one:
+
+- **`severity: ok | warn | breach | n/a`** — the *baseline-comparison verdict*: where this
+  sprint's value sits relative to the earns-keep threshold (D58: a metric-vs-baseline verdict,
+  a different axis from review-lens findings-severity — it is **not** the P0–P3 scale and never
+  becomes it). `n/a` when there is no baseline to compare against.
+- **`trend_direction: improving | stable | degrading | first_point`** (CF-3) — the
+  *direction of travel*: computed from the **sign of the delta × the metric's earns-keep
+  direction** (a metric whose earns-keep wants the value *down* improves when delta is
+  negative; one that wants it *up* improves when delta is positive). `first_point` when the
+  baseline is null (no delta yet). `severity` reports the current standing against the
+  threshold; `trend_direction` reports whether the metric is moving toward or away from it.
+  They answer different questions and both are emitted — a metric can be `ok` yet `degrading`.
+
+The `skipped.reason` enum names why a node carries no metrics row:
+`missing_earns_keep | timeline_unavailable | node_not_found | pending_earns_keep |
+earns_keep_requires_judgment`.
+
+- **`pending_earns_keep`** (CF-2) — the node's earns-keep is *declared* but no instrumentation
+  event type yet feeds its metric (the touchpoint exists; nothing measures it). Distinct from
+  `missing_earns_keep` (no declaration at all) and from `timeline_unavailable` (the whole
+  timeline is absent). The metric is awaiting instrumentation, not missing or unmeasurable.
+- **`earns_keep_requires_judgment`** (CF-4) — the earns-keep is qualitative ("the operator
+  assesses the output is acceptable"): it cannot be reduced to event-counting + arithmetic, so
+  it falls outside this agent's deterministic remit. Assessing it is the operator's/`debrief`'s
+  job. This skip reason **hardens the deterministic boundary** (D10; 06-analytics "model
+  judgment reserved for interpreting, never producing") — the node refuses to fabricate a
+  number for a criterion that needs judgment, rather than widening to a model-grader path.
+
+A **`timeline_incomplete`** warning (CF-2) is raised when the timeline carries `node-enter`
+events with **no matching `node-exit`** at debrief time — partial events when `debrief` fires
+before all hook events have flushed. This is distinct from the 06-analytics degraded-mode case
+(an *absent* carrier projection on a fresh clone): here the projection exists but is *partial*
+at the moment of measurement. The warning flags reduced confidence in any duration/closure
+metric derived from the incomplete span; the affected metrics still compute from what is
+present, they are not skipped.
 
 ## External analogues searched
 
@@ -301,6 +353,15 @@ node-enter events exist but the corresponding node-exit events are absent), and 
 `pending_earns_keep` skip reason for nodes whose earns-keep metrics are declared but have
 no corresponding instrumentation event type.
 
+**RESOLVED (2026-06-04, APPLY per cluster C).** Both landed in the node body. The procedure
+now raises a `timeline_incomplete` **warning** when `node-enter` events have no matching
+`node-exit` at debrief time (partial events because `debrief` fired before hooks flushed) —
+the affected metrics still compute from what is present, they are not skipped; the warning
+flags reduced confidence. And `pending_earns_keep` is now a **skip reason** for a node whose
+earns-keep is declared but whose metric has no feeding instrumentation event type yet. This
+is *not* the 06-analytics degraded-mode case (absent projection on a fresh clone) — that
+covers an absent projection; this covers a *partial* timeline at the moment of measurement.
+
 ### CF-3 (MEDIUM) — Severity model is a flat enum; real analogues use a direction-aware model
 
 The current severity field `ok | warn | breach | n/a` maps a single state per metric. But
@@ -325,6 +386,18 @@ vs "degrading away from threshold" — only the current snapshot state.
 alongside severity, computed from the delta sign and the earns-keep direction. `first_point`
 when baseline is null.
 
+**RESOLVED (2026-06-04, APPLY per cluster C).** Added `trend_direction: improving | stable |
+degrading | first_point` to each metric, computed from the **sign of the delta × the metric's
+earns-keep direction** (down-is-good metrics improve on a negative delta; up-is-good metrics
+improve on a positive delta), `first_point` when the baseline is null. It sits **alongside**
+the existing baseline-comparison `severity: ok | warn | breach | n/a`, which is **not**
+replaced: per D58, `severity` is the metric-vs-baseline verdict (a different axis from
+review-lens findings-severity, and explicitly **not** the P0–P3 scale). The two axes answer
+different questions — `severity` = where the value stands against the threshold *now*;
+`trend_direction` = whether it is moving toward or away from it — so a metric can read `ok` and
+`degrading` at once. No band model (DORA Elite/High/…) was adopted; the flat threshold verdict
++ a direction field is sufficient and keeps the schema minimal.
+
 ### CF-4 (MEDIUM) — No handling for earns-keep criteria that are qualitative, not quantitative
 
 The Anthropic evals blog distinguishes code-based (deterministic) graders from model-based
@@ -345,6 +418,16 @@ this node and must be flagged as `skipped` with reason `earns_keep_requires_judg
 
 **Recommendation:** Add `earns_keep_requires_judgment` to the `skipped.reason` enum and
 document in the node body that qualitative criteria are out of scope.
+
+**RESOLVED (2026-06-04, APPLY per cluster C).** Added `earns_keep_requires_judgment` to the
+`skipped.reason` enum, and the node body now states that a qualitative earns-keep criterion
+(one that needs an operator to assess acceptability, not an event count) is **out of this
+agent's scope** — measuring it is the operator's/`debrief`'s job. This **hardens the
+deterministic boundary** (D10; 06-analytics "model judgment reserved for interpreting, never
+producing") rather than widening it: the node refuses to fabricate a number for a judgment
+criterion instead of growing a model-grader path (the generative variant — open question #3 —
+is **not** taken; it would change `determinism` and conflicts with the locked deterministic
+declaration).
 
 ### CF-5 (LOW) — Missing the "wrap, don't replace" constraint on timeline interpretation
 
@@ -387,10 +470,11 @@ loading step. If `baseline.schema_version != current.schema_version`, flag a
    and timeline-complete? Should `measure-outcomes` receive a `timeline_cutoff` timestamp
    in the spawn bundle, below which incomplete events are ignored?
 
-3. **Qualitative earns-keep handling (CF-4):** Should the node be extended with a
-   `model_grader` path for qualitative criteria (changing `determinism` from `deterministic`
-   to `generative`), or should all qualitative criteria be explicitly excluded and delegated
-   to the operator? The former widens scope significantly; the latter is the current design.
+3. **Qualitative earns-keep handling (CF-4): RESOLVED 2026-06-04.** Settled in favour of
+   explicit exclusion: a qualitative earns-keep is skipped with reason
+   `earns_keep_requires_judgment` and delegated to the operator/`debrief`. The `model_grader`
+   path (which would flip `determinism` to `generative`) is **not** taken — it conflicts with
+   the locked deterministic declaration (D10). The node stays deterministic.
 
 4. **Decisions-store and instrumentation-preamble refs:** Both are F7 prose. These need
    to be authored as refs before the edges can be formalised. Is there a current timeline

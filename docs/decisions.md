@@ -853,3 +853,22 @@ evidence on the same event). *Spec:* per the design's Spec-touchpoints table (IU
 07-decomposition, `plan`, `build`, incremental-improvement-design). *Design:*
 `docs/iu-sizing-design.md`. *Status:* Decided; folds into the reconciliation amend wave (IU-schema
 + plan + build + 06-analytics + measure-outcomes), not a standalone build.
+
+## Findings & severity
+
+**D58 — P0–P3 is the factory-wide severity vocabulary for *all* findings, not just review
+lenses.** D33 scoped `severity-scale.md` (P0–P3) to the review-lens family, leaving the non-lens
+state/drift reporters (`spec-diff`, `reconcile`, `drift-detector`) on their own `low/med/high`.
+**Decided:** unify on P0–P3 across every findings emitter so the factory speaks one severity
+language. The non-lens nodes adopt a P0–P3 rubric tuned to their finding kind — divergence
+magnitude maps to action priority (P0 = a delivery-path touchpoint entirely unmet or contradicted
+… P3 = cosmetic/nit). `severity-scale.md` broadens from "shared by every review lens" to the
+factory's findings-severity contract. **Out of scope — different axis, keeps its own vocabulary:**
+`measure-outcomes`' metric-vs-baseline verdict (`ok|warn|breach|n/a`) and `trend_direction`
+(`improving|stable|degrading|first_point`) are not findings-severity. *Why:* the operator chose a
+single cross-subsystem severity vocabulary over per-subsystem scales; the divergence-magnitude vs
+action-urgency translation is absorbed into each node's P0–P3 rubric rather than carried as a
+second scale. (Weighed against keeping `low/med/high` for non-lens nodes — rejected in favour of
+one vocabulary.) *Widens* D33. *Spec:* severity-scale.md, spec-diff, reconcile, drift-detector.
+*Status:* Decided; `spec-diff` + `reconcile` enacted in the Tier-1 amend batch (this batch),
+`drift-detector` deferred to the maintenance-cluster batch.

@@ -3,12 +3,14 @@ title: Research report for plan
 type: research-report
 status: complete
 authored: 2026-06-01
-last_updated: 2026-06-03
+last_updated: 2026-06-04
 amended:
   - date: 2026-06-03
     note: "Backfill external analogue search: ce-plan (CE plugin), be-civic sprint W24, Anthropic skill authoring best-practice; added External analogues searched table, deepened Source inventory, added Challenge findings section. sources_lifted updated to 5."
   - date: 2026-06-03
     note: "build-spine/D57 footprint: Phase-1 field-fill now produces acceptance_check (7-field IU set); added the single-agent-implementable decomposition criterion (harness-tunable ~100k budget; size re-anchored to single-agent fit, L/XL = probably split; tokens_per_iu over-budget share as plan decomposition-quality signal); updated the IU-completeness goal to 'all required fields incl. acceptance_check'. Cross-ref D57 / docs/iu-sizing-design.md. node-edit only, no new edges. CF-1..CF-5 left untouched per scope."
+  - date: 2026-06-04
+    note: "Cluster-B reconciliation (docs/research-backfill-reconciliation.md §B) APPLY verdicts — CF-1, CF-4, CF-5 resolved into the canonical. CF-1: hard confirm-framing gate between Phase 2 (draft decomposition) and Phase 3 (lens dispatch) — operator affirms-or-redirects the scope/decomposition before the expensive lens fan-out. CF-5: a structured scope-claim output (covers / defers / inferred) at the end of Phase 2, before the gate — same collaborative-discipline family as CF-1. CF-4: named the activation conditions under which the adversarial / conditional lenses fire in the deepen branch. CF-2 (acceptance depth) + D57 single-agent decomposition criterion preserved unchanged. CF-3 stays DROP'd (plan home fixed by D51 / artefacts-design §4 + the plan-policy binding — no plan-doc path convention added). node-edit only; no new edges; mode/determinism unchanged. Resolution status recorded against each finding in the Challenge findings section."
 sources_lifted: 5
 external_analogue_found: true
 external_corpora_searched:
@@ -136,6 +138,16 @@ corpora searched; this backfill corrects that gap.
   not a raw effort estimate. Downstream measurement: build emits `tokens_per_iu` per unit-complete
   event, and a persistently high over-budget share signals plan drew IUs too coarse — a plan
   decomposition-quality signal that `measure-outcomes` derives and `debrief` reads back.
+- Phase-2 scope-claim (CF-5): a structured **covers / defers / inferred** statement closing
+  Phase 2, before the lens dispatch — the cheap, pre-expensive-pass checkpoint.
+- Confirm-framing gate (CF-1): a **hard** affirm-or-redirect gate between Phase 2 (draft
+  decomposition) and Phase 3 (lens dispatch), carrying the scope-claim, fired via the
+  blocking-question tool — the lens fan-out does not run until the operator affirms or
+  redirects. (Replaces the prior advisory "surface … invite to challenge" language.)
+- `deepen` adversarial-lens activation conditions (CF-4): the `deepen` branch names *which*
+  conditions put a plan in the adversarial-active class (architectural uncertainty, contested
+  scope boundary, novel dependency graph, cross-cutting change / large blast radius); selection
+  stays owned by `lens-dispatch`.
 - F7 prose: `can-follow specify` and `precedes build` (process neighbours do not yet exist on disk)
 - F7 prose: `plan can-follow build` (the re-plan loop — build does not yet exist)
 - The earns-keep for the commit-to-build gate: the plan is what the gate decides against
@@ -251,6 +263,16 @@ level (analogous to ce-plan's scoping synthesis), fired via the platform's block
 question tool, before the lens dispatch. Without this gate, a flawed decomposition
 advances to lens review without the operator seeing the scope claim explicitly.
 
+**Resolution (2026-06-04 — APPLY, cluster-B reconciliation §B):** Applied to the canonical.
+A hard **confirm-framing gate** now sits between Phase 2 (draft decomposition) and Phase 3
+(lens dispatch): the draft units and the scope-claim (CF-5) are surfaced as a structured
+affirm-or-redirect summary, fired via the platform's blocking-question tool; the lens
+fan-out does not run until the operator affirms or redirects. This hard-blocks a flawed
+decomposition from reaching the expensive lens pass and ensures the operator sees the scope
+claim before the fan-out. Replaces the prior advisory "surface … invite them to challenge"
+language. No locked decision settles in-body gating (the front design fixes mode/edges/
+carrier, not a pre-dispatch gate), so the gate is additive and non-regressive.
+
 ### CF-2 — IU acceptance criteria weaker than published best practice (high)
 
 **Analogue:** ce-plan Phase 3.5 requires per-unit test scenarios categorised into happy
@@ -291,6 +313,15 @@ the harness surface pointer is resolved from the bindings; the artefact name sho
 deterministic and stable across re-plans (a re-plan overwrites the same file, not a new
 one, so `build` and the curator maintain a stable reference).
 
+**Resolution (2026-06-04 — DROP, cluster-B reconciliation §B):** Not applied. The plan home
+is already fixed upstream by D51 + `artefacts-design.md §4` (plan = in-body `## Plan`, or a
+linked `plan.md` past the `plan-policy` binding threshold) + §6 (`plan-policy` is a required
+binding key) — the node must **not** invent a `docs/plans/…` path. The node already writes to
+"a harness surface" resolved from bindings, which is correct; adding a path convention would
+regress against the locked binding routing. The residual "stable across re-plans" nuance is
+already carried by the `re-plan` mode body (preserve `id` values; re-state the full plan).
+No canonical change for this finding.
+
 ### CF-4 — `deepen` mode lacks adversarial lens activation spec (medium)
 
 **Analogue:** ce-plan Phase 5.3 (Confidence Check and Deepening) specifies precisely
@@ -311,6 +342,18 @@ novel dependency graphs, cross-cutting changes, or a plan-depth classification o
 Without explicit conditions, the adversarial lens either fires every time (waste) or never
 fires in practice.
 
+**Resolution (2026-06-04 — APPLY, cluster-B reconciliation §B):** Applied to the canonical
+in the `deepen` mode branch. The branch now names the **activation conditions** that fire
+the adversarial lens (`lens-adversarial`) and the conditional lenses rather than leaving
+them implicit: real architectural uncertainty, a contested scope boundary, a novel
+dependency graph, a cross-cutting change touching many surfaces, or a large blast radius.
+`deepen` activates `lens-adversarial` because at least one of these holds (that is the
+mode's entry condition); the other conditional lenses fire on their own `lens-dispatch §1`
+triggers (e.g. `lens-performance` when DB/loops/IO/async is touched). This keeps selection
+owned by `lens-dispatch` — the node only names *which* conditions put the plan in the
+adversarial-active class, so the lens neither fires every time (waste) nor never fires
+(its trigger named but unmet elsewhere). No decision fixes activation conditions; additive.
+
 ### CF-5 — No scoping synthesis / call-out output before plan is committed (medium)
 
 **Analogue:** ce-plan Phase 0.7 (solo) and Phase 5.1.5 (brainstorm-sourced) both require
@@ -330,6 +373,17 @@ the lens dispatch fires) that names: what the plan covers, what it defers, and a
 inferred decomposition choices that could go another way. This parallels the scoping
 synthesis in ce-plan and gives the operator a cheap checkpoint before the more expensive
 lens pass runs.
+
+**Resolution (2026-06-04 — APPLY, cluster-B reconciliation §B):** Applied to the canonical.
+Phase 2 now ends with a structured **scope-claim** — three labelled parts: **covers** (what
+this plan's units change/create/remove), **defers** (what is explicitly out of this plan and
+why), and **inferred** (decomposition choices made without an explicit operator instruction
+that could reasonably go another way). The scope-claim is the payload of the CF-1
+confirm-framing gate — the operator affirms or redirects it before the lens dispatch runs,
+giving a cheap checkpoint before the expensive pass. Same collaborative-discipline family as
+CF-1; no decision forbids or mandates it; additive. (Distinct from the Phase-4 scope summary,
+which records covers/defers in the *finalised* doc after the lens pass; the scope-claim is the
+*pre-dispatch* affirm-or-redirect artefact.)
 
 ### CF-6 — Plan depth classification absent (low)
 

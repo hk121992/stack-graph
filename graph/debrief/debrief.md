@@ -32,7 +32,7 @@ goals:
   - outcome: The next sprint candidate is seeded with a clear starting point — a grounded outcome_link, a carrying work-item, or a named open risk — so align-context opens with intent, not a blank slate.
     metric: share of seed-next runs that produce an actionable next-sprint candidate the operator confirms; align-context sessions that open with no prior seed (target near 0 for active products).
     earns-keep: if seed-next never produces a candidate the operator acts on, the mode is not earning its cost.
-status: v0.1.0 — 2026-06-01
+status: v0.2.0 — 2026-06-04
 ---
 
 # Debrief
@@ -64,6 +64,26 @@ that record the live-confirmed verdict. You **do not write any carrier field**. 
 this stage is the signal the projection picks up; it advances `current_stage`; you write
 no projection field.
 
+## Persist the metrics baseline — the one frozen write
+
+The metrics report is a **projection over the event log** (`06-analytics`, the Product-outcomes
+stream), not a hand-kept file. So that the next sprint's `measure-outcomes` can read it as its
+`baseline:` input, you persist it once, **on the terminal lifecycle transition**, by freezing
+the `measure-outcomes` report into the **closed work-item record** as `frozen_metrics` — the
+metrics sibling of `frozen_timeline`. The path is the work-item file:
+
+```
+workspace/<dashboard-surface>/items/<id>.md   →   frozen_metrics   (frozen frontmatter block)
+```
+
+bound in a harness via the `items-root` key, frozen by the `terminal-recorder` binding
+(`artefacts-design §6`). This is a **recorder action keyed off the terminal transition** — not a
+stage writing the carrier, and decoupled from lifecycle advancement (the gate advances state;
+the recorder freezes the metrics). It is the **only** point you write a derived value into a
+committed file, and it lands once, at close (`artefacts-design §5`; `06-analytics` Terminal
+freeze). The next sprint reads `items/<id>.md`'s `frozen_metrics` as the `baseline:` path
+(`null` if there is no prior run — `measure-outcomes` degrades cleanly).
+
 ## Preflight
 
 Before running any mode:
@@ -87,26 +107,51 @@ independently.
 
 1. **Spawn `measure-outcomes`.** Pass the spawn bundle: the work-item's `outcome_link`
    (the promised outcome), the `sprint_id`, the traversal timeline reference (the
-   instrumentation record), and the `graph_record` path (for earns-keep declarations).
-   It returns a structured metrics report — per-node metrics against earns-keep, a
-   trend delta against prior runs, and an explicit outcome verdict (`confirmed` /
-   `partial` / `missed`) for the work-item.
-2. **Surface the verdict to the operator.** Present the metrics report and the outcome
-   verdict without editorial gloss. This is measurement, not judgment — the numbers are
-   what they are; the operator reads them.
-3. **Record outcome evidence.** Write the verdict and key metric deltas to the work-item
-   record (the source document or its carrier context surface). This is the evidence the
-   `product-dashboard-curator` reads on its next sweep to update the delivery view.
-   Write nothing else — no carrier fields, no curator calls.
+   instrumentation record), the `graph_record` path (for earns-keep declarations), and
+   the **`baseline:` path** — the prior sprint's frozen metrics block (see "Persist the
+   metrics baseline" below), or `null` on a first run. It returns a structured metrics
+   report — per-node metrics against earns-keep, a `trend_delta` against the baseline, and
+   an explicit outcome verdict (`confirmed` / `partial` / `missed`) for the work-item.
+2. **Surface the verdict and the trend to the operator.** Present the metrics report, the
+   outcome verdict, and the **`trend_delta` explicitly** — not just where the numbers sit
+   but which direction they moved. No baseline (first run) → surface `first point — no
+   trend yet`, not a failure. This is measurement, not judgment; the operator reads it.
+3. **Record outcome evidence — a minimum verdict schema, authored into the work-item file.**
+   Write the verdict evidence into the work-item record (`items/<id>.md` per
+   `artefacts-design §2` — authored facts only, never a projected field, never a second
+   store). The minimum schema:
+   - `verdict` — `confirmed` / `partial` / `missed`.
+   - `outcome_link` — the target this resolves.
+   - `evidence` — 1–3 sentences grounding the verdict.
+   - `metric_deltas` — the key earns-keep numbers, lifted verbatim from `measure-outcomes`.
+
+   This is the evidence the `product-dashboard-curator` reads on its next sweep. Write
+   nothing else — no carrier fields, no curator calls.
 
 ### `learn` — curate and route durable learnings
 
+0. **Recall-query preflight (capability-gated).** Before spawning `capture-learnings`,
+   query the knowledge homes for prior learnings on the sprint's topic so new findings can
+   be deduped against known ones. With gbrain present: `mcp__gbrain__query --source …`.
+   **Without gbrain (D31): fall back cleanly** — read `decisions_store_path` and Grep the
+   transcript instead. The preflight degrades; it never blocks. Pass the results into the
+   spawn bundle below — this is what makes the re-derivation rate trend down.
 1. **Spawn `capture-learnings`.** Pass the spawn bundle: `sprint_id`, `sprint_summary`
    (3–5 sentences: what the sprint did + key moments), `decisions_made` (from the decisions
-   log), `metrics_report` (the `measure-outcomes` output, if available), `transcript_path`
-   (if accessible), `graph_record` path, and `decisions_store_path`.
+   log), `metrics_report` (the `measure-outcomes` output, if available), the **prior outcome
+   verdict** (from the prior sprint's frozen metrics, for trend context), the **recall
+   preflight results** (step 0), `transcript_path` (if accessible), `graph_record` path, and
+   `decisions_store_path`.
    It returns a structured proposals list — each learning classified by knowledge home
-   (recall / canon / node-amend) with a priority, one-sentence summary, and evidence.
+   (recall / canon / node-amend), and carrying:
+   - `priority` — `high` / `medium` / `low`, **with an explicit rationale**.
+   - `target_sprint` — which sprint should act on the proposal.
+   - a one-sentence summary and the evidence that grounds it.
+
+   `target_sprint` + `priority` are what let a proposal **close** rather than just surface —
+   without them the learn-goal earns-keep (re-derivation → zero) cannot be met. The **owner**
+   is not set here: it is routed by home per D40 (recall → operator inline; canon →
+   handbook-curator `raise`; node-amend → operator at a node-amend session).
 2. **Present the proposals list.** Walk the operator through it — high-priority proposals
    first. For each:
    - **Recall proposals** (causal insights, decision rationale): confirm enactment → write
@@ -114,8 +159,15 @@ independently.
    - **Canon proposals** (methodology, earns-keep updates): note for the handbook-curator's
      `raise` flow (D38 write-path) — do not invoke the curator here; park the proposal.
    - **Node-amend proposals**: note for a future operator-reviewed node amendment.
+2.5. **Ratify in-sprint design divergences.** Surface implementation choices that **departed
+   from the spec or canon** and were **not** logged at decision time — for explicit operator
+   sign-off. Present them as numbered calls, each naming the decision made and what it diverges
+   from (the be-civic W33 §3 "judgment calls — operator ratification requested" format). A
+   ratified divergence is logged through the `log-decision` invoke in step 3; this surfaces the
+   divergence so it is signed off rather than buried.
 3. **Invoke `log-decision`** for any decisions that surfaced during `learn` itself — the
-   operator's verdict on which proposals to enact is a decision worth logging.
+   operator's verdict on which proposals to enact, and each ratified divergence from step 2.5,
+   is a decision worth logging.
 
 ### `seed-next` — surface the next sprint candidate
 
@@ -162,7 +214,8 @@ is no pipeline; there is a shared substrate.
 
 | mode | primary output | written to |
 |---|---|---|
-| `measure` | metrics report + outcome verdict | work-item record (evidence entry); surfaced to operator |
-| `learn` | proposals list; enacted recall writes | gbrain (recall writes, inline); canon proposals parked for curator raise |
+| `measure` | metrics report + `trend_delta` + verdict schema (`verdict` / `outcome_link` / `evidence` / `metric_deltas`) | work-item record (`items/<id>.md`, authored evidence); surfaced to operator |
+| `learn` | proposals list (`priority`+rationale, `target_sprint`); ratified divergences; enacted recall writes | gbrain (recall writes, inline); divergences via `log-decision`; canon proposals parked for curator raise |
 | `seed-next` | next-sprint candidate(s) | surfaced to operator; no write |
+| **terminal transition** | `frozen_metrics` baseline (the next sprint's `measure-outcomes` `baseline:`) | closed work-item record (`items/<id>.md`); recorder freeze, once at close |
 | **all modes** | stage-complete signal | projection advances `current_stage`; no carrier field written by this node |
