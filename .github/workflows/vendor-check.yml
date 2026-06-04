@@ -21,7 +21,7 @@ jobs:
   vendor-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
           # The private stack-graph-plugin submodule can't be cloned with the default
