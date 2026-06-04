@@ -110,7 +110,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Debrief",
-      "status": "v0.2.0 — 2026-06-04",
+      "status": "v0.3.0 — 2026-06-04",
       "edges": {
         "invokes": [
           {
@@ -898,7 +898,7 @@
     "decisions-store": {
       "kind": "reference",
       "title": "Decisions store — the durable conclusion-layer contract",
-      "status": "v0.1.0 — 2026-06-04",
+      "status": "v0.2.0 — 2026-06-04",
       "consumed_by": [
         "capture-learnings",
         "log-decision",
