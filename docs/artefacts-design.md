@@ -79,6 +79,9 @@ A surface at `workspace/<dashboard>/` (the topology's "a surface per function ou
 - **Work ledger** → `items/<id>.md` + `items/manifest.json` + `sprints/<id>.md` (§4). The **now / next /
   later** view is **derived from `lifecycle_state`** (later = `idea`/`discovery`; next = `defined`; now =
   `committed`; building = `in-delivery`; the record = `shipped`/`live`/`parked`/`killed`).
+- **Learnings archive** → `learnings/archive.md` (the `learnings-archive` binding). `capture-learnings`'
+  surviving-but-unenacted proposals, written by the loop-close gate (`debrief`) and read next sprint to
+  detect recurrence — committed (generative/non-replayable, §1), never `.stack-graph/` (D60).
 
 **Manifest** (`items/manifest.json`): a **committed, derived index** (`{id, file, title, lifecycle_state,
 tier, outcome_link}` per item). Discipline (the handbook-index / graph-record pattern — *not* a second
@@ -131,8 +134,10 @@ the gate facts **are**.
   work-items, OKRs, strategy, personas), the bindings **values**, the deploy-config, the experience-contract
   instance. Built in the harness step, not here.
 - **Bindings contract — the complete set of keys a harness must supply** (read via the bindings reference
-  in `.claude/`, never hardcoded): `surface-root`, `items-root`, `manifest-path`, `sprint-records-root`,
-  `strategy-doc`, `objectives-doc`, `personas`, `handbook-index`, `event-log` (the carrier-tagged stream
+  in `.claude/`, never hardcoded; the canonical key set is the vendored `bindings-contract` reference —
+  this list mirrors it): `surface-root`, `items-root`, `manifest-path`, `sprint-records-root`,
+  `learnings-archive` (the committed prior-proposals archive file, D60), `strategy-doc`, `objectives-doc`,
+  `personas`, `handbook-index`, `event-log` (the carrier-tagged stream
   path/shape under `.stack-graph/`), `renderer` (entrypoint + output/portal), `deploy-config`,
   `experience-contract`, `okr-binding` (how `outcome_link` resolves to an objective id), `plan-policy`
   (in-body vs linked threshold + link shape), `terminal-recorder` (who freezes the timeline), `maturity`
