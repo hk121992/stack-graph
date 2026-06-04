@@ -1,9 +1,9 @@
 {
-  "generated": "2026-06-04T20:56:38Z",
+  "generated": "2026-06-04T21:10:46Z",
   "node_count": 31,
   "reference_count": 20,
   "handbook_reference_count": 0,
-  "edge_count": 151,
+  "edge_count": 153,
   "nodes": {
     "align-context": {
       "primitive": "skill",
@@ -306,7 +306,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Harness init",
-      "status": "v0.2.0 \u2014 2026-06-04",
+      "status": "v0.3.0 \u2014 2026-06-04",
       "edges": {
         "references": [
           {
@@ -836,6 +836,10 @@
           {
             "id": "lens-dispatch",
             "load": "on-demand"
+          },
+          {
+            "id": "work-item-schema",
+            "load": "on-demand"
           }
         ],
         "can-follow": [
@@ -959,6 +963,10 @@
           {
             "id": "instrumentation-preamble",
             "load": "import"
+          },
+          {
+            "id": "work-item-schema",
+            "load": "on-demand"
           }
         ],
         "precedes": [
@@ -1171,7 +1179,9 @@
       "status": "v0.2.0 \u2014 2026-06-01",
       "consumed_by": [
         "harness-init",
-        "product-dashboard-curator"
+        "product-dashboard-curator",
+        "specify-slice",
+        "triage"
       ]
     }
   },
@@ -1928,6 +1938,12 @@
     },
     {
       "from": "specify-slice",
+      "to": "work-item-schema",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "specify-slice",
       "to": "triage",
       "type": "can-follow"
     },
@@ -2044,6 +2060,12 @@
       "to": "instrumentation-preamble",
       "type": "references",
       "load": "import"
+    },
+    {
+      "from": "triage",
+      "to": "work-item-schema",
+      "type": "references",
+      "load": "on-demand"
     },
     {
       "from": "triage",
