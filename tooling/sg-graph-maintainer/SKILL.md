@@ -500,7 +500,8 @@ when the graph record is stale.
    ```
 
    `load` is present only on `references` edges (`import`/`on-demand`); `stage` only on
-   `composes-into` edges (the arc stage); `external: true` only on edges so marked; omit each
+   `composes-into` edges (the arc stage); `arc` only on `precedes`/`can-follow` edges so
+   qualified (scoping a shared node's edge to one arc); `external: true` only on edges so marked; omit each
    elsewhere. A `composes-into` edge row **must** carry its `stage` so that a node composing
    into one arc at multiple stages yields distinct rows rather than silent duplicates.
    Handbook-references carry **no `number`** (render-computed) and **no `managed-by`**

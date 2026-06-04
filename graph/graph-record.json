@@ -1,9 +1,9 @@
 {
-  "generated": "2026-06-04T20:41:32Z",
+  "generated": "2026-06-04T20:56:38Z",
   "node_count": 31,
   "reference_count": 20,
   "handbook_reference_count": 0,
-  "edge_count": 150,
+  "edge_count": 151,
   "nodes": {
     "align-context": {
       "primitive": "skill",
@@ -755,11 +755,15 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Ship",
-      "status": "v0.2.0 \u2014 2026-06-04",
+      "status": "v0.3.0 \u2014 2026-06-04",
       "edges": {
         "references": [
           {
             "id": "pr-description-shape",
+            "load": "on-demand"
+          },
+          {
+            "id": "carrier-interface",
             "load": "on-demand"
           }
         ]
@@ -1017,6 +1021,7 @@
         "build",
         "land",
         "review",
+        "ship",
         "specify-slice"
       ]
     },
@@ -1857,6 +1862,12 @@
     {
       "from": "ship",
       "to": "pr-description-shape",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "ship",
+      "to": "carrier-interface",
       "type": "references",
       "load": "on-demand"
     },

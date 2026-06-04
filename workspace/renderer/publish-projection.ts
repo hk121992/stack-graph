@@ -220,7 +220,12 @@ function deriveProjection(
   const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
   const now = new Date(generatedAt).getTime();
 
-  // Per-carrier: ordered stage transitions (from enter events only)
+  // Per-carrier: ordered stage transitions (from enter events only).
+  // NOTE (incremental loop, input-gated): when a node is shared across arcs, current_stage must
+  // key by the (carrier id, carrier_kind, arc) triple — events now carry carrier_kind + arc — so a
+  // carrier with events on two arcs cannot bleed. Implementing the triple key here and threading it
+  // through the snapshot output + dashboard consumer is pending the first incremental-arc carrier
+  // events (none exist yet); see carrier-interface.md + 06-analytics. Keyed by carrier id for now.
   const carrierTransitions = new Map<string, TransitionEntry[]>();
 
   // Per-node: last_used ts (as ms for comparison) and traversal timestamps within 30d
