@@ -495,7 +495,7 @@ when the graph record is stale.
        "<id>": { "type", "title", "section", "owner", "read-when", "related",
                  "status", "maintained_by": ["<id>", ...] }
      },
-     "edges": [{ "from", "to", "type", "load", "stage", "external" }, ...]
+     "edges": [{ "from", "to", "type", "load", "stage", "arc", "external" }, ...]
    }
    ```
 
