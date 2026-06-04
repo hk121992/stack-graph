@@ -3,12 +3,14 @@ title: Build node — research report
 type: research-report
 status: complete
 authored: 2026-06-01
-last_updated: 2026-06-03
+last_updated: 2026-06-04
 amended:
   - date: 2026-06-03
     note: "Backfill — external analogue search added (ce-work, Anthropic best-practices, tracer-bullet methodology); source-material lifted; Challenge findings section authored; report deepened to full template structure."
   - date: 2026-06-03
     note: "Reconciliation fold-in — CF-1..CF-6 marked ACCEPTED/APPLY with resolutions (per docs/research-backfill-reconciliation.md A-cluster); D57 single-agent-implementable IU + tokens_per_iu emission folded into Contract + body-relevant sections; serial mode re-framed to one-IU-one-fresh-context default. CF-7 (low) left as-is. IU-schema now carries acceptance_check + the single-agent invariant (v0.2.0)."
+  - date: 2026-06-04
+    note: "Incremental-arc amend (D56, docs/incremental-improvement-design.md §4/§8.5/§9-R4) — build is now REUSED across two arcs. Added composes-into {incremental, stage: build} (second arc) + references carrier-interface (on-demand). Body gained an 'Incremental arc — build mode' section: the tracer-bullet inner loop (TRACER BULLET → INCREMENTAL → REFACTOR → DONE, vertical-not-horizontal + minimal-code rules, non-code analogue), the slice_type: HITL pause, and carrier consumption via the carrier-interface (reads carrier_kind/arc; standalone fields only behind a carrier_kind check; unit-complete + stage events carrier-keyed by id+kind+arc). Dev-sprint behaviour unchanged; review→build fix loop reused as-is. Node bumped v0.1.0 → v0.2.0."
 sources_lifted: 5
 external_analogue_found: true
 external_corpora_searched:
@@ -106,6 +108,9 @@ What this node should achieve (as outcomes, not activities):
 - **Incremental-commit discipline within the autonomous span** (CF-6, ACCEPTED): commit per IU on acceptance + tests-pass, conventional message derived from the IU `goal`; in worktree-isolated parallel mode subagents commit within their branch, in shared-directory fallback only the orchestrator commits; no `WIP:` messages for these.
 - **`tokens_per_iu` emission** (D57): build emits `tokens_per_iu` on each unit-complete event (the same event CF-1 adds raw evidence to) into the analytics product-outcomes event log. Self-contained in the build body — the analytics event log is the named destination; no new measure-outcomes / 06-analytics dependency or edge.
 - Vertical slicing discipline (CF-7, low, unchanged): each IU should be an end-to-end slice, not a horizontal layer; the build span should catch integration failures within each IU, not defer them to review.
+- **Incremental-arc build-mode (D56, ACCEPTED/APPLY):** when build is reached on the `incremental` arc with a `standalone-iu` carrier, it runs the **tracer-bullet inner loop** — TRACER BULLET (one test → RED → minimal code → GREEN, path proven end-to-end) → INCREMENTAL (each remaining acceptance behaviour: RED → GREEN, one test at a time, minimal code, no speculation) → REFACTOR under green → DONE (every acceptance condition is an observable passing test AND `verification.end_to_end` demonstrable → emit unit-complete). Ordering rule = **vertical not horizontal** (never all-tests-then-all-code); minimal-code rule; non-code-slice analogue = "one verifiable claim → one edit → confirm," `verification` fixture as the test. This is the build-mode for `arc: incremental` only; the dev-sprint multi-IU behaviour is unchanged. Maps onto build's existing acceptance-driven done signal — the addition is the ordering + minimal-code rules, not a schema field or new nodes. (Generalises CF-7's vertical-slice discipline into the incremental arc's delivery contract.)
+- **`slice_type: HITL` pause (D56, ACCEPTED/APPLY):** build reads `slice_type` (a standalone-IU field) and **pauses at the named human decision point** when the slice is HITL; AFK runs unattended end-to-end. A HITL point that is a genuine design fork is a *promote* signal, not a build decision.
+- **Carrier consumption via the carrier-interface (D56 / §9-R4, ACCEPTED/APPLY):** build consumes its carrier through the explicit **carrier-interface** — reads `carrier_kind`/`arc`, and the standalone fields (`improves`, `slice_type`, `verification`) **only behind a `carrier_kind` check**; never assumes work-item fields. unit-complete + stage events are **carrier-keyed** (carrier id + `carrier_kind` + `arc`) so the projection keeps the two arcs' `current_stage` separate.
 
 **Dropped (out of scope for this node):**
 - Phase 3-4 shipping workflow from ce-work (quality check → code review → PR creation): this is the `review` / `ship` nodes in stack-graph, not the build node's job.
@@ -125,6 +130,8 @@ What this node should achieve (as outcomes, not activities):
 - **→ `debug`** (`invokes`, wave 2): when a unit's acceptance check fails and the cause is not quickly diagnosable, build invokes debug (root-cause-first fix discipline). Not yet authored.
 - **`explore`** (`invokes`): build invokes explore scoped to the IU's `files` set during kick-off. Already declared.
 - **`IU-schema`** (`references`, import): the schema governs every IU build consumes. Already declared.
+- **`carrier-interface`** (`references`, on-demand, D56): the field-set build may assume about its carrier across both arcs — reads `carrier_kind`/`arc` and the standalone fields only behind a `carrier_kind` check. Added by the incremental-arc amend.
+- **→ `incremental` arc** (`composes-into`, D56): build is reused as the incremental arc's execution stage; the standalone slice runs in build's inline mode. The forward entry `specify-slice → build` lives on specify-slice's side (`precedes`).
 
 ## Fit
 
@@ -132,15 +139,23 @@ Build belongs as a single node. It owns the entire execution span from kick-off 
 
 ## Edges
 
+This is the **complete** edge set (both arcs) so a re-render does not drop pre-existing edges:
+
 | edge type | target id | rationale |
 |-----------|-----------|-----------|
 | invokes | explore | build invokes explore scoped to the IU's files area during kick-off when codebase context is needed |
 | composes-into | dev-sprint (stage: build) | build is the execution stage of the dev-sprint arc |
+| composes-into | incremental (stage: build) | **(D56)** build is REUSED as the execution stage of the incremental arc — the standalone slice runs in build's inline mode; one node, two arcs (carries two `composes-into` entries) |
 | references | IU-schema (`load: import`) | the IU-schema governs every implementation unit build consumes; must always be present |
 | references | instrumentation-preamble (`load: import`) | build-level injection; consistent with sibling node treatment (design.md, specify.md) |
-| can-follow | review | fix loop: a review finding triggers review→build re-entry |
-| can-follow | reconcile | rework loop: a reconcile rework decision triggers reconcile→build re-entry |
-| precedes | review | build hands off to review after stage-complete |
+| references | carrier-interface (`load: on-demand`) | **(D56)** the explicit field-set a reused node may assume — build reads `carrier_kind`/`arc` and the standalone fields only behind a `carrier_kind` check; consumed on-demand, not always-present |
+| can-follow | review | fix loop: a review finding triggers review→build re-entry. **REUSED for the incremental arc unchanged** — the same review→build corrective loop serves both arcs (no new edge) |
+| can-follow | reconcile | rework loop: a reconcile rework decision triggers reconcile→build re-entry (dev-sprint only) |
+| precedes | review | build hands off to review after stage-complete (both arcs) |
+
+The forward edge `specify-slice → build` (the incremental arc's entry into build) is declared as
+`precedes: build` on **specify-slice's** side per the repo convention (forward edges live on the
+source) — build adds **no** `can-follow: specify-slice`.
 
 *(Deferred edges: `can-follow plan`, `invokes debug`, `references .worktreeinclude` — see Process seams in the node body.)*
 

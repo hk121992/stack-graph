@@ -867,7 +867,37 @@ type**, not gated `precedes` (which would pollute traversal/projection); reused 
 **promote/`improves` provenance bridge is mandatory**. Resolutions folded into design §9. *Spec:*
 per the design's Spec-touchpoints table (02-graph-spec incl. the new `escalates` edge, 01-concepts,
 07-decomposition, 04-harness, 06-analytics, 08-devops, IU-schema, work-item-schema). *Status:*
-Designed + reviewed; **build deferred to a follow-up session** per the operator.
+Designed + reviewed; **built — see D62.**
+
+**D62 — The incremental-improvement workflow (D56) is BUILT.** Enacted the D56 design + its §9
+Codex deltas on `feat/incremental-iu-loop` (parallel-subagent waves: shared contracts → 2 new
+nodes → 3 reused-node amends → handbook → validate/index/vendor → Codex). **Operator decision at
+build time — carrier-lite.** The build surfaced that the shipped `IU-schema` v0.4.0 had diverged
+from the D56 design: it had gone *lighter* (a build `status` only, no `lifecycle_state`/
+`gate_decisions`), with a note that "both halves must agree before either ships." The operator
+chose the **carrier-lite** model (the D56/Codex position) over status-only — a standalone IU carries
+its own minimal lifecycle + one recorded gate, completing the half v0.4.0 left pending. **What
+landed:** a new **`escalates`** edge type (one-way cross-arc handoff, excluded from traversal +
+stage projection) wired through the spec *and* the maintainer tooling (node-schema / translator /
+validator / SKILL index mode); **`IU-schema` → v0.5.0** (strict **`oneOf`** — child vs
+standalone-carrier-lite with hard field exclusions; per-state lifecycle writers [proposed=triage,
+in-delivery=build-enter event, terminal=gate]; vertical-slice / testing / single-slice invariants;
+the structured **`hitl_point`** field); new **`carrier-interface`** ref (the field-set reused nodes
+may assume across both carrier kinds + the **id+kind+arc** projection key); **`bindings-contract`
+→ v0.3.0** (`improvements-root` / `improvements-manifest` / `triage-source`, input-gated); two new
+nodes **`triage`** + **`specify-slice`**; **`build`/`review`/`land` amended** to also serve the
+`incremental` arc (build gains the tracer-bullet inner loop + the HITL pause; land fires its own
+single commit-to-land gate, no debrief); `instrumentation-preamble` event gains `carrier_kind`+`arc`.
+**Codex review — 5 findings, the 3 substantive fixed:** (1) `review → land` was an **unscoped**
+dev-sprint shortcut past `reconcile` → introduced **arc-qualified process edges** (a `precedes` /
+`can-follow` may carry an `arc:` scoping it to one arc — the *static* counterpart to carrier-keyed
+projection); (2) `escalates` was missing from the SKILL `index` edge list (would silently drop on
+re-index); (3) HITL needed a structured pause point (`hitl_point`). The 2 hygiene findings
+(untracked node files / dirty submodule) resolved at commit. Record **31 nodes / 20 refs / 150
+edges**; plugin **0.3.0**; validate + `vendor:check` green. *Spec:* per D56's touchpoints + the
+arc-qualifier note in 02-graph-spec. *Applies* D56 (design), D44/D49/D51 (carrier model), D57 (a
+slice that won't fit one agent's budget is a promote signal). *Status:* Built + Codex-remediated;
+**committed on `feat/incremental-iu-loop`, NOT pushed/PR'd** (operator).
 
 ## IU sizing & decomposition
 

@@ -71,6 +71,7 @@ that is exactly how an arc loops.
 | `triggers` | event → node | binding | no |
 | `precedes` | node → node | process | yes |
 | `can-follow` | node → node | process | yes |
+| `escalates` | stage node → entry node of another arc | process | no |
 | `overlay` | overlay-node → global node | composition | no |
 
 **`maintains`** records that a node keeps a **handbook-reference** current (a node →
@@ -79,6 +80,22 @@ handbook-reference edge). `index` projects its reverse per entry as **`maintaine
 carries its `maintains` edge from an **external/factory maintainer**, marked `external: true`
 — so "who maintains an entry" is uniformly graph-derived, never a special case. Standard
 `reference` entries are not valid `maintains` targets.
+
+**`escalates`** is a one-way **cross-arc** handoff — a stage node in one arc points at the
+**entry node of another arc** (e.g. an incremental loop's triage stage → the dev-sprint front
+node `align-context`). Entry shape: `{ id: <target-node-id> }`. It is **not `precedes`**: it is
+excluded from arc traversal and stage projection, so an escalation never reads as ordinary
+next-stage flow. It is one-way and acyclic (never forms a loop). Its runtime behaviour
+(create-or-reuse the target carrier; close the source standalone carrier as `dropped`,
+reason promoted; record a two-way provenance link) is spec prose, not edge metadata.
+
+**Arc-qualified process edges.** A `precedes` / `can-follow` edge may carry an optional `arc`
+qualifier — `{ id: <target>, arc: <arc-id> }` — when its source node participates in more than one
+arc and the edge belongs to only one of them. It scopes the edge to that arc; an unqualified
+process edge applies in every arc the source participates in. This stops a shared node's
+arc-specific edge from shortcutting another arc (e.g. `review → land` belongs to the incremental
+arc only; the dev-sprint path stays `review → reconcile → land`). The qualifier carries into the
+record on the edge row.
 
 **Inline, not an edge:** one-shot MCP calls and small references that live in a node
 body. An edge appears only when the thing invoked is itself node-like.

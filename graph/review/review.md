@@ -17,14 +17,17 @@ edges:
     - { id: lens-maintainability }
   composes-into:
     - { id: dev-sprint, stage: review }
+    - { id: incremental, stage: review }
   references:
     - { id: lens-dispatch,      load: on-demand }
     - { id: findings-schema,    load: import }
     - { id: severity-scale,     load: import }
     - { id: confidence-anchors,       load: import }
     - { id: instrumentation-preamble, load: import }
+    - { id: carrier-interface,        load: on-demand }
   precedes:
     - { id: reconcile }
+    - { id: land, arc: incremental }
 # analytics — the loop
 goals:
   - outcome: Defects are caught and fixed before the change lands, rather than escaping to production or a later stage.
@@ -36,7 +39,7 @@ goals:
   - outcome: The panel surfaces actionable signal, not noise the operator must wade through.
     metric: Signal-to-noise — actionable findings actioned (fixed or deliberately deferred) vs findings suppressed or dismissed at the gate, per review.
     earns-keep: The actioned-finding fraction stays high; a rising dismissal rate is the cut/tune signal.
-status: v0.1.0 — 2026-05-30
+status: v0.2.0 — 2026-06-04
 ---
 
 # Review
@@ -109,6 +112,22 @@ panel over the corrected diff. (The process edges that express this loop — `pr
 `can-follow` to `build` and `reconcile` — are deferred until those nodes exist, but the
 behaviour holds now: confirmed defects return to build, and review re-runs.) Continue until
 the actionable set is resolved (fixed or deliberately deferred) and you can issue a verdict.
+
+## Incremental arc
+
+The same lens panel vets a **standalone IU** (the incremental loop's carrier-lite) before it
+lands — same `lens-dispatch`, same finding contract, same fix-loop, then straight to `land`
+(no `reconcile`). Here the **`lens-tests` panel is load-bearing**: it checks the
+vertical-slice + testing invariants **held in the delivered code** — every acceptance
+condition is an observable passing test, `verification.end_to_end` is demonstrable, and the
+slice is a complete path, not a horizontal layer fragment. Confirmed defects loop back to
+`build` (the one corrective `can-follow`, reused unchanged). For a small **AFK** slice the
+operator may run review in a cheaper mode (`autofix` / `headless`).
+
+Read the carrier through the **`carrier-interface`** (`load: on-demand`): branch on
+`carrier_kind`, and read no work-item-only field (`outcome_link`, `children[]`, `risk_state`)
+when `carrier_kind` is `standalone-iu`. Events stay carrier-keyed — `(carrier_id, carrier_kind,
+arc)` — so the dev-sprint and incremental arcs do not bleed through this shared node.
 
 ## Modes
 

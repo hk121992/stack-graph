@@ -48,6 +48,7 @@ edges:
   composes-into: []
   can-follow:    []
   precedes:      []
+  escalates:     []             # cross-arc handoff; entry: { id: <target-node-id> }; omit if none
   overlay:       []             # omit if not applicable; one entry: { id: <global-node-id> }
 goals:
   - outcome: <what the node achieves>
@@ -125,13 +126,18 @@ summary:
       node is purely algorithmic (e.g., a script that produces a fixed output from
       fixed input).
    h. `edges` — from research-report `## Edges`. Emit only edge type arrays that
-      are non-empty. Each entry is `{ id: <target-id> }`. Edge types that have no
+      are non-empty. Each entry is `{ id: <target-id> }` (a `precedes` / `can-follow` entry may
+      add an optional `arc: <arc-id>` scoping it to one arc — a shared node's arc-specific forward
+      edge must carry it). Edge types that have no
       targets are omitted (not empty arrays). A `references` entry also carries
       `load: import | on-demand`, and its target is a **reference** (which carries a
       `kind` — `reference` or `handbook-reference`) or a node. A node may also carry a
       **`maintains`** edge — `{ id: <handbook-reference-id> }` — when it keeps a
       **handbook-reference** current (never a standard `reference`); emit it when the
-      research-report records the node as a maintainer of a handbook-reference.
+      research-report records the node as a maintainer of a handbook-reference. An
+      **`escalates`** edge — `{ id: <target-node-id> }` — names a cross-arc handoff to
+      the entry node of another arc; emit it the same way as `precedes`/`can-follow`
+      (one entry per target, omit when empty).
    i. `goals` — from research-report `## Goals`. Each entry must have `outcome`,
       `metric`, and `earns-keep`. Goals stated as activities must be rephrased as
       outcomes — do not transcribe activity-framed goals verbatim.

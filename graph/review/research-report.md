@@ -3,8 +3,27 @@ title: Research report for review
 type: research-report
 status: complete
 authored: 2026-05-30
-last_updated: 2026-05-30
-amended: []
+last_updated: 2026-06-04
+amended:
+  - date: 2026-06-04
+    note: |
+      Incremental-arc amend (D56, maintenance-cluster batch). review is now SHARED across two
+      arcs — it gains composes-into { id: incremental, stage: review } alongside the existing
+      dev-sprint entry, and a forward precedes edge to land (the incremental arc goes
+      review → land directly, with NO reconcile — the existing precedes: reconcile stays for the
+      dev-sprint, so review now precedes [reconcile, land]; the arc context + carrier-keyed
+      projection disambiguates which path a carrier took). Added a references edge to
+      carrier-interface (load: on-demand) — review consumes its carrier through the explicit
+      interface and must not assume work-item-only fields (outcome_link / children / risk_state)
+      when carrier_kind is standalone-iu; events are carrier-keyed (carrier_id + carrier_kind +
+      arc). Body gained an "Incremental arc" note: the same lens panel vets a standalone IU before
+      land; the lens-tests panel is LOAD-BEARING here — it checks the vertical-slice + testing
+      invariants HELD IN THE DELIVERED code (acceptance = observable passing tests,
+      verification.end_to_end demonstrable, complete path not a horizontal fragment); confirmed
+      defects loop back to build (the one corrective can-follow, reused unchanged); a small AFK
+      slice may run review in a cheaper mode (autofix / headless). The review → build fix loop is
+      reused unchanged. Bumped status to v0.2.0. All dev-sprint edges and behaviour preserved
+      verbatim.
 sources_lifted: 6
 researcher_adequacy_note: |
   Lifted six sources across the two reference orchestrators: CE's ce-code-review SKILL.md
@@ -214,21 +233,27 @@ agents and the reduction to the `lens-dispatch` reference it follows.
 | edge type | target id | rationale |
 |-----------|-----------|-----------|
 | composes-into | `dev-sprint` (stage: review) | Review is the review backbone stage of the dev-sprint arc. composes-into targets the arc; the maintainer does not resolve it to a file. |
+| composes-into | `incremental` (stage: review) | **Amend 2026-06-04.** Review is also the review stage of the incremental arc — the same lens panel vets a standalone IU before it lands. Shared node; second arc entry, not a duplicate. |
 | invokes | `lens-correctness` | Always-on lens review runs over the diff (spawned as review follows the dispatch reference). |
 | invokes | `lens-security` | Always-on lens (lower reporting gate) review runs over the diff. |
-| invokes | `lens-tests` | Always-on lens review runs over the diff. |
+| invokes | `lens-tests` | Always-on lens review runs over the diff. On the incremental arc this lens is **load-bearing** — it checks the vertical-slice + testing invariants held in the delivered code. |
 | invokes | `lens-maintainability` | Always-on lens review runs over the diff. |
 | references (`load: on-demand`) | `lens-dispatch` | The panel procedure (selection/fan-out/merge/triage/route). Review *follows* this reference at the step of need to run the panel — a `kind: reference` artefact, hand-authored in frontmatter, NOT injected and NOT an `invokes`/`uses-block` edge. |
 | references (`load: import`) | `findings-schema` | The per-finding contract. Review holds it (imported) and passes it into each lens's spawn prompt so every lens emits to the same schema. |
 | references (`load: import`) | `severity-scale` | The severity scale. Imported by review and passed into each lens's spawn prompt. |
 | references (`load: import`) | `confidence-anchors` | The confidence anchors. Imported by review and passed into each lens's spawn prompt. |
+| references (`load: on-demand`) | `carrier-interface` | **Amend 2026-06-04.** The explicit carrier interface a reused node reads. Review is shared across the dev-sprint and incremental arcs; it consumes its carrier through this interface and must NOT assume work-item-only fields (`outcome_link` / `children` / `risk_state`) when `carrier_kind` is `standalone-iu`. Loaded on-demand (only the shared-node path needs it). |
+| precedes | `reconcile` | Dev-sprint forward edge: review hands a verdict to reconcile. |
+| precedes | `land` | **Amend 2026-06-04.** Incremental-arc forward edge: review → land directly, with **no reconcile**. The existing `precedes: reconcile` stays for the dev-sprint, so review now `precedes: [reconcile, land]`; the arc context + carrier-keyed projection disambiguates which path a carrier took. |
 
 **Deliberately NO other edges (for now):**
-- **No `precedes` / `can-follow`.** The backbone build→review→reconcile edges and the
-  review→build fix loop target `build` and `reconcile`, which **do not exist yet**; the
-  validator resolves these to node files, so authoring them now fails. **Deferred** — wire
-  when build/reconcile are authored. (This is a real incremental-authoring ordering
-  constraint — see Open questions.)
+- **`precedes` now authored (`reconcile`, `land`); the review→build fix loop stays on build's
+  side.** The original report deferred all `precedes`/`can-follow` because `build`/`reconcile`
+  did not exist. Those nodes now exist: review declares `precedes: [reconcile, land]`
+  (dev-sprint → reconcile; incremental → land directly, no reconcile — amend 2026-06-04). The
+  **review → build fix loop** is a `can-follow` declared on **build's** side (already wired in
+  build's amend), so review still authors no `can-follow` of its own — confirmed defects re-enter
+  build via that edge, and the behaviour holds for both arcs.
 - **No edges to the conditional lenses** (performance/design/dx/runtime/adversarial/external)
   — **not yet authored**; do not invoke them yet. Wire each in as it is authored.
 - **No edges to sub-arcs** (`qa`, `design-review`, `security` standalone) — not yet authored.
