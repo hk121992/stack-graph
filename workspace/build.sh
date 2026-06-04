@@ -42,6 +42,9 @@ bun run workspace/renderer/build-dashboard.ts ${DASHBOARD_ROOT:+--root "$DASHBOA
 echo "==> analytics surface"
 bun run workspace/renderer/build-analytics.ts --projection "$PROJECTION"
 
+echo "==> canvas surface (BMC + VPC)"
+bun run workspace/renderer/build-canvas.ts ${CANVAS_ROOT:+--root "$CANVAS_ROOT"}
+
 echo "==> portal hub + shared root assets + fonts"
 bun run workspace/renderer/build-portal.ts
 
