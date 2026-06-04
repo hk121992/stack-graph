@@ -3,10 +3,12 @@ title: Research report for product-dashboard-curator
 type: research-report
 status: complete
 authored: 2026-06-01
-last_updated: 2026-06-03
+last_updated: 2026-06-04
 amended:
   - date: 2026-06-03
     note: "Backfill external-analogue search: lifted 4 files (bc-roadmap-curator, bc-roadmap-discipline, bc-handbook-curator, ce-product-pulse); added External analogues searched table, Source inventory update, Challenge findings section, updated researcher adequacy note."
+  - date: 2026-06-04
+    note: "Cluster-C reconciliation amend (docs/research-backfill-reconciliation.md). CF-1 (doc-fix): split opening claim into generalised-from-prior-art vs added-fields. CF-2 (node-edit): add a `queue` mode (thin wrapper over the already-invoked queue-checker — parity with handbook-curator, D40); queue-checker invokes edge already present. CF-3 (node-edit): add reprioritise cadence + trigger signals. CF-4 (node-edit): add an explicit triage refusal stop-gate. CF-5 (DROP→cross-ref only): cite artefacts-design §4 + the sprint-records-root binding in sprint-plan; no redesign."
 sources_lifted: 4
 external_analogue_found: true
 external_corpora_searched:
@@ -109,8 +111,9 @@ the sibling curators, both generative.
 ## Contract
 
 **Input:** an operator invocation naming a **mode** (`triage` / `add-item` / `reprioritise` /
-`sprint-plan` / `record-disposition`) and the relevant focus (a raw idea, a work-item id, a set of
-forward-view items, the committed set for a sprint, an item being parked/killed). Overlay-supplied
+`sprint-plan` / `record-disposition` / `queue`) and the relevant focus (a raw idea, a work-item id,
+a set of forward-view items, the committed set for a sprint, an item being parked/killed; `queue`
+takes no focus). Overlay-supplied
 context: the **work-ledger home**, the **objectives/OKR home** (so `outcome_link` resolves), the
 **maturity stage** (sets the default tier + evidence bar), and the graduation **repo + label**.
 Imports `work-item-schema` + `okr-schema`; reads `bundling-rules` on demand at the graduation step.
@@ -127,9 +130,11 @@ Imports `work-item-schema` + `okr-schema`; reads `bundling-rules` on demand at t
   graduated.
 - **`record-disposition`** — a parked/killed item closed out with a `disposition` reason, retained
   (kept, not deleted), graduated.
+- **`queue`** (read-only — CF-2) — the open ledger PRs with collision detection, via `queue-checker`
+  in `list` mode. No mutations, no graduation. Parity with `handbook-curator`'s `queue` (D40).
 
-All five graduate **content** through one path; none writes projected stage, advances lifecycle,
-or records a gate.
+The five mutating modes graduate **content** through one path; none writes projected stage,
+advances lifecycle, or records a gate. `queue` is read-only (no graduation).
 
 ## External analogues searched
 
@@ -168,9 +173,12 @@ is the strongest challenge source: it exposes the concrete schema the node claim
   `disposition`, sprint-record); it never writes `current_dev_stage` (projected), advances
   `lifecycle_state` (gates), or records `gate_decisions` (operator). This is the node's defining
   constraint, stated as a hard line up front and re-stated in Hard constraints.
-- **The five modes as body branches** (D34): `triage` (frame a raw idea as a problem) → `add-item`
-  (open with links) → `reprioritise` (move forward-view items, cull stale bets) → `sprint-plan`
-  (assemble the sprint-record view) → `record-disposition` (close out parked/killed, kept).
+- **The modes as body branches** (D34): five mutating — `triage` (frame a raw idea as a problem;
+  with an explicit refusal stop-gate, CF-4) → `add-item` (open with links) → `reprioritise` (move
+  forward-view items, cull stale bets; with a cadence + trigger-signal note, CF-3) → `sprint-plan`
+  (assemble the sprint-record view; cross-ref artefacts-design §4 + `sprint-records-root`, CF-5) →
+  `record-disposition` (close out parked/killed, kept) — plus one read-only — `queue` (open ledger
+  PRs + collisions via `queue-checker`, parity with handbook-curator, D40, CF-2).
 - **Problem-framed until committed + laddered** (Torres / SVPG / D38-D39 authored link) — the
   solution summary lands only at `committed`; every `outcome_link` is an authored link to a real
   objective, never inferred.
@@ -256,7 +264,7 @@ reused by the other curators — the decomposition reuse/cohesion test).
 | edge type | target id | rationale |
 |-----------|-----------|-----------|
 | invokes | pr-author | the graduation steps compose the labelled-PR description for settled content edits (same path as the sibling curators). Resolvable now — `graph/pr-author/pr-author.md`. |
-| invokes | queue-checker | the graduation steps check for a duplicate/colliding open ledger PR before opening one (mirrors the sibling curators). Resolvable now — `graph/queue-checker/queue-checker.md`. |
+| invokes | queue-checker | two uses, one edge: the graduation steps run `check-duplicate` before opening a ledger PR (mirrors the sibling curators); the `queue` mode (CF-2) runs `list` for a read-only open-PR + collisions view (parity with handbook-curator's `queue`, D40). Already present in frontmatter. Resolvable now — `graph/queue-checker/queue-checker.md`. |
 | references | work-item-schema (`load: import`) | the carrier structure — the content fields, the who-writes split, and the invariants the modes enforce. Short, must-always-be-present (every mode touches it) → `import` (per the graph map's load-dial table). Resolvable now — `graph/_refs/work-item-schema.md`. |
 | references | okr-schema (`load: import`) | the objective structure — the target `outcome_link` points at, and the laddering invariant. Short, must-always-be-present → `import`. Resolvable now — `graph/_refs/okr-schema.md`. |
 | references | bundling-rules (`load: on-demand`) | the curator decides what content edits to bundle into one ledger PR before it calls pr-author — the same gate the sibling curators apply. Consulted at the graduation step → `on-demand`. Resolvable now — `graph/_refs/bundling-rules.md`. (Mirrors strategy-curator, which carries `bundling-rules` for the same reason; `what-belongs` / `pr-description-shape` are left to pr-author.) |
@@ -313,6 +321,13 @@ problem-framing and laddering, which it did not.
 `outcome_link`, `value_prop_link`, `risk_state`, `disposition`). The latter are the node's unique
 contribution; the prior art provides the structural skeleton only.
 
+**Reconciliation (2026-06-04, APPLY — doc-fix):** bc-roadmap-discipline's schema
+(`id/title/tier/stage/...`) genuinely lacks all five added fields; no decision contradicts naming
+them as additions. **Applied:** the body's "(You generalise Be Civic's `roadmap-curator`…)" line
+is rewritten to split *generalised* (graduation machinery, `tier`, the sprint-record, PR-gating)
+from *added* (the five fields: problem/why, `outcome_link`, `value_prop_link`, `risk_state`,
+`disposition`) — named as additions, not distillations of the prior art.
+
 ---
 
 ### CF-2 — No operator-triage / queue-view mode (MEDIUM)
@@ -329,6 +344,15 @@ as an optional future mode, or at minimum call it out in Open questions. If the 
 machinery is shared (same `queue-checker` + `pr-author`), the `queue` mode is likely a thin
 wrapper around a queue-checker call — low cost to add. A weekly `integrate`-equivalent for the
 work ledger may be lower priority (the ledger is one surface, not a multi-repo queue).
+
+**Reconciliation (2026-06-04, APPLY — node-edit):** D40 restored the `queue` mode + `queue-checker`
+for the sibling `handbook-curator`; pdc is an explicit sibling sharing the graduation machinery and
+already `invokes: queue-checker` at every mode's graduation step — nothing forbids the parity mode.
+**Applied:** a read-only `queue` mode body branch is added, a thin wrapper over the already-invoked
+`queue-checker` in `list` mode (open ledger PRs + a collisions block; no mutations), parallel to
+handbook-curator's `queue`. The `invokes: queue-checker` edge **already exists** in frontmatter (it
+was wired for the graduation duplicate-check) — no edge change required. The weekly
+`integrate`-equivalent stays out of scope (the ledger is one surface, not a multi-repo queue).
 
 ---
 
@@ -348,6 +372,13 @@ at the start of each sprint or when a customer discovery session materially shif
 base. Name the signals ("forward view has grown past N items", "oldest item hasn't had evidence
 advance in X sprints") that should trigger an unscheduled cull. This is the Torres cadence pattern
 applied to the work-ledger surface.
+
+**Reconciliation (2026-06-04, APPLY — node-edit):** product-dashboard-design §2.6 says "rolling,
+not quarterly" but anchors no cadence or trigger signals for the curator's `reprioritise` mode; no
+decision settles it. **Applied:** a cadence note is added to `reprioritise` — run it at the start of
+each sprint (the default rhythm) and on demand when two signals fire: the forward view has grown
+past its size bound, or the oldest forward-view item has gone stale (no evidence advance over a
+maturity-scaled age window). The thresholds are harness-tuned, not factory literals.
 
 ---
 
@@ -370,6 +401,13 @@ duress. One test from Torres applies directly: "Is there more than one way to ad
 not, it is a solution disguised as an opportunity." This refusal rule is present implicitly in the
 two invariants section but should be stated in the mode steps as an explicit stop gate.
 
+**Reconciliation (2026-06-04, APPLY — node-edit):** design §2.1 + okr-schema establish
+"problem-framed not solution-locked" / "outcomes not features" as invariants, but the rec makes
+refusal an *explicit stop gate in the triage steps* (strengthens, no conflict). **Applied:** an
+explicit refusal stop-gate is added to the `triage` steps — an item that can only be stated as a
+feature (Torres' "only one way to address it → it is a solution"), or that ladders to no objective,
+is returned to the operator as "not ready for a work item" rather than framed under duress.
+
 ---
 
 ### CF-5 — The sprint-record / sprint-plan mode conflates two distinct jobs (LOW-MEDIUM)
@@ -391,6 +429,15 @@ the mode needs a graduation step and a harness binding for the sprint home path.
 a curator output at all — and the graduation step in the mode body is misleading (what is being
 PRed?). The current description says "graduated via the graduation steps" which implies (a), but
 "a view assembled beside the ledger" implies (b).
+
+**Reconciliation (2026-06-04, DROP → cross-ref only):** the view-vs-file question is **resolved
+upstream** — `docs/artefacts-design.md §4` fixes the sprint-record as
+`workspace/<dashboard>/sprints/<id>.md`, "assembled from the event log + gate decisions (a view,
+per D49), not hand-kept", and `bindings-contract.md` binds `sprint-records-root` (`sprints/`;
+assembled views). It is a **file that is a view at a bound path** — both (a) and (b) at once: a
+committed file (so it graduates) whose content is a projection (so it is never a second source of
+truth). **No redesign.** Applied: the `sprint-plan` mode body cites artefacts-design §4 + the
+`sprint-records-root` binding so the resolution is on the page, not re-litigated.
 
 ---
 
@@ -440,15 +487,13 @@ precise. Defer to v0.2.0 or the first harness that exercises the node.
   When the debrief-fleet process edges into loop B are wired, revisit whether any inbound `triggers`
   / `can-follow` should be authored — but the curator still must not *write* state, so most likely
   these remain non-curator edges.
-- **The sprint-record's home.** Whether the sprint-record is a sub-surface of the work-ledger home
-  or a sibling surface is an overlay/harness concern (BC's `sprints/*.md` prior art); the node
-  treats it as a view assembled beside the ledger and reads the projected traversal — confirmed
-  general, no factory decision needed. **But see CF-5: the distinction between a view and an authored
-  file needs to be resolved before the `sprint-plan` mode is rendered.**
-- **`queue` mode for the work ledger.** bc-handbook-curator has a `queue` mode (read-only PR queue
-  view with collision detection). Should product-dashboard-curator gain a `queue` mode? The
-  queue-checker is already invoked at each mode's graduation step; a `queue` mode would be a thin
-  wrapper. Low cost, concrete operator value. (See CF-2.)
+- **The sprint-record's home.** ~~Whether the sprint-record is a sub-surface…~~ **RESOLVED
+  (2026-06-04, CF-5):** `artefacts-design.md §4` + the `sprint-records-root` binding fix it as
+  `workspace/<dashboard>/sprints/<id>.md` — a file that is a view (a committed file whose content
+  is a projection, per D49). The `sprint-plan` mode now cites both. No further factory decision.
+- **`queue` mode for the work ledger.** ~~Should product-dashboard-curator gain a `queue` mode?~~
+  **RESOLVED (2026-06-04, CF-2):** added as a read-only body branch (thin wrapper over the
+  already-invoked `queue-checker` in `list` mode), parity with handbook-curator's `queue` (D40).
 - **Triage refusal criterion as an importable reference.** Should the problem-framing and laddering
   invariants be extracted into a `ledger-content-rules` reference (analogous to `what-belongs.md`)
   so they can be kept current independently and loaded on demand? (See CF-6.)

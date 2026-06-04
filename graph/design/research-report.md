@@ -3,10 +3,12 @@ title: Research report for design
 type: research-report
 status: complete
 authored: 2026-06-01
-last_updated: 2026-06-03
+last_updated: 2026-06-04
 amended:
   - date: 2026-06-03
     note: "Backfill external analogue search: lifted gstack/plan-design-review, ce-brainstorm, ce-frontend-design; added External analogues searched section; updated Source inventory; added Challenge findings section; updated researcher_adequacy_note."
+  - date: 2026-06-04
+    note: "Apply CF-1/CF-2/CF-3 per docs/research-backfill-reconciliation.md cluster-B (all APPLY). CF-1: framing-confirm gate between Phase 1 and Phase 2, mirroring plan's Confirm-framing gate. CF-2: deepen Phase-3 design-doc output shape with per-decision confidence (reusing the already-imported confidence-anchors ref) + primary alternative. CF-3: mode-inference pre-flight at the start of Phase 1 (operator mode token becomes suggestion/override). No new edges — confidence-anchors already wired."
 sources_lifted: 7
 external_analogue_found: true
 external_corpora_searched:
@@ -36,6 +38,13 @@ researcher_adequacy_note: |
   detection pre-flight analogous to plan-design-review's UI-scope gate and ce-brainstorm's domain
   classifier. Recommendation: translator should review Challenge findings before finalising the node
   body; the scope-checkpoint gap is the most actionable candidate for a node amendment.
+  2026-06-04 update: the reconciliation (`docs/research-backfill-reconciliation.md`, cluster B)
+  graded CF-1/CF-2/CF-3 all APPLY against the locked decisions — none conflicts with the front
+  design (which governs modes + lens reuse, not in-body gating or the design-doc internal format).
+  All three are now applied to the node body (see the Challenge findings section, each marked
+  RESOLVED). No new edges: CF-2 reuses the already-imported `confidence-anchors` reference (the
+  finding contract's evidence rubric), mirroring the evidence-state discipline the
+  experience-contract already uses.
 ---
 
 # Research report for design
@@ -181,6 +190,20 @@ ground the domain's methodology.
 - The **product-strategy seam in prose**: the product-lens composes into `@design` from the PM
   side (built separately) — design names the seam but holds no edge to a node that does not yet
   exist (F7).
+- The **framing-confirm gate** (CF-1, applied 2026-06-04): an affirm-or-redirect confirmation of
+  the load-bearing design questions + scope before the Phase-2 `target: doc` lens fan-out, blocking
+  on the platform's blocking-question tool — mirroring `plan`'s "Confirm-framing gate" so the two
+  front nodes stay consistent. The lens pass is the expensive step; the operator confirms the frame
+  before it fires. `lightweight` is one-pass by design and skips the hard gate.
+- The **per-decision confidence + primary alternative** in the Phase-3 design doc (CF-2, applied
+  2026-06-04): each recorded design decision carries its `confidence` (the already-imported
+  `confidence-anchors` rubric) and the primary alternative considered — aligning the design doc
+  with the experience-contract's own evidence-state discipline and ADR practice. **No new
+  reference** — `confidence-anchors` is already wired as a `references` import.
+- The **mode-inference pre-flight** (CF-3, applied 2026-06-04): a carrier-read at the start of
+  Phase 1 that infers the appropriate mode from the carrier's `lifecycle_state` + complexity
+  signals + aligned-intent summary, surfaced for confirm/override; the operator-supplied mode
+  token becomes a suggestion, not the sole signal.
 
 **Dropped (out of scope):**
 - Performing any lens dimension itself — owned by the lens agents (dispatched, not done here).
@@ -283,7 +306,15 @@ Findings from comparing this node against its real-world analogues (gstack plan-
 ce-brainstorm, SVPG product discovery practice, ADR discipline). These challenge the node's current
 design and are offered for the operator's consideration — they are not automatic amendments.
 
-### CF-1 (high): Missing scope-gate / pre-dispatch checkpoint — weaker than counterpart
+### CF-1 (high): Missing scope-gate / pre-dispatch checkpoint — weaker than counterpart — RESOLVED 2026-06-04
+
+**Resolution.** APPLY per the cluster-B reconciliation. A **framing-confirm gate** is now authored
+at the end of Phase 1, before the Phase-2 `target: doc` dispatch: surface the load-bearing design
+questions + scope as one affirm-or-redirect summary and block on it via the platform's
+blocking-question tool. The lens fan-out does not run until the operator affirms or redirects.
+Authored to mirror `plan`'s "Confirm-framing gate" so the two front nodes stay consistent;
+`lightweight` is one-pass by design and is exempt from the hard gate.
+
 
 **Finding.** Both primary analogues gate the operator before the main work phase. Gstack
 `plan-design-review` requires the operator to respond to an AskUserQuestion confirming scope before
@@ -311,7 +342,15 @@ one-question gate, not a full AskUserQuestion protocol, but it brings the node's
 with the analogues. Least-invasive addition: a "Confirm framing" sub-step at the end of Phase 1
 for `standard` and `deep` modes (lightweight is already one-pass by design).
 
-### CF-2 (medium): No per-decision confidence or alternatives discipline — scope gap vs ADR/SVPG
+### CF-2 (medium): No per-decision confidence or alternatives discipline — scope gap vs ADR/SVPG — RESOLVED 2026-06-04
+
+**Resolution.** APPLY per the cluster-B reconciliation. Phase 3's design-doc output shape is
+deepened: each recorded design decision now carries the **design question**, the **decision**, its
+**confidence** (the already-imported `confidence-anchors` rubric — the finding contract's evidence
+anchors design already holds), and the **primary alternative considered**. This reuses the
+`confidence-anchors` reference design already imports — **no new reference is added** — and aligns
+the design doc with the experience-contract's own evidence-state discipline and ADR practice.
+
 
 **Finding.** ADR best practice (AWS 2025, martinfowler.com, adr.github.io) requires each design
 decision to carry: the considered alternatives, the decision criteria / constraints, and a
@@ -337,7 +376,15 @@ and the primary alternative considered. This aligns with the experience-contract
 discipline and with ADR practice. Note: this is additive to the existing body and does not change
 the node's structure — it deepens Phase 3's output contract.
 
-### CF-3 (medium): No scope-detection pre-flight — weaker than counterpart
+### CF-3 (medium): No scope-detection pre-flight — weaker than counterpart — RESOLVED 2026-06-04
+
+**Resolution.** APPLY per the cluster-B reconciliation. A **mode-inference pre-flight** is now
+authored at the start of Phase 1: read the carrier and infer the appropriate mode from its
+`lifecycle_state`, complexity signals, and the aligned-intent summary, then surface the inferred
+mode to the operator for confirmation or override. The operator-supplied mode token becomes a
+suggestion/override, not the sole source of truth. Consistent with D34 (modes are body branches,
+silent on selection) — this names how the branch is chosen without changing the mode taxonomy.
+
 
 **Finding.** Gstack `plan-design-review` opens with a UI-scope detection step (PRE-REVIEW SYSTEM
 AUDIT + UI Scope Detection): if the plan involves none of {new UI screens, changes to existing UI,
@@ -423,10 +470,9 @@ assumption-surfacing step explicit in `standard` and `deep` modes would close th
   the exact AX metric set + budgets live in the harness's contract content (per
   `experience-contract-schema`, the harness fills the content), so design carries only the shape +
   the discipline to fill/refine it, not a fixed metric list.
-- **CF-1 scope gate.** Whether to add an explicit scope-confirmation step at the end of Phase 1 is
-  an operator decision — the node is well-governed and the collaborative mode provides implicit
-  consent in practice. The challenge finding is offered for consideration; the translator should
-  raise it with the operator before amending the node body.
-- **CF-2 per-decision confidence.** The design doc format is currently under-specified. Adding a
-  confidence + alternatives field per decision would align with ADR practice and the
-  experience-contract's own evidence-state discipline, but is a scope change to Phase 3's output.
+- **CF-1 scope gate.** RESOLVED 2026-06-04 — applied as the framing-confirm gate at the end of
+  Phase 1, mirroring `plan`. (Was an operator decision; the reconciliation graded it APPLY.)
+- **CF-2 per-decision confidence.** RESOLVED 2026-06-04 — applied to Phase 3, reusing the
+  already-imported `confidence-anchors` rubric + the primary alternative per decision.
+- **CF-3 mode-inference pre-flight.** RESOLVED 2026-06-04 — applied at the start of Phase 1; the
+  operator mode token is now a suggestion/override over the carrier-inferred mode.

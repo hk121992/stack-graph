@@ -3,10 +3,17 @@ title: Research report for align-context
 type: research-report
 status: complete
 authored: 2026-06-01
-last_updated: 2026-06-03
+last_updated: 2026-06-04
 amended:
   - date: 2026-06-03
     note: Backfill external analogue search — CE ce-brainstorm + Anthropic best-practices lifted; challenge findings added; External analogues searched table authored; frontmatter fields set.
+  - date: 2026-06-04
+    note: >-
+      Enacted CF1–CF5 (cluster-B reconciliation APPLY rows, docs/research-backfill-reconciliation.md)
+      into the canonical Phase-3 body — rigor-gap taxonomy (CF1), operator-dialogue discipline (CF2),
+      peer-posture (CF3), an integration check between Phase 3 and Phase 4 (CF4), a two-part exit
+      condition (CF5). Body-only; no edge/primitive/mode/goal change. CF6 (non-solicitation discipline)
+      is NOT in the cluster-B reconciliation set and stays a named, deferred finding.
 sources_lifted: 2
 external_analogue_found: true
 external_corpora_searched:
@@ -32,6 +39,14 @@ researcher_adequacy_note: |
   the analogues. Goals are correctly framed as outcomes. Recommend: proceed to translator; the
   amendment target is the Phase 3 body (operator interaction discipline) — the gap is real and
   actionable.
+
+  2026-06-04 amend: CF1–CF5 are now ENACTED into the Phase-3 body (the cluster-B reconciliation
+  marked all five APPLY). The rigor-gap taxonomy (CF1), operator-dialogue discipline (CF2), and
+  peer-posture (CF3) land in the Phase-3 interrogation body; the integration check (CF4) sits between
+  Phase 3 and Phase 4; the two-part exit condition (CF5) governs the Phase-3 close. None touched the
+  edges, primitive, mode, or goals — all are additive Phase-3 body content. CF6 (non-solicitation
+  discipline) is NOT in the cluster-B reconciliation set; it stays a named, deferred finding for a
+  later pass.
 ---
 
 # Research report for align-context
@@ -494,8 +509,12 @@ embedded proposals.
   describes the touchpoint capture in prose; no reference edge for it yet.
 - **Challenge finding remediation.** CF1–CF6 above are findings for the node body (align-context.md),
   not this report. None of them require changing the edges, primitive, mode, or goals. They
-  are Phase 3 body improvements. An `amend` pass on the node canonical is the appropriate
-  follow-on; this report's job is to name them.
+  are Phase 3 body improvements. **Status (2026-06-04 amend):** CF1–CF5 are now **ENACTED** in the
+  canonical (cluster-B reconciliation marked all five APPLY) — the rigor-gap taxonomy, the dialogue
+  discipline, the peer posture, the integration check (between Phase 3 and Phase 4), and the two-part
+  exit condition. **CF6** (non-solicitation discipline — no design proposals during alignment) is
+  **NOT** in the cluster-B reconciliation set; it remains a **named, deferred** finding for a later
+  `amend`.
 - **Agile DoR as a parallel.** The Scrum "Definition of Ready" is a meaningful external parallel —
   it gates work items from entering execution on verified intent + acceptance criteria + scope
   clarity + estimability, and is designed to prevent the same failure mode align-context targets
