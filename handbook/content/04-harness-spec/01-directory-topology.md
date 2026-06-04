@@ -126,6 +126,7 @@ from there. The set of keys a process may require (not every process needs all o
 | `items-root` | directory holding the surface's instance files |
 | `manifest-path` | path to the surface's committed index file |
 | `sprint-records-root` | directory holding sprint-record files for this surface |
+| `learnings-archive` | the committed prior-proposals archive file the loop-close gate writes and reads |
 | `strategy-doc` | the vision / strategy document path |
 | `objectives-doc` | the objectives / OKR document path |
 | `personas` | the personas surface or document read by experience-thread nodes |
@@ -168,6 +169,7 @@ surface-root: workspace/product
 items-root: workspace/product/items
 manifest-path: workspace/product/items/manifest.json
 sprint-records-root: workspace/product/sprints
+learnings-archive: workspace/product/learnings/archive.md
 strategy-doc: workspace/product/strategy.md
 objectives-doc: workspace/product/objectives.md
 personas: workspace/experience/personas

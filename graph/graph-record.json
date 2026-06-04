@@ -3,7 +3,7 @@
   "node_count": 29,
   "reference_count": 19,
   "handbook_reference_count": 0,
-  "edge_count": 126,
+  "edge_count": 128,
   "nodes": {
     "align-context": {
       "primitive": "skill",
@@ -91,13 +91,17 @@
       "primitive": "agent",
       "mode": "autonomous",
       "title": "Capture learnings",
-      "status": "v0.1.0 — 2026-06-01",
+      "status": "v0.2.0 — 2026-06-04",
       "edges": {
         "references": [
           {
             "id": "handbook",
             "load": "on-demand",
             "external": true
+          },
+          {
+            "id": "decisions-store",
+            "load": "on-demand"
           }
         ]
       }
@@ -106,7 +110,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Debrief",
-      "status": "v0.2.0 — 2026-06-04",
+      "status": "v0.3.0 — 2026-06-04",
       "edges": {
         "invokes": [
           {
@@ -293,7 +297,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Harness init",
-      "status": "v0.1.0 — 2026-06-02",
+      "status": "v0.2.0 — 2026-06-04",
       "edges": {
         "references": [
           {
@@ -436,8 +440,15 @@
       "primitive": "agent",
       "mode": "autonomous",
       "title": "Log decision",
-      "status": "v0.1.0 — 2026-06-01",
-      "edges": {}
+      "status": "v0.2.0 — 2026-06-04",
+      "edges": {
+        "references": [
+          {
+            "id": "decisions-store",
+            "load": "import"
+          }
+        ]
+      }
     },
     "measure-outcomes": {
       "primitive": "agent",
@@ -851,7 +862,7 @@
     "bindings-contract": {
       "kind": "reference",
       "title": "Bindings contract — the keys a harness supplies, and the surface template",
-      "status": "v0.1.0 — 2026-06-02",
+      "status": "v0.2.0 — 2026-06-04",
       "consumed_by": [
         "harness-init"
       ]
@@ -887,8 +898,10 @@
     "decisions-store": {
       "kind": "reference",
       "title": "Decisions store — the durable conclusion-layer contract",
-      "status": "v0.1.0 — 2026-06-04",
+      "status": "v0.2.0 — 2026-06-04",
       "consumed_by": [
+        "capture-learnings",
+        "log-decision",
         "reconcile"
       ]
     },
@@ -1099,6 +1112,12 @@
       "type": "references",
       "load": "on-demand",
       "external": true
+    },
+    {
+      "from": "capture-learnings",
+      "to": "decisions-store",
+      "type": "references",
+      "load": "on-demand"
     },
     {
       "from": "debrief",
@@ -1387,6 +1406,12 @@
       "to": "dev-sprint",
       "type": "composes-into",
       "stage": "plan"
+    },
+    {
+      "from": "log-decision",
+      "to": "decisions-store",
+      "type": "references",
+      "load": "import"
     },
     {
       "from": "plan",

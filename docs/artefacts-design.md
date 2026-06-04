@@ -48,6 +48,14 @@ frontmatter-structured / index-derived* pattern to runtime artefacts. *Decision:
 manifest — not a JSON record, not a graph node.* It generalises BC, stays human-navigable and
 renderer-friendly, keeps structured state machine-readable.
 
+The committed/derived line follows one test: **`.stack-graph/` holds only state that is *derived*
+and *replayable* from the event log** (the carrier stage, its traversal sequence); anything
+*generative* and *non-replayable* must be committed. By that test, `capture-learnings`' proposals
+archive — a model-synthesised list the next sprint reads to detect recurrence — is a **committed
+file** (the `learnings-archive` binding → `workspace/<surface>/learnings/archive.md`), **never**
+`.stack-graph/`: gitignoring it would silently destroy cross-sprint recurrence detection on every
+fresh clone (D60).
+
 ## 2. The work-item artefact — authored facts only
 
 **File:** `workspace/<dashboard-surface>/items/<id>.md`. Per `work-item-schema`.
@@ -71,6 +79,9 @@ A surface at `workspace/<dashboard>/` (the topology's "a surface per function ou
 - **Work ledger** → `items/<id>.md` + `items/manifest.json` + `sprints/<id>.md` (§4). The **now / next /
   later** view is **derived from `lifecycle_state`** (later = `idea`/`discovery`; next = `defined`; now =
   `committed`; building = `in-delivery`; the record = `shipped`/`live`/`parked`/`killed`).
+- **Learnings archive** → `learnings/archive.md` (the `learnings-archive` binding). `capture-learnings`'
+  surviving-but-unenacted proposals, written by the loop-close gate (`debrief`) and read next sprint to
+  detect recurrence — committed (generative/non-replayable, §1), never `.stack-graph/` (D60).
 
 **Manifest** (`items/manifest.json`): a **committed, derived index** (`{id, file, title, lifecycle_state,
 tier, outcome_link}` per item). Discipline (the handbook-index / graph-record pattern — *not* a second
@@ -123,8 +134,10 @@ the gate facts **are**.
   work-items, OKRs, strategy, personas), the bindings **values**, the deploy-config, the experience-contract
   instance. Built in the harness step, not here.
 - **Bindings contract — the complete set of keys a harness must supply** (read via the bindings reference
-  in `.claude/`, never hardcoded): `surface-root`, `items-root`, `manifest-path`, `sprint-records-root`,
-  `strategy-doc`, `objectives-doc`, `personas`, `handbook-index`, `event-log` (the carrier-tagged stream
+  in `.claude/`, never hardcoded; the canonical key set is the vendored `bindings-contract` reference —
+  this list mirrors it): `surface-root`, `items-root`, `manifest-path`, `sprint-records-root`,
+  `learnings-archive` (the committed prior-proposals archive file, D60), `strategy-doc`, `objectives-doc`,
+  `personas`, `handbook-index`, `event-log` (the carrier-tagged stream
   path/shape under `.stack-graph/`), `renderer` (entrypoint + output/portal), `deploy-config`,
   `experience-contract`, `okr-binding` (how `outcome_link` resolves to an objective id), `plan-policy`
   (in-body vs linked threshold + link shape), `terminal-recorder` (who freezes the timeline), `maturity`

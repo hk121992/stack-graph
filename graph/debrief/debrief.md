@@ -32,7 +32,7 @@ goals:
   - outcome: The next sprint candidate is seeded with a clear starting point — a grounded outcome_link, a carrying work-item, or a named open risk — so align-context opens with intent, not a blank slate.
     metric: share of seed-next runs that produce an actionable next-sprint candidate the operator confirms; align-context sessions that open with no prior seed (target near 0 for active products).
     earns-keep: if seed-next never produces a candidate the operator acts on, the mode is not earning its cost.
-status: v0.2.0 — 2026-06-04
+status: v0.3.0 — 2026-06-04
 ---
 
 # Debrief
@@ -140,8 +140,10 @@ independently.
    (3–5 sentences: what the sprint did + key moments), `decisions_made` (from the decisions
    log), `metrics_report` (the `measure-outcomes` output, if available), the **prior outcome
    verdict** (from the prior sprint's frozen metrics, for trend context), the **recall
-   preflight results** (step 0), `transcript_path` (if accessible), `graph_record` path, and
-   `decisions_store_path`.
+   preflight results** (step 0), `transcript_path` (if accessible), `graph_record` path,
+   `decisions_store_path`, and `learnings_archive_path` (resolve the `learnings-archive`
+   binding — the committed prior-proposals surface `capture-learnings` reads for recurrence
+   detection, D60; pass `null` if the binding is unset).
    It returns a structured proposals list — each learning classified by knowledge home
    (recall / canon / node-amend), and carrying:
    - `priority` — `high` / `medium` / `low`, **with an explicit rationale**.
@@ -165,6 +167,16 @@ independently.
    from (the be-civic W33 §3 "judgment calls — operator ratification requested" format). A
    ratified divergence is logged through the `log-decision` invoke in step 3; this surfaces the
    divergence so it is signed off rather than buried.
+2.6. **Persist the proposals archive (D60).** You are the gate that writes the committed
+   `learnings-archive` file (`learnings_archive_path`): write the **surviving-but-unenacted**
+   proposals (the parked canon / node-amend items + any deferred low-priority ones — *not* the
+   recall items already enacted to gbrain in step 2) to the archive, so next sprint's
+   `capture-learnings` reads them to detect `recurring_unacted`. Reconcile against the prior
+   archive: **carry forward** entries still open; **drop** entries now enacted; **drop or mark
+   superseded** any entry named in a proposal's `supersedes_candidates` (a new finding invalidated
+   it — it must not re-surface as a stale duplicate). `capture-learnings` only *reads* this file —
+   the write is yours. The path is the empty scaffolded file on a first sprint (write to it
+   normally); only when `learnings_archive_path` is null (binding unset) do you skip and note it.
 3. **Invoke `log-decision`** for any decisions that surfaced during `learn` itself — the
    operator's verdict on which proposals to enact, and each ratified divergence from step 2.5,
    is a decision worth logging.
@@ -215,7 +227,7 @@ is no pipeline; there is a shared substrate.
 | mode | primary output | written to |
 |---|---|---|
 | `measure` | metrics report + `trend_delta` + verdict schema (`verdict` / `outcome_link` / `evidence` / `metric_deltas`) | work-item record (`items/<id>.md`, authored evidence); surfaced to operator |
-| `learn` | proposals list (`priority`+rationale, `target_sprint`); ratified divergences; enacted recall writes | gbrain (recall writes, inline); divergences via `log-decision`; canon proposals parked for curator raise |
+| `learn` | proposals list (`priority`+rationale, `target_sprint`); ratified divergences; enacted recall writes; the updated `learnings-archive` (surviving-but-unenacted proposals, D60) | gbrain (recall writes, inline); the committed `learnings-archive` (gate write); divergences via `log-decision`; canon proposals parked for curator raise |
 | `seed-next` | next-sprint candidate(s) | surfaced to operator; no write |
 | **terminal transition** | `frozen_metrics` baseline (the next sprint's `measure-outcomes` `baseline:`) | closed work-item record (`items/<id>.md`); recorder freeze, once at close |
 | **all modes** | stage-complete signal | projection advances `current_stage`; no carrier field written by this node |
