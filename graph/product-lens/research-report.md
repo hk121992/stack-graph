@@ -3,10 +3,12 @@ title: Research report for product-lens
 type: research-report
 status: complete
 authored: 2026-06-01
-last_updated: 2026-06-03
+last_updated: 2026-06-04
 amended:
   - date: 2026-06-03
     note: "External search backfill — lifted gstack/plan-ceo-review, CE/ce-strategy, CE/ce-product-pulse; added External analogues searched table, Challenge findings section; updated frontmatter fields external_analogue_found/external_corpora_searched/sources_lifted."
+  - date: 2026-06-04
+    note: "Reconciliation amend (cluster-C product-lens CF-1..CF-4) — applied: CF-1 evidence-strength pushback subsection in Phase 2; CF-2 SMART bar on outcome_link in Phase 1; CF-3 stop-and-resolve finding on absent/empty strategy-canvas in Phase 1; CF-4 prose-only downstream note that the recorded frame feeds debrief's confirm/kill (NO edge, D44 held). CF-5 left for a later cleanup pass. No severity-scale ref / P0-P3 added — out of scope per the brief (product-lens is a strategy lens, not a D58 severity emitter)."
 sources_lifted: 3
 external_analogue_found: true
 external_corpora_searched:
@@ -126,7 +128,9 @@ contract).
 - The **recorded strategy frame** in the doc: the value proposition + target user the item serves,
   the objective it moves, and the **four-risks evidence-state at item altitude** (per risk: evidence,
   strength rung, maturity bar, cleared/open/stop) — the record's deliberate-decision evidence
-  (product-dashboard-design §2.2).
+  (product-dashboard-design §2.2). This recorded frame is what `debrief`'s post-ship confirm/kill
+  reads downstream to test whether the item delivered the objective it claimed (CF-4 — prose note, no
+  edge: the link runs through the carrier record the PM/operator gate owns, D44).
 - **No carrier write and no gate decision** — `lifecycle_state` + `gate_decisions` are the PM/operator
   gate (which reads the findings); `current_stage` is projected from the traversal.
 
@@ -195,6 +199,30 @@ makes product-lens genuinely novel in shape, while being well-grounded in the do
   **structural-leaf** posture — mirrors the lens family.
 - **Decides no gate, writes no carrier** — the open value/viability risk is an *input* to the
   PM/operator gate, not a veto; `current_stage` is projected (D44, design.md).
+- **Evidence-strength pushback discipline (CF-1, applied 2026-06-04)** — a Phase-2 subsection naming
+  ≥3 evidence-challenge patterns in the plan-ceo-review / ce-strategy anti-sycophancy style: a weak or
+  *said*-yes answer offered for a value/viability risk is challenged, not rubber-stamped, before the
+  risk is recorded as anything but *open*. Operationalises the existing "a said-yes is not a did-yes"
+  line (which named the gap but gave the lens no procedure to push back). Grounded in `four-risks` (the
+  strength rungs) — it adds the *how-to-push-back*, not a new evidence model.
+- **SMART bar on `outcome_link` (CF-2, applied 2026-06-04)** — Phase 1 checks the *quality* of the
+  served objective, not only its *type*: a non-specific / non-measurable objective is itself a
+  value-risk finding because the value risk it anchors is unfalsifiable. Uses the already-imported
+  `okr-schema` (key-results = `{metric, target, current}`, "outcomes not output") as the bar. Hardens
+  the existing "names a feature dressed as an objective → already a finding" check from type-only to
+  type-and-quality.
+- **Stop-and-resolve on an absent/empty strategy canvas (CF-3, applied 2026-06-04)** — Phase 1
+  surfaces a stop-and-resolve finding when the `strategy-canvas` binding is absent, empty, or
+  unresolved, *before* running any value-risk check. `strategy-canvas` is `external: true`; 02-graph-spec
+  has validation/build skip external refs but specifies no **runtime** fallback, so a check against an
+  absent canvas would silently produce findings that look grounded but rest on nothing. Mirrors the
+  no-STRATEGY.md handling in the ce-product-pulse / ce-strategy analogues.
+- **Downstream note: the recorded frame feeds `debrief` (CF-4, applied 2026-06-04, PROSE ONLY)** — the
+  Output/Contract names `debrief`'s post-ship confirm/kill as the consumer of the recorded strategy
+  frame (four-risks evidence-state + served objective), making the earns-keep measurement loop legible.
+  **No graph edge** — D44 holds (the lens writes no carrier); the connection runs through the carrier
+  record the PM/operator gate owns, exactly as the "post-ship outcome measurement (no edge, lifecycle
+  seam)" row in § Overlaps already states.
 
 **Dropped (out of scope / separate node):**
 - **Maintaining the canvas / the hypothesis lifecycle / venture-level strategy** → `strategy-curator`
@@ -335,7 +363,12 @@ product-pulse) and the domain methodology (SVPG four-risks, Torres OST). Each ci
 names the gap. These are amendment candidates — not blockers for the current node version, which
 carries the (v0.1.0) qualifier — but the operator should review them before the lens runs at scale.
 
-**CF-1 (high severity): No evidence-strength pushback discipline.**
+**CF-1 (high severity): No evidence-strength pushback discipline. — RESOLVED 2026-06-04.**
+Closed by the reconciliation amend: Phase 2 now carries an **Evidence-strength pushback** subsection
+naming ≥3 challenge patterns in the plan-ceo-review / ce-strategy anti-sycophancy style. A weak/*said*-yes
+answer for a value/viability risk is now challenged before the risk is recorded as anything but *open*.
+Original finding retained below for provenance.
+
 The node body says "name the current evidence and its strength rung (weak / moderate / strong — a
 said-yes is not a did-yes)" but gives no pushback rules for when the operator offers a weak answer.
 plan-ceo-review's analogue (office-hours Phase 2A) has explicit anti-sycophancy rules and five named
@@ -350,7 +383,12 @@ fails its own earns-keep metric ("findings are trustworthy signal, not strategy 
 *Recommendation: add a "Pushback discipline" subsection to Phase 2 naming at least three
 evidence-challenge patterns analogous to plan-ceo-review's Anti-Sycophancy Rules.*
 
-**CF-2 (high severity): No SMART bar for outcome_link checking.**
+**CF-2 (high severity): No SMART bar for outcome_link checking. — RESOLVED 2026-06-04.**
+Closed by the reconciliation amend: Phase 1 step 3 now applies a SMART/quality bar to `outcome_link` —
+a non-specific or non-measurable objective is itself a value-risk finding (the value risk it anchors is
+unfalsifiable), checked against the already-imported `okr-schema`. The check moved from type-only to
+type-and-quality. Original finding retained below for provenance.
+
 The node checks that the outcome_link names "a real outcome, not a feature" (via okr-schema), but
 does not apply a SMART test to the outcome. ce-product-pulse applies the SMART bar (specific,
 measurable, actionable, relevant, timely) to every metric/event/signal the operator proposes and
@@ -364,7 +402,12 @@ outcome itself, only its type.
 specific and measurable, that is already a finding — vague objectives make the value risk
 unfalsifiable") and reference the SMART bar from the okr-schema / four-risks references.*
 
-**CF-3 (medium severity): No handling of an absent or thin strategy canvas.**
+**CF-3 (medium severity): No handling of an absent or thin strategy canvas. — RESOLVED 2026-06-04.**
+Closed by the reconciliation amend: Phase 1 now surfaces a **stop-and-resolve** finding when the
+`strategy-canvas` binding is absent, empty, or unresolved, *before* running any value-risk check — a
+product-strategy check against an absent canvas is not a product-strategy check. Original finding
+retained below for provenance.
+
 Phase 1 step 2 reads the strategy canvas on-demand. The node does not specify what to do when the
 canvas is absent, thin, or unmaintained — a common real-world state for an early-stage harness.
 ce-product-pulse handles this explicitly: "If STRATEGY.md does not exist, note that explicitly in
@@ -378,7 +421,13 @@ findings that look grounded but are not.
 binding unresolved), surface that as a stop-and-resolve finding before running any value-risk check
 — a product-strategy check against an absent canvas is not a product-strategy check."*
 
-**CF-4 (medium severity): No link to post-ship outcome measurement (the closing loop).**
+**CF-4 (medium severity): No link to post-ship outcome measurement (the closing loop). — RESOLVED 2026-06-04 (prose only, no edge).**
+Closed by the reconciliation amend: the Output/Contract section now names `debrief`'s post-ship
+confirm/kill as the downstream consumer of the recorded strategy frame (four-risks evidence-state +
+served objective), making the earns-keep measurement loop legible. **No graph edge was added** — D44
+holds (the lens writes no carrier); the link runs through the carrier record the PM/operator gate owns.
+Original finding retained below for provenance.
+
 The earns-keep metrics for product-lens (ship-then-discover-it-was-wrong events trend down; front-
 stage findings displace debrief surprises) require post-ship signal to be measured. The node
 correctly does not emit a pulse / analytics call (that is post-ship, not pre-build), but it does not
@@ -440,8 +489,10 @@ itself valid?) — the latter is strategy-curator's job, not product-lens's.*
   bindings with no edge) — the canvas carries the target-user frame the lens needs; a deeper persona
   read is the discovery loop's job. The operator may later add a personas binding via overlay if a
   harness wants it.
-- **CF-1 through CF-5 (from Challenge findings above) are amendment candidates.** CF-1 (pushback
-  discipline) and CF-2 (SMART outcome bar) are high-severity and should be addressed before the lens
-  runs in a real harness. CF-3 (absent canvas fallback) and CF-4 (post-ship loop naming) are medium-
-  severity and should be addressed in the next amendment pass. CF-5 (item vs discovery altitude
-  distinction) is low-severity and can be addressed in a cleanup pass.
+- **CF-1 through CF-4 applied (2026-06-04 reconciliation amend); CF-5 remains a cleanup candidate.**
+  CF-1 (pushback discipline), CF-2 (SMART outcome bar), CF-3 (absent-canvas stop-and-resolve), and CF-4
+  (post-ship loop named in prose, no edge) are now folded into the canonical per the cluster-C
+  reconciliation verdicts. CF-5 (item vs discovery altitude distinction) is low-severity and is left for
+  a later cleanup pass. **Explicitly out of scope for this amend:** no `severity-scale` ref and no P0–P3
+  were added — product-lens is a strategy lens, not a D58 findings-severity emitter; its findings model
+  (cleared/open/stop + the shared front contract) stays as-is.
