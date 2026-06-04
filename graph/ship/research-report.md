@@ -3,10 +3,18 @@ title: Research report for ship
 type: research-report
 status: complete
 authored: 2026-06-01
-last_updated: 2026-06-03
+last_updated: 2026-06-04
 amended:
   - date: 2026-06-03
     note: Backfill external search — gstack ship + CE ce-commit-push-pr lifted; Challenge findings section added; External analogues searched table added; source-material/ populated.
+  - date: 2026-06-04
+    note: >-
+      Reconciliation verdicts applied (docs/research-backfill-reconciliation.md, cluster A ship
+      rows). CF-2 + CF-3 + CF-5 marked APPLY and translated into the body; CF-1 marked REJECTED
+      (review army duplicates the upstream review backbone stage, D50 build->review->reconcile->land
+      — ship runs inside land after review/reconcile ran); CF-4 unchanged (out of this amend's
+      scope). Added a pr-description-shape references edge (load on-demand; CF-5 wiring; ref already
+      exists in _refs/).
 sources_lifted: 2
 external_analogue_found: true
 external_corpora_searched:
@@ -95,8 +103,19 @@ delta, and the commit SHA.
 **Kept (absorbed into body):**
 - Test suite execution and coverage gate enforcement (the pre-PR quality check).
 - Version bump step (optional, semver-aware, harness-configured — or no bump).
+- **WIP-commit squash before the delivery commit** (CF-3): an explicit phase (was a
+  parenthetical in Phase 4), with detection of `WIP:` commits and a non-destructive squash
+  path (rebase for mixed branches, soft-reset for WIP-only branches) plus anti-footgun
+  guards against destroying non-WIP commits. Modelled on gstack /ship Step 15.0.
 - Checkpoint commit with a descriptive message (the commit before PR open).
-- PR open with an authored description composed from the diff and context.
+- PR open with an authored description composed from the diff and context, **deepened with
+  the verification evidence ship already produced** (test results, coverage delta) and
+  structured per the `pr-description-shape` ref (CF-5).
+- **Auto-proceed default with named operator gates** (CF-2): non-gate steps (test run,
+  coverage report, WIP squash, present-and-proceed on commit-msg / PR-desc) auto-proceed;
+  genuine operator gates (version bump, review ASK, coverage-regression override) halt. The
+  collaborative mode is preserved; default friction drops. Modelled on gstack /ship's
+  "non-interactive by default, named stops" model.
 - Standalone-capable: can be invoked outside the land arc.
 
 **Dropped (out of scope):**
@@ -131,10 +150,12 @@ separate goal; none is independently invokable except as steps inside this one b
 |-----------|-----------|-----------|
 | can-follow | `land` | process — ship follows the land gate; land does not yet exist on disk (F7 prose) |
 | precedes | `deploy` | process — ship precedes deploy in the land sequence; deploy does not yet exist on disk (F7 prose, same wave) |
+| references | `pr-description-shape` | CF-5 — ship's PR-description phase reads the canonical PR-body shape (Summary / Trigger / Recommended decision / Read set) at the step of need. `load: on-demand` (larger, conditional, read when composing the body). Target exists at `graph/_refs/pr-description-shape.md` (`kind: reference`). Inline frontmatter syntax `- { id: pr-description-shape, load: on-demand }`. Same wiring `pr-author` already uses. |
 
 No `composes-into dev-sprint` — ship is a sub-arc, not a backbone stage. No `invokes`
-edges to other nodes (test run, version bump, and PR open are inline tool calls). No
-shared references depended on at this time (instrumentation-preamble ref not yet authored).
+edges to other nodes (test run, version bump, WIP squash, and PR open are inline tool/git
+calls). The one shared reference depended on is `pr-description-shape` (CF-5, above); the
+`instrumentation-preamble` ref edge remains an open question (below).
 
 ## Conformance
 
@@ -145,7 +166,9 @@ passing; commit/PR description quality; coverage regressions surfaced pre-merge)
 
 **Edge targets resolvable:** Both process edges (`can-follow land`, `precedes deploy`) are
 deferred F7 — neither target exists on disk at authoring time. Both are described in body
-prose and omitted from frontmatter edges. No other edges declared.
+prose and omitted from frontmatter edges. The one declared `references` edge —
+`pr-description-shape` (`load: on-demand`) — resolves to `graph/_refs/pr-description-shape.md`
+(`kind: reference`), which exists; validate resolves it.
 
 ## Open questions
 
@@ -154,9 +177,12 @@ prose and omitted from frontmatter edges. No other edges declared.
 - Version bump: whether semver bump is always present or opt-in is harness-configured; the
   body treats it as optional and harness-supplied.
 - Whether the `headless` mode (no operator confirmations, CI-style) mentioned in the body
-  should be modelled now or deferred to a validated need. The gstack analogue runs headless
-  by default (operator gates are the exception, not the rule); the challenge findings
-  suggest the stack-graph node inverts this — see Challenge finding #2.
+  should be modelled now or deferred to a validated need. The CF-2 amend (2026-06-04) already
+  flipped the default to auto-proceed with named gates, narrowing the gap to a fully-unattended
+  CI mode (no version-bump or override gate either) — still deferred to a validated need.
+- CF-4 (bisectable / logical-split commit discipline) was **not** addressed in this amend — it
+  remains a low-severity open recommendation (single delivery commit is still the model). Pick
+  up via a later `amend` if validated.
 
 ## Challenge findings
 
@@ -164,6 +190,17 @@ The gstack ship skill and ce-commit-push-pr, combined with DORA delivery researc
 five areas where the stack-graph ship node is materially weaker than its real-world analogues.
 These are not design errors — the node was authored without external corroboration. They are
 gaps the operator should evaluate before treating ship as production-ready.
+
+**Reconciliation verdicts (2026-06-04, `docs/research-backfill-reconciliation.md` cluster A).**
+Each finding was judged APPLY / DROP / REJECT against the locked decisions. Verdicts:
+
+| Finding | Verdict | Disposition in this amend |
+|---|---|---|
+| CF-1 — pre-landing review army at ship | **REJECT** | Not applied. See the rationale recorded on CF-1 below. |
+| CF-2 — operator-confirmation model inverted | **APPLY** | Applied — body now auto-proceeds on non-gates, halts only at genuine gates. |
+| CF-3 — no WIP-commit squash before delivery | **APPLY** | Applied — promoted to an explicit Phase (before commit) with anti-footgun logic. |
+| CF-4 — no bisectable-commit discipline | (out of this amend's scope) | Unchanged. Not addressed in this amend; remains a low-severity open recommendation. |
+| CF-5 — PR description depth weaker than analogue | **APPLY** | Applied — Phase 5 pulls structured verification evidence; wired to the `pr-description-shape` ref. |
 
 ### CF-1: No in-diff code review pass — gstack ships with a pre-landing review army
 
@@ -187,10 +224,19 @@ is more expensive. Stack-graph's ship misses the review-at-ship pattern entirely
 
 **Severity:** High — the analogue's review army is the most substantive capability gap.
 
-**Recommendation:** Add a Phase 2.5 (or Phase 3 re-label) for a pre-landing review pass.
-At minimum: a single-agent structural review of the diff before commit. The full specialist
-army is optional; a single-pass review is the missing floor. This should be harness-configured
-(the harness may have its own review checklist, or the `review` node may supply it).
+**Recommendation (SUPERSEDED — see verdict).** ~~Add a Phase 2.5 for a pre-landing review
+pass — at minimum a single-agent structural review of the diff before commit.~~
+
+**Verdict: REJECTED (2026-06-04, reconciliation cluster A).** Applying this recommendation
+would **regress** the design by duplicating a completed upstream stage. Per **D50**, the
+dev-sprint backbone happy path is `build → review → reconcile → land`, and **ship runs inside
+`land`** — after the dedicated `review` stage (and its review lenses, D27) has already run
+against the diff, and after `reconcile` has adjudicated. A review army inside ship re-does the
+`review` stage's job at the wrong place in the arc. The analogue (gstack /ship) folds review
+into ship because gstack has no separate backbone review stage; stack-graph does, so the
+capability lives there, not here. **Ship stays scoped to tests / coverage / commit / PR** — it
+performs no in-diff code-review pass. (If a harness wants a final pre-PR sanity check, that is
+the `review` stage's configuration, not a ship phase.)
 
 ---
 
@@ -228,6 +274,16 @@ version bump). The commit message and PR description confirmations should be "pr
 auto-proceed unless the operator intervenes", not "halt and wait". This preserves the
 collaborative mode while reducing friction.
 
+**Verdict: APPLY (2026-06-04, reconciliation cluster A) — APPLIED in this amend.** A
+"Confirmation model" section now defines the default as **auto-proceed**: test run, coverage
+report, WIP squash, and the commit-message / PR-description drafts are *presented and proceed
+automatically unless the operator intervenes*. Reserved **operator gates** (halt-and-wait) are:
+a `minor`/`major` version bump, a coverage-regression override, a test failure, and an unstaged
+working tree. The collaborative mode is preserved (the gates are real); the every-step
+confirmation friction is removed. Each phase body now states its mode (auto-proceed vs gate)
+explicitly. Note: the gstack analogue lists a "review ASK" gate — for stack-graph that gate is
+on the upstream `review` stage, not ship (see CF-1 verdict), so it is not a ship gate here.
+
 ---
 
 ### CF-3: No WIP-commit squash before the delivery commit
@@ -256,6 +312,16 @@ harness does not use `WIP:` commits, the gap does not fire.
 **Recommendation:** Promote WIP squash from a parenthetical observation in Phase 4 to an
 explicit Phase 3.5 (before commit): detect `WIP:` commits on the branch, squash them into
 clean commits, surface anti-footgun logic. Reference the gstack approach as the model.
+
+**Verdict: APPLY (2026-06-04, reconciliation cluster A) — APPLIED in this amend.** WIP squash
+is now an explicit **Phase 4 — Squash WIP checkpoint commits**, placed **before** the delivery
+commit (the old commit phase becomes Phase 5, etc.). It: (1) detects `WIP:`-prefixed commits on
+the branch ahead of the base; (2) chooses the squash path — **soft-reset** when the branch is
+WIP-only, **interactive-equivalent rebase** when WIP and non-WIP commits are mixed (squashing
+only the WIP commits, preserving the rest); (3) carries explicit **anti-footgun** guards: never
+blind `git reset --soft` past a non-WIP commit, confirm the base before resetting, and abort to
+the operator if the WIP/non-WIP boundary is ambiguous. If no `WIP:` commits exist, the phase is
+a no-op and auto-proceeds. Modelled on gstack /ship Step 15.0.
 
 ---
 
@@ -330,3 +396,16 @@ writing guide if available; (b) include structured sections for the verification
 ship already produced (test results, coverage delta); (c) add optional evidence capture
 (screenshot or demo link) for operator-facing changes. The description should be a delivery
 record of what ship verified, not just a human-facing summary.
+
+**Verdict: APPLY (2026-06-04, reconciliation cluster A) — APPLIED in this amend.** The PR-open
+phase now: (a) **reads the `pr-description-shape` reference** at the step of need (new
+`references` edge, `load: on-demand`) for the canonical body shape — `## Summary`,
+`## Trigger`, `## Recommended decision`, `## Read set`; (b) **populates structured sections
+from the verification evidence ship already produced** — the test-suite result and the coverage
+delta are carried straight into the PR body rather than re-derived, so the description is a
+delivery record of what ship verified; (c) names optional evidence capture (screenshot / link)
+for operator-facing changes as a harness-supplied option. The reconciliation note observed the
+`pr-description-shape` ref already exists in `_refs/`; this amend wires ship to it. The shape is
+authored for curator PRs — ship adapts it: it keeps Summary / Trigger (= what is shipping) /
+Recommended decision (= merge this) / Read set, and folds the test + coverage evidence into the
+body. A harness may additionally supply its own PR-description guide via the overlay.
