@@ -7,6 +7,8 @@ last_updated: 2026-06-03
 amended:
   - date: 2026-06-03
     note: "Backfill: external corpus search completed (gstack review + CE ce-code-review lifted); source-material/ created; External analogues searched table added; Challenge findings section added; all template sections populated."
+  - date: 2026-06-04
+    note: "Tier-1 amend batch 2 (cluster-A reconciliation): enacted CF-1 (changed status + precision-gate rule), CF-2 (verification-mode classification before scoring; EXTERNAL-STATE/CROSS-ARTEFACT -> out_of_scope, never missing), CF-4 (unverifiable status carrying the manual check in gap; fixes the missing-artefact-forced-to-missing bug), CF-5 (precision gate reworded to reference changed). Converted severity from low/med/high to P0-P3 per D58 + severity-scale.md v0.2.0; status enum settles to met|changed|missing|unverifiable|out_of_scope. CF-3/CF-6/CF-7 NOT enacted in this batch (CF-3 deferred; CF-6/CF-7 are LOW). Status -> v0.2.0."
 sources_lifted: 2
 external_analogue_found: true
 external_corpora_searched:
@@ -87,32 +89,52 @@ build_artefacts:                # at least one of:
 task_summary: <string>          # 1-3 sentences: what the build was supposed to do
 ```
 
-**Output (structured YAML diff):**
+**Output (structured YAML diff) — amended 2026-06-04 (CF-1/CF-2/CF-4/CF-5 + D58):**
+
+Per-touchpoint contract the node emits (matched exactly by the parallel `reconcile` amendment):
+
+```
+status:   met | changed | missing | unverifiable | out_of_scope
+severity: P0 | P1 | P2 | P3            # per severity-scale.md (D58)
+gap:      <text>                       # for `unverifiable`, carries the manual check
+verification-mode classified before scoring: DIFF-VERIFIABLE | EXTERNAL-STATE | CROSS-ARTEFACT
+EXTERNAL-STATE / CROSS-ARTEFACT  ->  out_of_scope (with note), never `missing`
+precision gate: "how, not whether"  ->  `changed`
+```
+
 ```yaml
 summary:
-  satisfied: <int>
-  partial: <int>
+  met: <int>
+  changed: <int>
   missing: <int>
-  contradicted: <int>
+  unverifiable: <int>
   out_of_scope: <int>
   unintended_scope: <int>
-all_satisfied: <boolean>
+all_met: <boolean>
 findings:
   - touchpoint_id: <slug>
-    status: satisfied | partial | missing | contradicted | out_of_scope
+    status: met | changed | missing | unverifiable | out_of_scope
+    verification_mode: DIFF-VERIFIABLE | EXTERNAL-STATE | CROSS-ARTEFACT
     evidence: <one sentence>
-    gap: <one sentence>          # omit if satisfied
+    gap: <one sentence>          # omit if met; for `unverifiable` carries the required manual check
     suggested_path: amend-spec | fix-build | accept | investigate
-    severity: low | medium | high
+    severity: P0 | P1 | P2 | P3  # per severity-scale.md (D58); omit if met or out_of_scope
 unintended_scope:
   - location: <file or section>
     observation: <one sentence>
     suggested_path: add-touchpoint | accept | investigate
 agreements:
   - touchpoint_id: <slug>
-    note: <optional>
+    note: <optional>             # `changed` touchpoints are recorded here, not as findings
 notes: <anything the dispatcher should know>
 ```
+
+**Status-enum settlement.** The pre-amend taxonomy (satisfied / partial / missing / contradicted /
+out_of_scope) collapses to the five-status contract above: `satisfied`→`met`; `partial` and
+`contradicted` are absorbed (a different-but-valid realisation is `changed`; a genuine conflict or
+shortfall is `missing` with a P0/P1 severity carrying the conflict in `gap`); `changed` is new
+(CF-1); `unverifiable` is new (CF-4); `out_of_scope` now also absorbs EXTERNAL-STATE / CROSS-ARTEFACT
+touchpoints (CF-2) rather than mis-scoring them as `missing`.
 
 ## External analogues searched
 
@@ -373,6 +395,36 @@ spec section; `medium` when it expands scope in an opinionated way; `low` when i
 incidental cosmetic or logging change.
 
 ---
+
+## Enacted amendments (2026-06-04 — Tier-1 batch 2)
+
+Cluster-A reconciliation (`docs/research-backfill-reconciliation.md`) verdicts: CF-1, CF-2, CF-4,
+CF-5 are **APPLY**; the D58 severity unification is enacted alongside. CF-3 deferred; CF-6, CF-7 are
+LOW and not in this batch.
+
+- **CF-1 (HIGH) — `changed` status + precision-gate rule. ENACTED.** Added `changed` to the
+  per-touchpoint status enum: "the built change implements the intended change by a different
+  (equally valid) means; the goal is met." A precision-gate rule routes "how, not whether" concerns
+  to `changed`. Per the open-question resolution below, `changed` touchpoints are recorded under
+  `agreements` (a note), not as `findings` — consistent with the standing precision-gate posture.
+- **CF-2 (MEDIUM) — verification-mode classification before scoring. ENACTED.** A classification
+  step now runs **before** evaluation: each touchpoint is tagged DIFF-VERIFIABLE / EXTERNAL-STATE /
+  CROSS-ARTEFACT. EXTERNAL-STATE and CROSS-ARTEFACT touchpoints route to `out_of_scope` **with a
+  note** requesting the caller supply artefacts or confirm externally — **never `missing`**. Strict
+  bundle-only boundary (open-question #2): the agent does not fetch artefacts it was not given.
+- **CF-4 (MEDIUM) — `unverifiable` status. ENACTED.** Added `unverifiable` for (a) a missing or
+  unreadable `build_artefact`, or (b) an unresolvable `spec_ref`. The required manual check is
+  carried in `gap`. This fixes the pre-amend bug where the body forced a missing artefact to
+  `missing` and buried the blockage in `notes`.
+- **CF-5 (MEDIUM) — precision gate anchored to `changed`. ENACTED.** Folded into CF-1: the precision
+  gate now names `changed` explicitly ("Is the concern about *how* the intent was implemented rather
+  than *whether* it was? … emit `changed` under `agreements`, not a finding").
+- **D58 — severity P0–P3. ENACTED.** The `severity` field converts from `low | medium | high` to
+  `P0 | P1 | P2 | P3`, referencing `graph/_refs/severity-scale.md` (broadened to the factory-wide
+  findings-severity contract, v0.2.0). One-line rubric for conformance findings: **P0** = a
+  delivery-path touchpoint entirely unmet or contradicted; **P1** = a real spec touchpoint broken /
+  high-impact divergence; **P2** = a moderate divergence with a meaningful downside; **P3** =
+  cosmetic / nit. `changed` and `out_of_scope` carry no severity.
 
 ## Open questions
 

@@ -1,9 +1,9 @@
 {
-  "generated": "2026-06-03T15:01:01Z",
+  "generated": "2026-06-04T12:00:00Z",
   "node_count": 29,
-  "reference_count": 17,
+  "reference_count": 18,
   "handbook_reference_count": 0,
-  "edge_count": 121,
+  "edge_count": 123,
   "nodes": {
     "harness-init": {
       "primitive": "skill",
@@ -119,7 +119,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Debrief",
-      "status": "v0.1.0 \u2014 2026-06-01",
+      "status": "v0.2.0 \u2014 2026-06-04",
       "edges": {
         "invokes": [
           {
@@ -588,7 +588,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Reconcile",
-      "status": "v0.1.0 \u2014 2026-06-01",
+      "status": "v0.2.0 \u2014 2026-06-04",
       "edges": {
         "invokes": [
           {
@@ -615,6 +615,10 @@
           },
           {
             "id": "instrumentation-preamble",
+            "load": "import"
+          },
+          {
+            "id": "decisions-store",
             "load": "import"
           }
         ],
@@ -716,8 +720,12 @@
       "primitive": "agent",
       "mode": "autonomous",
       "title": "Spec-diff",
-      "status": "v0.1.0 \u2014 2026-06-01",
-      "edges": {}
+      "status": "v0.2.0 \u2014 2026-06-04",
+      "edges": {
+        "references": [
+          { "id": "severity-scale", "load": "on-demand" }
+        ]
+      }
     },
     "specify": {
       "primitive": "skill",
@@ -801,6 +809,14 @@
     }
   },
   "references": {
+    "decisions-store": {
+      "kind": "reference",
+      "title": "Decisions store — the durable conclusion-layer contract",
+      "status": "v0.1.0 — 2026-06-04",
+      "consumed_by": [
+        "reconcile"
+      ]
+    },
     "bindings-contract": {
       "kind": "reference",
       "title": "Bindings contract — the keys a harness supplies, and the surface template",
@@ -812,7 +828,7 @@
     "IU-schema": {
       "kind": "reference",
       "title": "Implementation-Unit schema \u2014 the plan\u2194build field contract",
-      "status": "v0.2.0 \u2014 2026-06-03",
+      "status": "v0.4.0 \u2014 2026-06-04",
       "consumed_by": [
         "build",
         "plan"
@@ -904,6 +920,7 @@
       "title": "OKR / outcome-layer schema",
       "status": "v0.1.0 \u2014 2026-06-01",
       "consumed_by": [
+        "harness-init",
         "product-dashboard-curator",
         "product-lens"
       ]
@@ -926,11 +943,12 @@
     "severity-scale": {
       "kind": "reference",
       "title": "Finding contract \u2014 severity scale",
-      "status": "v0.1.0 \u2014 2026-05-30",
+      "status": "v0.2.0 \u2014 2026-06-04",
       "consumed_by": [
         "design",
         "plan",
-        "review"
+        "review",
+        "spec-diff"
       ]
     },
     "vpc-schema": {
@@ -956,6 +974,7 @@
       "title": "Work-item schema \u2014 the carrier on the product-dashboard",
       "status": "v0.2.0 \u2014 2026-06-01",
       "consumed_by": [
+        "harness-init",
         "product-dashboard-curator"
       ]
     }
@@ -1662,6 +1681,18 @@
       "to": "work-item-schema",
       "type": "references",
       "load": "on-demand"
+    },
+    {
+      "from": "spec-diff",
+      "to": "severity-scale",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "reconcile",
+      "to": "decisions-store",
+      "type": "references",
+      "load": "import"
     }
   ]
 }

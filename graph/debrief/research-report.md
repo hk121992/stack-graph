@@ -3,10 +3,13 @@ title: Research report for debrief
 type: research-report
 status: complete
 authored: 2026-06-01
-last_updated: 2026-06-03
+last_updated: 2026-06-04
 amended:
   - date: 2026-06-03
     note: External analogue backfill — gstack /retro, be-civic sprint-close docs, CE ce-sessions lifted; challenge findings section added; all template sections populated; frontmatter extended with external_analogue_found, external_corpora_searched, sources_lifted, researcher_adequacy_note.
+  - date: 2026-06-04
+    note: >-
+      Tier-1 amend batch 2 — closed CF-1 (verdict-evidence schema authored into the work-item file per artefacts-design §2/§5), CF-2 (ratify sub-step in learn for in-sprint design divergences), CF-3 (prior verdict in the capture-learnings spawn bundle + explicit trend-delta surfacing, wiring measure-outcomes' existing baseline/trend mechanism), CF-4 (target_sprint + priority(+rationale) added to the proposals contract; owner unchanged per D40), CF-5 (capability-gated recall-query preflight before capture-learnings, falling back if gbrain absent per D31), and the measure-outcomes CF-1 residual that lands on debrief (debrief persists its metrics report to a stable baseline path the next sprint's measure-outcomes reads). Resolutions recorded in the "Amendment resolutions (2026-06-04)" section; Open questions updated. Verdicts + actions from docs/research-backfill-reconciliation.md cluster-B debrief rows + cluster-C measure-outcomes CF-1.
 sources_lifted: 4
 external_analogue_found: true
 external_corpora_searched:
@@ -226,10 +229,117 @@ These findings compare the node against its real-world analogues. They are speci
 
 **Recommendation:** The learn mode's recall-write step should reference a canonical recall-entry schema (probably defined in `instrumentation-preamble` or a dedicated reference). The `capture-learnings` agent's spawn bundle should include this schema so it shapes its output accordingly. Without it, recall entries are unstructured and the `/learn` (or equivalent) retrieval path cannot dedup or search them reliably.
 
+## Amendment resolutions (2026-06-04)
+
+Tier-1 amend batch 2 closes six gaps against the reconciliation verdicts
+(`docs/research-backfill-reconciliation.md`, cluster-B debrief rows + cluster-C
+measure-outcomes CF-1). Each gap below carries its verdict, the locked-decision evidence
+that bounds the resolution, and the concrete change rendered into the canonical. CF-6 and
+CF-7 are **not** in this batch — they remain open (see Open questions).
+
+### CF-1 (resolved) — verdict-evidence schema in `measure`
+
+**Verdict:** APPLY. Evidence: D49 ("debrief writes outcomes") + `artefacts-design §2/§5` fix
+that outcome evidence is *authored into the work-item file* but leave the sub-schema open.
+
+**Resolution:** `measure` step 3 now specifies a minimum verdict-evidence schema authored
+**into the work-item file** (no second store): `verdict` (`confirmed` / `partial` / `missed`),
+`outcome_link` (the target resolved), `evidence` (1–3 sentences), and `metric_deltas` (the key
+earns-keep numbers lifted verbatim from `measure-outcomes`). This is authored frontmatter/body
+content in `workspace/<dashboard-surface>/items/<id>.md` per `artefacts-design §2` (authored
+facts only) — debrief writes evidence content, never a projected field. The format conforms to
+§5's authored/projected/frozen split: the verdict-evidence block is authored, the metrics it
+quotes are projected (read from the event log via `measure-outcomes`).
+
+### CF-2 (resolved) — ratify sub-step in `learn`
+
+**Verdict:** APPLY. Evidence: debrief already `invokes log-decision`; ratifying in-sprint
+divergences is additive collaborative discipline, no conflict.
+
+**Resolution:** `learn` mode gains a **ratify sub-step** (step 2.5) that surfaces in-sprint
+**design divergences** — implementation choices that departed from the spec/canon and were
+**not** logged at decision time — for explicit operator sign-off, modelled on the be-civic W33
+§3 "Judgment calls — operator ratification requested" format (numbered calls, each naming the
+decision made and what it diverges from). A ratified divergence routes through the existing
+`log-decision` invoke (debrief already holds that edge) — no new edge, no `ratify` micro-mode
+(kept as a sub-step to avoid a new goal/earns-keep, per the Open-questions note now resolved).
+
+### CF-3 (resolved) — prior verdict + explicit trend delta
+
+**Verdict:** APPLY. Evidence: the mechanism already exists — `measure-outcomes` emits trend
+points and takes a `baseline`, and the debrief body already says "trend delta against prior
+runs". Reduces to thin wiring + surfacing.
+
+**Resolution:** `measure` step 1 now passes the **prior debrief metrics baseline path** in the
+`measure-outcomes` spawn bundle (the `baseline:` input, ~line 42 of `measure-outcomes.md`),
+resolved from the work-item's frozen metrics block (see the CF-1-residual resolution below).
+`measure` step 2 now **surfaces the `trend_delta` explicitly** to the operator — not just the
+current verdict but the direction. First-run handling is named: if there is no prior baseline,
+the baseline is `null` and the delta surfaces as `first point — no trend yet` (this also
+resolves the "Trend baseline" open question).
+
+### CF-4 (resolved) — `target_sprint` + `priority` on proposals
+
+**Verdict:** APPLY. Evidence: owner-routing already conforms to D40 (recall→operator,
+canon→handbook-curator raise, node-amend→operator); the enactment-tracking fields are open +
+additive.
+
+**Resolution:** the `learn` proposals contract (the shape debrief presents and
+`capture-learnings` emits) now carries, per proposal, a **`target_sprint`** (which sprint should
+act on it) and a **`priority`** (`high` / `medium` / `low`) **with an explicit rationale**.
+**Owner is unchanged** — it stays routed by home per D40; this amendment adds enactment-tracking
+fields only, it does not touch ownership. Without `target_sprint`/`priority` the proposals
+surface but do not close, directly violating the learn-goal earns-keep.
+
+### CF-5 (resolved) — capability-gated recall-query preflight in `learn`
+
+**Verdict:** APPLY. Evidence: consistent with D31 (gbrain reads via `mcp__gbrain__query`,
+capability-gated); the node's own learn earns-keep is "re-derivation → zero", which this
+mechanism enables.
+
+**Resolution:** `learn` mode gains a **preflight (step 0)**: before spawning
+`capture-learnings`, query the relevant knowledge homes for prior learnings on the sprint's
+topic and pass the results into the spawn bundle so `capture-learnings` can dedup new findings
+from known ones. **Capability-gated per D31:** query gbrain via `mcp__gbrain__query --source …`
+when present; **fall back cleanly** to reading `docs/decisions.md` + Grep when gbrain is absent
+— the preflight degrades, it never blocks. This is the mechanism that makes the re-derivation
+metric achievable.
+
+### measure-outcomes CF-1 residual (resolved — lands on debrief) — persist the metrics baseline
+
+**Verdict:** DROP on `measure-outcomes` (the node is correctly pure-read), residual **lands on
+debrief**. Evidence: D49 ("debrief writes outcomes") + `06-analytics` Carrier-state projection
++ `artefacts-design §5` (event-log = single source; the recorder freezes the timeline off the
+terminal transition; the metrics report is a **projection/view**, not a hand-kept file).
+
+**Resolution — the baseline-path handshake.** The metrics report is a **projection over the
+event log's "Product outcomes" stream** (`06-analytics` Stream namespacing), never a hand-kept
+file. For the next sprint's `measure-outcomes` to read it as its `baseline:` input, debrief must
+persist it to a **stable, addressable path**. Consistent with the **terminal-freeze** mechanism
+(`artefacts-design §5` / `06-analytics` Terminal freeze) — the single point a derived value
+enters a committed file, written by debrief's fleet for `shipped`/`live` — debrief, **on the
+terminal transition**, freezes the `measure-outcomes` metrics report into the **closed
+work-item record** as a clearly-marked derived field **`frozen_metrics`**, the metrics sibling
+of the existing `frozen_timeline`. 
+
+**The path** is the work-item file itself:
+
+```
+workspace/<dashboard-surface>/items/<id>.md   →   frozen_metrics  (frozen frontmatter block)
+```
+
+bound in a harness via the `items-root` binding key (`artefacts-design §6`), and the freeze is
+performed by the `terminal-recorder` binding (the "who freezes the timeline" key). The next
+sprint's `measure-outcomes` receives this address as its `baseline:` input (the
+`measure-outcomes` contract already declares `baseline: <path> | null` and degrades cleanly to
+`null` on a first run). This is a recorder action **keyed off the terminal lifecycle transition**
+— *not* a stage writing the carrier, and decoupled from lifecycle advancement (the gate advances
+state; the recorder freezes the metrics). It is the **only** point debrief writes a derived
+value into a committed file, and it lands once, at close — exactly the §5 discipline that keeps
+the metrics report a view, not a second source of truth.
+
 ## Open questions
 
 - **F7 wiring pass:** The `can-follow land` edge is currently prose-only in the node body. Formally promote to a `can-follow` frontmatter entry when `land` is confirmed built as a resolvable sibling.
-- **Sprint-seed write location:** CF-6 proposes writing the seed-next output to a named file. The canonical location (harness-specific via bindings, or a fixed path in the work-item record) needs an operator decision before the node amendment.
-- **Recall-entry schema:** CF-7 proposes a canonical recall schema. Should this live in `instrumentation-preamble`, a new `recall-schema` reference, or the `capture-learnings` agent's contract? Needs translator / operator decision.
-- **Ratification mode:** CF-2 proposes surfacing judgment calls for operator sign-off. This could be a sub-step in `learn` or a new `ratify` micro-mode. If a micro-mode, it may warrant its own goal and earns-keep — which would need an amendment pass to the goals table.
-- **Trend baseline:** If this is the first debrief run for a work item, there is no prior snapshot to compare against. The node should specify graceful handling (first-run detection, no delta shown) to avoid a preflight failure.
+- **CF-6 (still open) — sprint-seed write location:** CF-6 proposes writing the seed-next output to a named file. The canonical location (harness-specific via bindings, or a fixed path in the work-item record) needs an operator decision before that node amendment. Not in the 2026-06-04 batch — `seed-next` still surfaces-without-write.
+- **CF-7 (still open) — recall-entry schema:** CF-7 proposes a canonical recall schema for the inline gbrain write. Should it live in `instrumentation-preamble`, a new `recall-schema` reference, or the `capture-learnings` agent's contract? Needs translator / operator decision. Not in the 2026-06-04 batch — the inline recall write keeps its current unspecified shape.

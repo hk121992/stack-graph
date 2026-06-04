@@ -7,6 +7,17 @@ last_updated: 2026-06-03
 amended:
   - date: 2026-06-03
     note: Backfill — external corpus search, source-material lifted (3 files), External analogues searched section added, Challenge findings section added, researcher_adequacy_note updated.
+  - date: 2026-06-04
+    note: |
+      Tier-1 amend batch 2 (cluster-A reconcile rows of docs/research-backfill-reconciliation.md).
+      Closed CF-1 (changed + unverifiable adjudication handling, cross-ref spec-diff), CF-2
+      (DROP→wiring fix — accept path included in the log-decision call; cross-ref decisions-store),
+      CF-3 (concrete max-pass bound + gap-recurrence criterion + escalation brief via log-decision),
+      CF-4 (structured decision-context format on adjudicate), CF-5 (present `changed` with
+      "no adjudication unless operator objects"; consumes spec-diff's status, does not re-define it),
+      and D58 (findings severity → P0–P3 per graph/_refs/severity-scale.md). Added `references`
+      edges to decisions-store (load: import) and spec-diff (load: on-demand). Amendment-decisions
+      section appended below; Edges + Conformance tables updated.
 sources_lifted: 3
 external_analogue_found: true
 external_corpora_searched:
@@ -87,13 +98,36 @@ interpret and present its structured output to the operator. Not deterministic.
 build artefacts (diff or changed files). Mode token (`draft` / `adjudicate` / `enact`)
 from the operator; defaults to running all three in sequence when no token is given.
 
+**Spec-diff output contract reconcile consumes (D58 + spec-diff CF-1/CF-2/CF-4):**
+spec-diff is the source of the per-touchpoint statuses; reconcile reads them and does not
+re-define them. Per touchpoint spec-diff emits:
+
+```
+status:   met | changed | missing | unverifiable | out_of_scope
+severity: P0 | P1 | P2 | P3            # per graph/_refs/severity-scale.md (D58)
+gap:      <text>                       # for `unverifiable`, the manual check to run
+verification-mode: DIFF-VERIFIABLE | EXTERNAL-STATE | CROSS-ARTEFACT
+                                       # EXTERNAL-STATE / CROSS-ARTEFACT route to out_of_scope
+```
+
+`met` replaces the old `satisfied`; `changed` (goal met by different means) and
+`unverifiable` (cannot be diff-checked — carries the manual check in `gap`) are new;
+`contradicted` folds into `missing`/`changed` per spec-diff's enum. Severity is the
+factory-wide **P0–P3** scale, not `low/med/high` (D58).
+
 **Output:**
 - `draft`: the structured spec-diff report (from `spec-diff`) surfaced to the operator,
-  annotated with reconcile's interpretation of each finding.
+  annotated with reconcile's interpretation of each finding — including `changed` presented
+  with "no adjudication needed unless the operator objects" and `unverifiable` presented with
+  its manual check surfaced for the operator to run.
 - `adjudicate`: the operator's adjudication on each finding — amend-spec, fix-build, or
-  accept — logged via `log-decision`.
+  accept — logged via `log-decision`, **including** the accept path (the accepted-drift
+  record is part of the same `log-decision` write, not a transient note). For a finding
+  reconcile cannot confidently recommend a path for, a structured decision-context feeds the
+  operator's AskUserQuestion gate.
 - `enact`: the chosen path executed — spec amendment PR raised (via `pr-author`) or
-  build rework loop re-entered; or a clean "all accepted" exit surfacing the
+  build rework loop re-entered (bounded by a concrete max-pass count with a recurring-gap
+  escalation routed via `log-decision`); or a clean "all accepted" exit surfacing the
   commit-to-land gate.
 - **All modes**: stage-complete signal (traversal event). No carrier write.
 
@@ -193,6 +227,8 @@ a single skill, routing to separate sub-skills/agents for mechanical steps.
 | `invokes` | `log-decision` | Records the adjudication decision (amend-spec / fix-build / accept) to the two-layer store. |
 | `invokes` | `pr-author` | Composes the PR description for a spec amendment on the amend-spec path. |
 | `references` | `handbook` (`load: on-demand`, `external: true`) | Overlay-resolved to the product's canon root + page index; needed when authoring a spec amendment to navigate the canon pages. |
+| `references` | `decisions-store` (`load: import`) | The durable conclusion-layer contract: the accept path's adjudication is a logged decision (goal #2), not a transient note. Imported so the accept/escalation wiring states the store guarantee inline. Resolves at `graph/_refs/decisions-store.md`. |
+| `references` | `spec-diff` (`load: on-demand`) | The per-touchpoint status + severity + verification-mode contract lives in spec-diff's OUTPUT (D58 + spec-diff CF-1/CF-2/CF-4); reconcile consumes it and does not re-define it. On-demand because the statuses are read at draft time, not imported as standing context. Resolves at `graph/spec-diff/spec-diff.md` (reference-edge to a node). |
 | `can-follow` | `review` | **F7 — deferred to wiring pass.** Reconcile follows review; wired once the backbone process edges are wired end-to-end. |
 | `precedes` | `land` | **F7 — deferred to wiring pass.** Reconcile's happy-path exit is land; `land` does not exist yet. |
 | `precedes` | `build` | **F7 — deferred to wiring pass.** The rework loop re-enters build; wired in the backbone process-edge pass. |
@@ -210,6 +246,10 @@ adjudication explicit; amendment path gated). Each has an `earns-keep` threshold
 - `log-decision` — exists at `graph/log-decision/log-decision.md`. Confirmed.
 - `pr-author` — exists at `graph/pr-author/pr-author.md`. Confirmed.
 - `handbook` — external: true; validation skipped (harness-supplied). Confirmed.
+- `decisions-store` — exists at `graph/_refs/decisions-store.md` (`kind: reference`).
+  `references` edge with `load: import`. Confirmed.
+- `spec-diff` — exists at `graph/spec-diff/spec-diff.md` (a node consumed as a reference).
+  `references` edge with `load: on-demand`. Confirmed.
 - `review`, `land`, `build` — F7 deferred; not declared in edges frontmatter; described
   in body prose per the hard constraint.
 
@@ -315,3 +355,81 @@ Reconcile's amend-spec path raises a separate PR to the spec-amendment queue for
 - (From backfill) CF-1: Should `spec-diff` add a CHANGED/ALTERED status and severity classification, or should `reconcile` interpret raw `spec-diff` output and assign these? This affects whether the contract change lands in `spec-diff.md` or `reconcile.md`.
 - (From backfill) CF-2: Which store is the canonical durable sink for accepted drift — `docs/decisions.md` (via `log-decision`) or a separate artefact? If `log-decision` is the sink, the `log-decision` invocation in `adjudicate` mode already covers it; the gap is just the current omission of `accept`-path items from the `log-decision` call.
 - (From backfill) CF-3: The rework loop bound — is 2 passes the right default, or does the backbone design intend a different mechanism? This may require an operator decision before the node reaches v1.0.
+
+---
+
+## Amendment decisions — Tier-1 amend batch 2 (2026-06-04)
+
+Verdicts + actions taken from the cluster-A reconcile rows of
+`docs/research-backfill-reconciliation.md`. Each closes a named gap; the open questions
+above are resolved by these decisions.
+
+### CF-1 (APPLY, node-edit + cross-ref spec-diff) — `changed` + `unverifiable` adjudication handling
+
+The taxonomy lives in **spec-diff's OUTPUT**, which reconcile reads — reconcile does **not**
+re-define the statuses. spec-diff is being amended in parallel (CF-1/CF-2/CF-4) to emit the
+consumed contract above. Reconcile's body gains adjudication handling:
+
+- **`changed`** (goal met by different means) — present with a "no adjudication needed unless
+  the operator objects" default; only if the operator objects does it enter the
+  amend-spec / fix-build / accept fork. This prevents valid alternative implementations from
+  generating false-positive adjudication work or polluting the spec-amendment queue.
+- **`unverifiable`** (cannot be diff-checked) — surface the **manual check** spec-diff put in
+  `gap` to the operator; the touchpoint is not adjudicable from the diff alone, so reconcile
+  routes it to a manual confirmation, not a silent pass.
+
+Cross-ref to spec-diff via a `references` edge (`load: on-demand`) so the body points at the
+contract rather than restating it. (Resolves OQ CF-1: the taxonomy lands in spec-diff; reconcile
+consumes.)
+
+### CF-2 (DROP → wiring fix, cross-ref decisions-store) — accept path in the `log-decision` call
+
+Not a new sink. reconcile already `invokes log-decision`, and goal #2 requires every
+resolution traceable in `docs/decisions.md`. The `decisions-store` reference (now authored at
+`graph/_refs/decisions-store.md`) makes the guarantee explicit: "Every settled decision is
+traceable … including reconcile's **accept-path adjudications**." The gap was purely that the
+`adjudicate`-mode `log-decision` call logged adjudications but **omitted the accept path**. Fix:
+the accept path is folded into the same `log-decision` write — the accepted-drift record
+(finding / touchpoint / operator's acceptance rationale) is part of the conclusion that
+`log-decision` durably records, not a transient stage-output note. Add a `references` edge to
+`decisions-store` (`load: import`). (Resolves OQ CF-2: the sink is `docs/decisions.md` via
+`log-decision`; the gap was the omitted accept-path items.)
+
+### CF-3 (APPLY, node-edit) — concrete max-pass bound + recurrence criterion + escalation brief
+
+The fix-build rework loop gains:
+
+- **A concrete max-pass bound** — after **2** fix-build passes, reconcile stops looping and
+  escalates before re-entering build a third time.
+- **A gap-recurrence criterion** — a gap "recurs" when the **same spec touchpoint + status**
+  (`missing` / `changed` after objection / the same unmet `met` target) appears in the same
+  slot across two consecutive passes. This distinguishes a legitimately converging loop from a
+  stuck one (new gaps that merely look similar do not count).
+- **An escalation brief routed via `log-decision`** — when the bound is hit or a gap recurs,
+  reconcile surfaces a recurring-pattern brief (what was fixed, what keeps appearing, the
+  touchpoints involved) to the operator and records the stall as a logged decision through
+  `log-decision`, so the escalation is durable, not transient. (Resolves OQ CF-3: 2 passes is
+  the default bound.)
+
+### CF-4 (APPLY, node-edit) — structured decision-context for ambiguous findings
+
+`adjudicate` mode gains a defined format for any finding reconcile cannot confidently
+recommend a path for, feeding the operator's AskUserQuestion gate. The decision-context carries:
+**finding** / **spec touchpoint** / **what the build does** / **why the path is ambiguous** /
+**reconcile's lean** (if any). This replaces an unstructured wall of analysis text for hard
+cases with a fast-decision surface, mirroring CE `ce-resolve-pr-feedback`'s `decision_context`.
+
+### CF-5 (= spec-diff CF-1's `changed` half) — present `changed`, do not re-add the status
+
+Folds into CF-1's handling. The `changed` status belongs to spec-diff's output contract;
+reconcile **consumes** it and presents it with the "no adjudication needed unless the operator
+objects" default. No status is re-defined in reconcile.
+
+### D58 (APPLY) — findings severity → P0–P3
+
+Per `graph/_refs/severity-scale.md` (v0.2.0, now the factory-wide findings-severity contract)
+and `docs/decisions.md` D58, reconcile's findings severity is the **P0–P3** scale, consistent
+with spec-diff and drift-detector — replacing any `low/med/high` reading. Severity is read from
+spec-diff's per-touchpoint output (the `severity:` field above); reconcile surfaces it as the
+within-surface ordering when presenting findings and weighting adjudication. The metric-vs-baseline
+and trend axes are explicitly **not** findings-severity and keep their own vocabularies.

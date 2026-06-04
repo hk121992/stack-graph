@@ -11,7 +11,8 @@ determinism: deterministic
 # edges — the graph
 # Leaf agent — no composes-into, no invokes.
 # gbrain is an inline MCP call (mcp__gbrain__put), not a graph edge — per non-nodes table.
-# decisions-store ref is not yet authored (_refs/ absent) — F7 prose until that ref exists.
+# decisions-store ref now exists (_refs/decisions-store.md, authored in the Tier-1 batch); the
+# references edge + C1–C3 enrichment land in the cluster-E log-decision amendment — F7 prose until then.
 edges: {}
 # analytics — the loop
 goals:
