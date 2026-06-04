@@ -7,6 +7,8 @@ last_updated: 2026-06-03
 amended:
   - date: 2026-06-03
     note: "Backfill external-analogue search: lifted gstack/land-and-deploy + CE/ce-commit-push-pr; added External analogues searched table, source inventory update, Challenge findings section, published best-practice citations (DORA, deployment-gate literature). Preserved all original content."
+  - date: 2026-06-04
+    note: "Reconciliation amend (cluster-A land rows): resolved CF-1 (pre-merge readiness surface on the commit-to-land gate, D45 dial sets rigour), CF-2 (revert mechanics — land owns the DECISION + the land→reconcile re-entry, deploy owns EXECUTION per deploy C5), CF-3 (deploy-event per D59 — land contributes the live-confirmed gate outcome to the existing carrier-keyed node-exit event; no second store), CF-4 (live-confirmed signal CONSUMES deploy's inline smoke check per deploy C4 — a deploy smoke test, not canary). Each finding's resolution recorded inline. CF-5/6/7 stay parked (low; out of scope). Body re-rendered to match."
 sources_lifted: 2
 external_analogue_found: true
 external_corpora_searched:
@@ -138,10 +140,12 @@ below.
 - Process edges to non-existent siblings (reconcile, debrief): deferred to the wiring pass.
 - Carrier field writes: land holds no write-edge to the carrier (D44).
 - VERSION drift detection (gstack land-and-deploy Step 3.4): workspace-aware version-slot
-  collision check. Out of scope for wave 1; could be a wave-2 check inside ship.
-- Deploy report persisted artefact (gstack land-and-deploy Step 9): writing a structured
-  `.gstack/deploy-reports/` JSONL. Stack-graph models this as carrier record + optional
-  harness artefact; not land's job directly. (Challenge finding — see below.)
+  collision check. Out of scope for wave 1; could be a wave-2 check inside ship. (CF-6, parked.)
+- Deploy report **bespoke** persisted artefact (gstack land-and-deploy Step 9: a structured
+  `.gstack/deploy-reports/` JSONL store): dropped as a *parallel store*. **Superseded by D59
+  (amend 2026-06-04):** the deploy signal is the deploy-event riding the existing carrier-keyed
+  node-exit in the 06-analytics event log, projected + recorder-frozen — not a fourth artefact
+  class. land contributes the live-confirmed gate outcome to it (CF-3, applied below).
 - Evidence capture for PR body (CE ce-commit-push-pr): demo reel, screenshot embed.
   Belongs in ship, not land.
 
@@ -193,10 +197,10 @@ the gates, and closes the lifecycle step. One node.
 | `composes-into` | `dev-sprint` (stage: land) | declarable | backbone membership |
 | `invokes` | `ship` | declarable — exists at graph/ship/ | first sub-arc step |
 | `invokes` | `deploy` | declarable — exists at graph/deploy/ | second sub-arc step |
+| `references` | `instrumentation-preamble` (`load: import`) | declared — exists at graph/_refs/ | single-sources the carrier-keyed emit; load-bearing for CF-3 (the deploy-event rides the node-exit it fires, D59) |
+| `precedes` | `debrief` | declared — exists at graph/debrief/ | happy-path exit |
 | `invokes` | `canary` | **F7 prose — canary does not exist** | wave 2; input-gated |
-| `can-follow` | `reconcile` | **F7 prose — reconcile does not exist** | happy-path intake; wiring pass |
-| `precedes` | `debrief` | **F7 prose — debrief does not exist** | happy-path exit; wiring pass |
-| `can-follow` | `reconcile` (revert loop) | **F7 prose — same target** | revert; wiring pass |
+| `can-follow` | `reconcile` (declared on reconcile, not land) | **declared on reconcile's side** | the `land → reconcile` revert loop is `reconcile can-follow land`; land holds no `can-follow reconcile` entry (corrective `can-follow` lives on the re-running node). NOT a `references` edge — land's relationship to deploy/reconcile is `precedes`/`can-follow` + prose |
 
 ## Conformance
 
@@ -217,7 +221,7 @@ These findings emerge from comparing the land node against its real-world analog
 They are observations to carry into wave-2 amend work — they do not require changes to
 the node canonical now.
 
-### CF-1 — Missing pre-merge readiness gate (severity: high)
+### CF-1 — Missing pre-merge readiness gate (severity: high) — RESOLVED (amend 2026-06-04)
 
 **Gap:** The land node has no pre-merge readiness evidence step. It invokes ship and, on
 ship completing, proceeds directly to deploy. The gstack analogue (Steps 3.4–3.5) runs a
@@ -236,7 +240,17 @@ evidence.
 at minimum, confirm the most recent reconcile/review pass and its commit distance from HEAD.
 The full readiness report (as in gstack's Step 3.5) could be a wave-2 enhancement.
 
-### CF-2 — Revert procedure is named but not sequenced (severity: medium)
+**Resolution (amend 2026-06-04):** Applied. The commit-to-land gate body now opens with a
+**pre-merge readiness surface** — the most-recent reconcile/review pass read from the carrier's
+`gate_decisions[]`/`transition_history`, and its **commit distance from HEAD** (how many commits
+have landed since that pass) — surfaced to the operator *before* the gate is confirmed, so the
+gate is not confirmed on stale evidence. **How hard the surface is read is set by the D45 maturity
+× tier dial** (a high-tier item in an early-maturity process demands a fresh pass; a routine item
+in a mature process can clear with a larger distance). This is a read-and-surface step, not a new
+evidence-producing stage (reconcile/review own producing the evidence — D50 backbone order); land
+surfaces it at the gate. The full gstack Step-3.5 readiness report stays a wave-2 enhancement.
+
+### CF-2 — Revert procedure is named but not sequenced (severity: medium) — RESOLVED (amend 2026-06-04)
 
 **Gap:** The land node says "name the revert path" and references returning to reconcile, but
 does not specify how the revert is actually executed. The gstack analogue (Step 8) has a
@@ -254,7 +268,19 @@ scope decision) but the immediate revert mechanics are unaddressed.
 commands (or the deploy sub-node that executes them), the branch-protection fork, and the
 criterion for when the operator should return to reconcile vs. act immediately.
 
-### CF-3 — No deploy report artefact (severity: medium)
+**Resolution (amend 2026-06-04):** Applied, via the revert seam with `deploy C5` so revert is
+specified **once**. The split: **land owns the revert DECISION** (surfacing the choice when a
+deploy fails or the live-confirmed gate is declined) **and the `land → reconcile` re-entry
+criterion** (when to return to reconcile to re-scope vs. act in place); **`deploy` owns the
+EXECUTION** — it offers to perform the mechanical revert (`git revert <merge-sha>`, or a revert
+PR under branch protection) once the operator chooses revert (deploy C5). Land does not duplicate
+the git commands; it names the decision and the re-entry, then hands the mechanical execution to
+deploy. D44 held throughout: revert is a git action, not a carrier write — neither node writes the
+carrier to revert. The `land → reconcile` corrective loop stays declared on reconcile's side as
+`reconcile can-follow land` (the canonical model declares corrective `can-follow` on the re-running
+node); land holds no `can-follow reconcile` entry.
+
+### CF-3 — No deploy report artefact (severity: medium) — RESOLVED (amend 2026-06-04)
 
 **Gap:** The land node produces gate decisions and deployment URLs as output. The gstack
 analogue produces a structured LAND & DEPLOY REPORT (an ASCII summary saved to
@@ -274,7 +300,23 @@ at minimum, merge SHA, deploy URL, land timestamp, and the live-confirmed gate o
 The format and storage location can be harness-configured, but the contract should require
 the event. This is distinct from the carrier write (D44 is still held).
 
-### CF-4 — Post-deploy health check is a wave-1 gap, not just a wave-2 deferral (severity: medium)
+**Resolution (amend 2026-06-04):** Applied per **D59** — and emphatically **not** a second store.
+The deploy-event is defined **once** (resolves deploy C3 + land CF-3 together) and homed in the
+06-analytics local event log: `deploy` emits the deploy outcome (`merge_sha`, `deploy_url`,
+`mode`, `status`, `timing` merge→live, `smoke_health`, `live_confirmed`) on the **existing
+carrier-keyed `node-exit` event** the instrumentation preamble already fires — exactly as
+`tokens_per_iu` rides the unit-complete event (D57). It lands in the **product-outcomes / deploy
+stream** of the event log (06-analytics stream namespacing); current deploy-state is **projected**
+derived-on-read into `.stack-graph/`; and the **recorder** (debrief's, keyed off the terminal
+transition) freezes the deploy outcome onto the carrier's closed record as a `frozen_*` field,
+beside `frozen_timeline`/`frozen_metrics`. **land's contribution is the `live_confirmed` gate
+outcome** — it does not create a store, it reads the deploy-event and contributes the
+live-confirmed signal to the same carrier-keyed event. DORA/MTTR is a derivation *across* carriers'
+deploy events (measure-outcomes family), never a stored aggregate. **D44 held:** no stage writes
+the carrier — the preamble emits, the recorder freezes. land's `references instrumentation-preamble`
+edge (already declared) is the single-source of the emit behaviour.
+
+### CF-4 — Post-deploy health check is a wave-1 gap, not just a wave-2 deferral (severity: medium) — RESOLVED (amend 2026-06-04)
 
 **Gap:** Land wave-1 replaces canary with a "lightweight smoke check" (manually open the
 deployed URL, confirm the critical path is reachable). This is described as a pre-canary
@@ -295,6 +337,17 @@ live-confirmed gate: at minimum an HTTP status check and a console-error scan. T
 canary (no traffic comparison, no baseline) — it is a deploy smoke test. The gstack analogue
 already does this in wave 1 via the browse daemon. Framing it as a wave-2 item understates
 the risk of confirming a broken deploy as "live."
+
+**Resolution (amend 2026-06-04):** Applied via the smoke seam with `deploy C4`. **`deploy` OWNS
+the inline smoke check** (HTTP 200 + console-error scan + content-present + screenshot — deploy C4,
+run in deploy's Phase 3 settle); **land's live-confirmed signal CONSUMES its result** rather than
+having the operator manually open the URL. land reads `smoke_health` from deploy's output (and the
+deploy-event, CF-3) and surfaces it at the live-confirmed gate — so the gate cannot fire on a URL
+that 200s but has a blank page or console errors. This is a **deploy smoke test, not canary** —
+single-pass, no baseline, no traffic comparison. Canary (the extended monitoring loop with a
+baseline) stays wave-2, input-gated on live prod traffic; the `invokes canary` edge is still added
+via `amend` when canary is authored. The wave-1 `land = ship + deploy` decision holds — the smoke
+check lives in deploy, consumed by land.
 
 ### CF-5 — First-run / infrastructure-change detection not addressed (severity: low)
 
@@ -344,18 +397,25 @@ reconciled after the fact. This is an audit-trail concern, not a blocking issue 
 
 ## Open questions
 
-- Whether `land` should carry a `references` edge to an `instrumentation-preamble` ref once
-  that ref is authored — add via amend in that wave.
+- **RESOLVED (amend 2026-06-04):** the `references instrumentation-preamble` edge is now
+  declared (`load: import`) — load-bearing for CF-3 (the deploy-event rides the carrier-keyed
+  node-exit the preamble fires).
 - The `commit-to-land` gate: whether land confirms the gate was recorded by reconcile vs
   re-prompting the operator. Body treats it as "confirm the recorded gate decision at session
   start"; this can be refined once reconcile is authored.
 - In `staging-only` mode: whether the `live-confirmed` gate fires at all (staging is not live).
   Body documents that staging-only defers the live-confirmed gate to a future prod deploy.
-- (From CF-1) Should the commit-to-land gate include an evidence surface (review staleness,
-  test freshness report) before the operator confirms? Or is that reconcile's job?
-- (From CF-3) What is the minimal deploy-event output contract? Where does it persist —
-  carrier annotation, harness artefact, or analytics feed? Needs operator decision before
-  wave-2 land amend.
-- (From CF-4) Is the minimal wave-1 health check (HTTP status + console-error scan via
-  browse daemon or canary smoke) achievable without canary being authored? If so, wave-1
-  land body should reference it explicitly rather than deferring entirely to wave 2.
+- **RESOLVED (amend 2026-06-04, CF-1):** the commit-to-land gate now surfaces a pre-merge
+  readiness surface — most-recent reconcile/review pass + its commit distance from HEAD — read
+  and surfaced by land at the gate (reconcile/review *produce* the evidence; land *surfaces* it).
+  The D45 maturity × tier dial sets how hard the surface is read.
+- **RESOLVED (amend 2026-06-04, CF-3):** the deploy-event output contract is fixed by D59 —
+  it rides the existing carrier-keyed node-exit event in the 06-analytics product-outcomes/deploy
+  stream (no bespoke store), projected to `.stack-graph/`, frozen by the recorder at terminal.
+  land contributes the `live_confirmed` gate outcome to that same event; it creates no store.
+- **RESOLVED (amend 2026-06-04, CF-4):** the wave-1 health check is `deploy`'s inline smoke
+  check (deploy C4 — HTTP 200 + console-error scan + content-present + screenshot); land's
+  live-confirmed signal consumes its `smoke_health` result. A deploy smoke test, not canary
+  (no baseline). Canary stays wave-2, input-gated.
+- **Still parked (CF-5/6/7, low — out of scope this amend):** first-run / infra-change detection;
+  VERSION drift / workspace-collision guard; break-glass / emergency bypass.

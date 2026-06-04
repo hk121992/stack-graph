@@ -7,6 +7,8 @@ last_updated: 2026-06-03
 amended:
   - date: 2026-06-03
     note: "Backfill external-analogue search: lifted gstack land-and-deploy + canary SKILL.md; added External analogues searched table; added Challenge findings section; deepened Edges, Contract, Open questions against analogue. All prior still-valid content preserved."
+  - date: 2026-06-04
+    note: "Backbone-tail amend batch (reconciliation cluster-A deploy rows C1-C5, all APPLY). C1: deploy-config validation contract added to preflight; authored graph/_refs/deploy-config.md (the field set) + a references edge to it. C2: merge-queue awareness added to the merge phase (detect --auto/queued vs immediate, poll the queue with a timeout, queue-conflict failure distinct). C3: the deploy outcome rides the EXISTING carrier-keyed node-exit event per D59 — payload merge_sha/deploy_url/mode/status/timing/smoke_health/live_confirmed on the product-outcomes/deploy stream; projected on read into .stack-graph/; recorder freezes a frozen_* field at terminal; DORA/MTTR is a cross-carrier derivation. No new store, no new edge — a body emit, exactly as tokens_per_iu rides unit-complete (D57). C4: inline single-pass smoke check moved into deploy's body (HTTP 200 + console-error scan + content present + screenshot); precedes canary kept for the EXTENDED loop only; land's live-confirmed CONSUMES this result. C5: deploy now OFFERS to execute the mechanical revert (git revert <sha> / revert-PR under branch protection) once the operator chooses revert; the revert DECISION + arc re-entry stay land/reconcile's (D44 held — revert is a git action, not a carrier write). Resolves report open questions: revert-execution (deploy executes, land decides), inline-smoke-check-fields (factory specifies them), deploy-report-home (the analytics event log, not a bespoke store). C6/C7 (timeout default, DORA naming) folded in as light touches. All prior content preserved."
 sources_lifted: 2
 external_analogue_found: true
 external_corpora_searched:
@@ -388,3 +390,120 @@ DORA as the methodology grounding the metric definitions.
   described minimally. Should the factory specify the check fields (console errors, load
   time, content present, screenshot) or leave them to the harness overlay? The analogue
   specifies them in the factory.
+
+---
+
+## Amendment resolution (2026-06-04 — backbone-tail batch)
+
+The reconciliation (`docs/research-backfill-reconciliation.md`, cluster A) verdicted all
+five deploy Challenge findings **APPLY**. The amendments below are now enacted in the
+canonical. Two prior open questions are resolved by locked decisions, and the third is
+resolved by the reconciliation's own verdict.
+
+### C1 — deploy-config validation contract (APPLY) {author-ref + node-edit}
+
+The factory names the required field set; the harness supplies the values; a missing
+required field is a **STOP**. Authored the field set as a standard reference at
+`graph/_refs/deploy-config.md` (`deploy_platform`, `merge_tooling`, `deploy_command`,
+`prod_url`, `staging_url`, `health_endpoint`, `branch_protection`, `merge_queue`,
+`deploy_timeout`, `credentials`, …). `deploy` gains a **`references` edge** to it —
+**inline syntax**, `load: on-demand` (the validation checklist is read at the preflight
+step of need, not spliced into every run):
+
+```yaml
+references:
+  - { id: deploy-config,            load: on-demand }
+  - { id: instrumentation-preamble, load: import }
+```
+
+The `deploy-config` reference is a real factory `_refs/` entry, so the edge is **not**
+`external: true` — it resolves to `graph/_refs/deploy-config.md`. (The *values* the
+reference's fields hold are harness-supplied via the `deploy-config` binding key in
+`bindings-contract`; the contract itself is a vendored factory file.) Preflight step 1
+is rewritten to validate the named field set and STOP on any missing required field.
+
+### C2 — merge-queue awareness (APPLY) {node-edit}
+
+Phase 1 (merge) gains a merge-queue branch: after issuing the merge (especially
+`gh pr merge --auto`), detect whether the merge is **immediate** or **queued**. On a
+queued merge, poll the **queue** with its own timeout (separate from the Phase-3 CI/deploy
+poll) and surface a **queue-conflict failure distinctly** (the PR was dropped from the
+queue because a PR ahead introduced a conflict) — not conflated with a CI failure or a
+deploy-pipeline failure. `merge_queue` in deploy-config tells deploy whether the platform
+uses a queue.
+
+### C3 — deploy outcome rides the existing node-exit event (APPLY, per D59) {node-edit + cross-ref 06-analytics}
+
+**No new store.** Per **D59**, the deploy outcome rides the **existing carrier-keyed
+`node-exit` event** the imported `instrumentation-preamble` already fires — exactly as
+`tokens_per_iu` rides the `unit-complete` event (D57). It is a **body emit**, not a new
+edge and not a new 06-analytics dependency.
+
+- **Payload (on node-exit):** `merge_sha`, `deploy_url`, `mode` (`auto|immediate|queued`),
+  `status`, `timing` (merge→live), `smoke_health`, `live_confirmed`.
+- **Stream:** the **product-outcomes / deploy** stream of the local event log
+  (06-analytics stream namespacing).
+- **Projection:** current deploy-state is **derived on read** into `.stack-graph/` — never
+  hand-written.
+- **Terminal freeze:** the **recorder** (debrief's, keyed off the terminal transition)
+  freezes the deploy outcome onto the carrier's closed record as a **`frozen_*` field**,
+  beside `frozen_timeline` / `frozen_metrics`.
+- **DORA/MTTR:** a **derivation across** carriers' deploy events (measure-outcomes-family),
+  **not** a stored aggregate.
+- **D44 held:** no stage writes the carrier — the preamble emits, the recorder freezes.
+
+This is the single deploy-event home; `land CF-3` consumes the same event (it contributes
+the `live_confirmed` gate outcome) — specified once, not twice.
+
+### C4 — inline single-pass smoke check moved into deploy's body (APPLY) {node-edit}
+
+The single-pass smoke check is **deploy's**, not canary's. Phase 3 success is strengthened
+to the analogue's inline check: **HTTP 200 + console-error scan + content present (not a
+blank/error page) + screenshot evidence**. `precedes canary` is kept for the **EXTENDED
+monitoring loop only** (canary's 10-minute watch against a baseline). **Smoke seam
+(C4 ↔ land CF-4):** deploy **owns** the inline smoke check; **land's `live-confirmed`
+signal CONSUMES its result** (`smoke_health` in the deploy-event payload), rather than a
+manual URL open.
+
+### C5 — deploy offers to execute the mechanical revert (APPLY) {node-edit}
+
+When the operator chooses revert, deploy **offers to execute the mechanical revert**:
+`git revert <merge-sha>` (or a **revert-PR** when `branch_protection` blocks a direct
+push), then waits for the revert to deploy before reporting. **The revert DECISION + the
+arc re-entry stay land/reconcile's** — **D44 held** (revert is a git action, not a carrier
+write; deploy writes no carrier field). **Revert seam (C5 ↔ land CF-2):** land surfaces
+the revert **decision** + the `land → reconcile` re-entry; **deploy executes** the
+mechanical git steps. This keeps the operator in the decision loop while making the
+execution frictionless.
+
+### C6 / C7 — light touches (APPLY, low) {node-edit}
+
+C6: the settle-timeout default note is softened — defaults are aggressive for real
+platforms; the harness calibrates `deploy_timeout` per platform. C7: the goals'
+MTTR / deploy-rate metrics are named as **DORA** measures (deployment frequency, change
+failure rate, failed-deployment recovery time) so the metric definitions are grounded;
+no new `references` edge (a DORA reference is not yet authored).
+
+### Open questions resolved
+
+- **Revert execution ownership** → **deploy executes, land decides** (C5; D44 held).
+- **Inline-smoke-check fields** → **the factory specifies them** (C4: 200 + console-error
+  scan + content present + screenshot).
+- **Deploy-report home** → **the analytics event log (the existing node-exit event), not
+  a bespoke store** (C3; D59).
+- The `docs-only` fast-path (mode branch vs preflight short-circuit) remains open — not in
+  this batch's scope; left for a later `amend`.
+
+### Edges after this amend
+
+| edge type | target | syntax | note |
+|---|---|---|---|
+| `references` | `deploy-config` | `{ id: deploy-config, load: on-demand }` | new; resolves to `graph/_refs/deploy-config.md` (not external) |
+| `references` | `instrumentation-preamble` | `{ id: instrumentation-preamble, load: import }` | new; the preamble whose node-exit event the deploy-event rides (C3) |
+| `precedes` | `canary` | prose seam (F7) | unchanged — canary not yet on disk; the EXTENDED loop only |
+| `can-follow` | `ship`, `land` | prose seam (F7) | unchanged — neighbours not yet on disk |
+
+The `references` edges target `_refs/` entries only (never another node — deploy's
+relationship to `land` / `canary` stays `precedes` / `can-follow` + prose, never a
+`references` edge). Both use **inline** syntax (block style is silently dropped by the
+vendor parser).

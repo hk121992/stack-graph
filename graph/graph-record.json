@@ -1,9 +1,9 @@
 {
-  "generated": "2026-06-04T12:00:00Z",
+  "generated": "2026-06-04T15:30:00Z",
   "node_count": 29,
-  "reference_count": 18,
+  "reference_count": 19,
   "handbook_reference_count": 0,
-  "edge_count": 123,
+  "edge_count": 126,
   "nodes": {
     "harness-init": {
       "primitive": "skill",
@@ -150,8 +150,13 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Deploy",
-      "status": "v0.1.0 \u2014 2026-06-01",
-      "edges": {}
+      "status": "v0.2.0 \u2014 2026-06-04",
+      "edges": {
+        "references": [
+          { "id": "deploy-config", "load": "on-demand" },
+          { "id": "instrumentation-preamble", "load": "import" }
+        ]
+      }
     },
     "design": {
       "primitive": "skill",
@@ -693,8 +698,12 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Ship",
-      "status": "v0.1.0 \u2014 2026-06-01",
-      "edges": {}
+      "status": "v0.2.0 \u2014 2026-06-04",
+      "edges": {
+        "references": [
+          { "id": "pr-description-shape", "load": "on-demand" }
+        ]
+      }
     },
     "simulate-users": {
       "primitive": "agent",
@@ -817,6 +826,14 @@
         "reconcile"
       ]
     },
+    "deploy-config": {
+      "kind": "reference",
+      "title": "Deploy-config — the field set deploy validates in preflight, supplied by the harness",
+      "status": "v0.1.0 — 2026-06-04",
+      "consumed_by": [
+        "deploy"
+      ]
+    },
     "bindings-contract": {
       "kind": "reference",
       "title": "Bindings contract — the keys a harness supplies, and the surface template",
@@ -897,6 +914,7 @@
         "align-context",
         "build",
         "debrief",
+        "deploy",
         "design",
         "land",
         "plan",
@@ -937,7 +955,8 @@
       "status": "v0.1.0 \u2014 2026-05-31",
       "consumed_by": [
         "handbook-curator",
-        "pr-author"
+        "pr-author",
+        "ship"
       ]
     },
     "severity-scale": {
@@ -1693,6 +1712,24 @@
       "to": "decisions-store",
       "type": "references",
       "load": "import"
+    },
+    {
+      "from": "deploy",
+      "to": "deploy-config",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "deploy",
+      "to": "instrumentation-preamble",
+      "type": "references",
+      "load": "import"
+    },
+    {
+      "from": "ship",
+      "to": "pr-description-shape",
+      "type": "references",
+      "load": "on-demand"
     }
   ]
 }

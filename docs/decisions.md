@@ -872,3 +872,23 @@ second scale. (Weighed against keeping `low/med/high` for non-lens nodes — rej
 one vocabulary.) *Widens* D33. *Spec:* severity-scale.md, spec-diff, reconcile, drift-detector.
 *Status:* Decided; `spec-diff` + `reconcile` enacted in the Tier-1 amend batch (this batch),
 `drift-detector` deferred to the maintenance-cluster batch.
+
+## Carrier analytics
+
+**D59 — The deploy-event homes on the carrier via the event log + terminal freeze, not a bespoke
+store.** The deploy/DORA signal (reconciliation `deploy C3` + `land CF-3`) is **not** a
+`.gstack/deploy-reports/`-style store. It follows the carrier model already locked: `deploy`/`land`
+emit the deploy outcome (merge SHA, URL, mode, timing, status, live-confirmed) on the **existing
+carrier-keyed `node-exit` event** the instrumentation preamble fires — no new machinery, exactly as
+`tokens_per_iu` rides the unit-complete event (D57); current deploy-state is **projected** from the
+event log (`.stack-graph/`, derived-on-read); and the **recorder freezes** the deploy outcome onto
+the carrier's closed record at the terminal transition (a `frozen_*` field beside `frozen_timeline`/
+`frozen_metrics` — the one point a derived value enters a committed file). DORA/MTTR = a derivation
+**across** carriers' deploy events (measure-outcomes-family), never a stored aggregate. **D44 held**
+— no stage writes the carrier; the preamble emits, the recorder freezes. *Why:* the operator asked
+what the consistent approach is; the answer is the event-log-single-source + three-way-split model
+already locked (D44/D49/D51/D57) applied to deploys — a bespoke store would be a fourth artefact
+class outside it. *Applies* D44 (carrier/projection), D49 (record-primary; debrief writes outcomes),
+D51 (three-way split), D57 (rides an existing event); *resolves* deploy C3 / land CF-3. *Spec:*
+06-analytics (deploy event shape + stream), artefacts-design §5 (frozen deploy field), `deploy`,
+`land`. *Status:* Decided; enacted in the backbone-tail amend batch.
