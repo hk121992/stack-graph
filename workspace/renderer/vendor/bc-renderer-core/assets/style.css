@@ -684,3 +684,38 @@ dialog.requires-graph-modal .requires-graph-stage {
 ::-webkit-scrollbar-thumb { background: var(--hair); border-radius: 6px; border: 2px solid transparent; background-clip: padding-box; }
 ::-webkit-scrollbar-thumb:hover { background: var(--muted); background-clip: padding-box; border: 2px solid transparent; }
 ::-webkit-scrollbar-corner { background: transparent; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Layout variants (stack-graph) — every surface declares one via the shell.
+   docs (default) keeps the original 3-column grid; app/full-bleed below.
+   ───────────────────────────────────────────────────────────────────────── */
+.layout-app {
+  grid-template-columns: 1fr;
+  max-width: none;
+}
+.layout-app .toc { display: none; }
+.layout-app .content,
+.layout-app .content > p,
+.layout-app .content > ul,
+.layout-app .content > ol { max-width: none; }
+
+.layout-full-bleed {
+  grid-template-columns: 1fr;
+  max-width: none;
+  gap: 0;
+  padding: 0;
+}
+.layout-full-bleed .sidebar,
+.layout-full-bleed .toc { display: none; }
+.layout-full-bleed .main { padding: 0; min-width: 0; }
+.layout-full-bleed .content,
+.layout-full-bleed .content > p,
+.layout-full-bleed .content > ul,
+.layout-full-bleed .content > ol { max-width: none; }
+
+/* Horizontal top nav for app surfaces (dashboard / canvas / analytics) */
+.surface-topnav { display: flex; flex-wrap: wrap; gap: 0.25em; border-bottom: 1px solid var(--hair); margin: 0 0 1.6em; }
+.surface-topnav a { font-family: var(--display); font-size: 0.9rem; font-weight: 600; color: var(--mute);
+  text-decoration: none; padding: 0.5em 0.9em; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.surface-topnav a:hover { color: var(--fg); }
+.surface-topnav a.active { color: var(--fg); border-bottom-color: var(--brand-gold); }

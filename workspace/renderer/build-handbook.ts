@@ -77,7 +77,10 @@ function loadPage(slug: string, sourcePath: string): CorePage {
       : ((slug.split("/").pop() || slug) || "Handbook")
           .replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   }
-  const rewritten = rewriteMdLinks(body, sourcePath, slug, slugForSourcePath,
+  // The shell renders the frontmatter title as the page <h1>; strip a leading
+  // markdown H1 from the body so the title doesn't render twice (the Be Civic bug).
+  const bodyNoH1 = body.replace(/^﻿?\s*#\s+.+(?:\r?\n|$)/, "");
+  const rewritten = rewriteMdLinks(bodyNoH1, sourcePath, slug, slugForSourcePath,
     (msg) => allWarnings.push(`[${slug || "(root)"}] ${msg}`));
   return { path: slug, fm, raw: rewritten, kind: "docs" };
 }

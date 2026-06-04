@@ -33,6 +33,11 @@ export interface ShellArgs {
    *  emits its own header via preBodySlot or owns the title inside bodyHtml. */
   suppressHeader?: boolean;
 
+  /** Page layout shape. docs = 3-col (nav · prose · toc); app = nav · fluid
+   *  content, no toc; full-bleed = edge-to-edge canvas, no nav/toc chrome.
+   *  Defaults to "docs". */
+  layoutVariant?: "docs" | "app" | "full-bleed";
+
   /** Slots — each returns a string (possibly empty). All optional. */
   wordmark?: () => string;            // top-left brand
   topbarRight?: () => string;         // search form, nav-cta, theme toggle, etc.
@@ -49,7 +54,7 @@ export function renderShell(args: ShellArgs): string {
     page, nav, bodyHtml,
     assetUrl, pageHref, pageLabel,
     siteTitle, siteDescription,
-    showToc, suppressHeader,
+    showToc, suppressHeader, layoutVariant,
     wordmark, topbarRight, breadcrumb, preBodySlot, postBodySlot,
     headExtras, footer, bodyScripts,
   } = args;
@@ -84,6 +89,13 @@ export function renderShell(args: ShellArgs): string {
     currentPath,
   });
 
+  // App surfaces (dashboard/canvas/analytics) use a horizontal top nav instead of
+  // the left sidebar — a dashboard-style interface, not a docs sidebar.
+  const isApp = layoutVariant === "app";
+  const topNavHtml = isApp
+    ? `<nav class="surface-topnav" aria-label="Sections">${renderTopNav(nav, pageHref, pageLabel, currentPath)}</nav>`
+    : "";
+
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -104,9 +116,10 @@ ${FOUC}
   ${topbarRightHtml}
   <button class="nav-hamburger" type="button" aria-label="Open navigation" aria-expanded="false">☰</button>
 </header>
-<div class="layout">
-  <aside class="sidebar" id="sidebar">${sidebarHtml}</aside>
+<div class="layout layout-${layoutVariant ?? "docs"}">
+  ${isApp ? "" : `<aside class="sidebar" id="sidebar">${sidebarHtml}</aside>`}
   <main id="main" class="main">
+    ${topNavHtml}
     ${breadcrumbHtml}
     ${preBodyHtml}
     <article class="content">
@@ -117,7 +130,7 @@ ${FOUC}
     </article>
     ${footerHtml ? `<footer class="site-footer">${footerHtml}</footer>` : ""}
   </main>
-  ${tocHtml}
+  ${isApp ? "" : tocHtml}
 </div>
 <div class="drawer-backdrop" hidden></div>
 <script src="${escapeHtml(assetUrl("theme.js"))}" defer></script>
@@ -138,4 +151,28 @@ function renderToc(items: TocEntry[]): string {
     .map((t) => `<li><a href="#${escapeHtml(t.id)}">${escapeHtml(t.text)}</a></li>`)
     .join("");
   return li ? `<aside class="toc"><h2 class="toc-label">On this page</h2><ol>${li}</ol></aside>` : "";
+}
+
+/** Flat horizontal nav for app-layout surfaces — the nav's leaf pages as top tabs. */
+function renderTopNav(
+  nav: NavGroup[],
+  pageHref: (pageId: string) => string,
+  pageLabel: ((pageId: string) => string) | undefined,
+  currentPath: string,
+): string {
+  const links: string[] = [];
+  const walk = (pages: NavGroup["pages"]) => {
+    for (const p of pages) {
+      if (typeof p === "string") {
+        const href = pageHref(p);
+        const label = pageLabel ? pageLabel(p) : p;
+        const active = p === currentPath ? ' class="active" aria-current="page"' : "";
+        links.push(`<a href="${escapeHtml(href)}"${active}>${escapeHtml(label)}</a>`);
+      } else {
+        walk(p.pages);
+      }
+    }
+  };
+  for (const g of nav) walk(g.pages);
+  return links.join("");
 }

@@ -50,7 +50,9 @@
       viewBox: Object.assign({}, initialViewBox),
       zoom: 1,
       edgeIndex: indexEdges(svg),
+      _pinnedNodeId: null,
     };
+    figureEl.__sgCtx = ctx;   // so the sidebar's click handler can pin the lineage
 
     installPathHighlight(ctx);
 
@@ -149,6 +151,12 @@
   }
 
   function clearHighlight(ctx) {
+    // If a node is pinned (clicked/selected), keep its lineage lit rather than
+    // clearing — so the traces stay live while the user reads the drawer.
+    if (ctx._pinnedNodeId) {
+      const pinned = ctx.svg.querySelector('g.node[data-node-id="' + cssEscape(ctx._pinnedNodeId) + '"]');
+      if (pinned) { highlightLineage(ctx, pinned); return; }
+    }
     ctx.figureEl.classList.remove('is-highlighting');
     ctx.svg.querySelectorAll('.path-active').forEach((el) => el.classList.remove('path-active'));
   }
@@ -162,26 +170,38 @@
     let dragging = null;
     let moved = false;
     svg.addEventListener('pointerdown', (e) => {
-      dragging = { startX: e.clientX, startY: e.clientY, startVB: Object.assign({}, ctx.viewBox) };
+      if (e.button !== 0) return; // primary button only
+      dragging = { startX: e.clientX, startY: e.clientY, startVB: Object.assign({}, ctx.viewBox), captured: false, pid: e.pointerId };
       moved = false;
-      svg.classList.add('is-panning');
-      svg.setPointerCapture(e.pointerId);
+      ctx._pointerRecent = true; // suppress focus-auto-pan for this pointer gesture
+      // Do NOT capture the pointer here. Capturing on a plain click retargets the
+      // follow-up `click` event to the <svg>, so e.target.closest('g.node') is null
+      // and the node-click → detail drawer silently breaks. Capture only once the
+      // gesture is actually a drag (past the threshold, below).
     });
     svg.addEventListener('pointermove', (e) => {
       if (!dragging) return;
       const rect = stage.getBoundingClientRect();
+      if (!moved && (Math.abs(e.clientX - dragging.startX) > 3 || Math.abs(e.clientY - dragging.startY) > 3)) {
+        moved = true;
+        svg.classList.add('is-panning');
+        try { svg.setPointerCapture(dragging.pid); dragging.captured = true; } catch (_) {}
+      }
+      if (!moved) return; // a sub-threshold jiggle is a click, not a pan
       const dx = (e.clientX - dragging.startX) * (ctx.viewBox.w / rect.width);
       const dy = (e.clientY - dragging.startY) * (ctx.viewBox.h / rect.height);
-      if (Math.abs(e.clientX - dragging.startX) > 3 || Math.abs(e.clientY - dragging.startY) > 3) moved = true;
       ctx.viewBox.x = dragging.startVB.x - dx;
       ctx.viewBox.y = dragging.startVB.y - dy;
       applyViewBox(ctx);
     });
-    const endDrag = (e) => {
+    const endDrag = () => {
       if (!dragging) return;
       svg.classList.remove('is-panning');
-      try { svg.releasePointerCapture(e.pointerId); } catch (_) {}
+      if (dragging.captured) { try { svg.releasePointerCapture(dragging.pid); } catch (_) {} }
+      svg.__sgDragged = moved;
       dragging = null;
+      // Keep suppressing focus-pan briefly: the click + its focus fire just after pointerup.
+      setTimeout(function () { ctx._pointerRecent = false; }, 400);
     };
     svg.addEventListener('pointerup', endDrag);
     svg.addEventListener('pointercancel', endDrag);
@@ -282,6 +302,7 @@
 
   function installKeyboardFocusPan(ctx) {
     ctx.svg.addEventListener('focusin', (e) => {
+      if (ctx._pointerRecent) return; // a click/drag focus — never auto-pan on pointer
       const node = e.target.closest('g.node');
       if (!node) return;
       panToNode(ctx, node);
@@ -289,19 +310,22 @@
   }
 
   function panToNode(ctx, node) {
-    let bbox;
-    try { bbox = node.getBBox(); } catch (_) { return; }
-    const cx = bbox.x + bbox.width / 2;
-    const cy = bbox.y + bbox.height / 2;
-    const { viewBox } = ctx;
-    const margin = 40;
-    const onLeft  = cx < viewBox.x + margin;
-    const onRight = cx > viewBox.x + viewBox.w - margin;
-    const onTop   = cy < viewBox.y + margin;
-    const onBot   = cy > viewBox.y + viewBox.h - margin;
-    if (!(onLeft || onRight || onTop || onBot)) return;
-    viewBox.x = cx - viewBox.w / 2;
-    viewBox.y = cy - viewBox.h / 2;
+    var bbox, ctm;
+    try { bbox = node.getBBox(); ctm = node.getCTM(); } catch (_) { return; }
+    if (!ctm || !ctx.svg.createSVGPoint) return;
+    // Map the node centre from its (graphviz-transformed, negative-Y) LOCAL space
+    // into the SVG viewBox coordinate system. Using raw getBBox coords against the
+    // viewBox was the bug that panned the graph off-screen on focus.
+    var p = ctx.svg.createSVGPoint();
+    p.x = bbox.x + bbox.width / 2;
+    p.y = bbox.y + bbox.height / 2;
+    var c = p.matrixTransform(ctm);
+    var vb = ctx.viewBox;
+    var margin = 40;
+    var off = c.x < vb.x + margin || c.x > vb.x + vb.w - margin || c.y < vb.y + margin || c.y > vb.y + vb.h - margin;
+    if (!off) return;
+    vb.x = c.x - vb.w / 2;
+    vb.y = c.y - vb.h / 2;
     applyViewBox(ctx);
   }
 
@@ -469,7 +493,19 @@
       '<div class="gs-section-title">Edges in (' + (node.edges_in ? node.edges_in.length : 0) + ')</div>' +
       edgeListHtml(node.edges_in, 'in') +
 
-      '<div class="gs-section-title">File</div>' + fileHtml;
+      '<div class="gs-section-title">File</div>' + fileHtml +
+
+      ((node.directory && node.directory.length)
+        ? '<div class="gs-section-title">Directory</div><ul class="gs-dir">' +
+          node.directory.map(function (d) {
+            return '<li><code>' + esc(d.name) + '</code>' +
+              (d.role ? ' <span class="gs-role">— ' + esc(d.role) + '</span>' : '') + '</li>';
+          }).join('') + '</ul>'
+        : '') +
+
+      (node.document_html
+        ? '<div class="gs-section-title">Document</div><div class="gs-doc">' + node.document_html + '</div>'
+        : '');
   }
 
   function initSidebar() {
@@ -489,12 +525,27 @@
       // mark the active node in the SVG
       document.querySelectorAll('g.node.is-selected').forEach(function (n) { n.classList.remove('is-selected'); });
       document.querySelectorAll('g.node[data-node-id="' + cssEscape(id) + '"]').forEach(function (n) { n.classList.add('is-selected'); });
-      if (closeBtn) closeBtn.focus();
+      // Pin the lineage highlight to the selected node so the traces stay lit while
+      // the drawer is open (restored after hover, cleared on close / re-select).
+      document.querySelectorAll('figure.requires-graph').forEach(function (fig) {
+        var ctx = fig.__sgCtx; if (!ctx) return;
+        var n = fig.querySelector('g.node[data-node-id="' + cssEscape(id) + '"]');
+        if (n) { ctx._pinnedNodeId = id; highlightLineage(ctx, n); }
+      });
+      // preventScroll: focusing the (fixed) close button must never scroll the page
+      // to the top — that was the "jumps to top" symptom.
+      if (closeBtn) { try { closeBtn.focus({ preventScroll: true }); } catch (_) { closeBtn.focus(); } }
     }
     function close() {
       sidebar.hidden = true;
       sidebar.classList.remove('is-open');
       document.querySelectorAll('g.node.is-selected').forEach(function (n) { n.classList.remove('is-selected'); });
+      // Unpin + clear the lineage highlight.
+      document.querySelectorAll('figure.requires-graph').forEach(function (fig) {
+        var ctx = fig.__sgCtx; if (!ctx) return;
+        ctx._pinnedNodeId = null;
+        clearHighlight(ctx);
+      });
     }
 
     if (closeBtn) closeBtn.addEventListener('click', close);
@@ -503,10 +554,21 @@
     // Delegate clicks on node groups. Ignore clicks that were the tail of a
     // pan-drag (the pan handler sets a movement flag on the svg element).
     document.querySelectorAll('figure.requires-graph svg').forEach(function (svg) {
+      // Record the node under the pointer at PRESS time — before any pointer capture
+      // (or SVG event quirk) can retarget the follow-up click to the <svg>. This is
+      // the reliable signal for which node was clicked.
+      svg.addEventListener('pointerdown', function (e) {
+        svg.__pressNode = (e.target && e.target.closest) ? e.target.closest('g.node[data-node-id]') : null;
+      });
       svg.addEventListener('click', function (e) {
-        var node = e.target.closest('g.node[data-node-id]');
+        if (svg.__sgDragged) { svg.__sgDragged = false; return; } // ignore the click that ends a pan
+        // Prefer the click target; fall back to the press-time node, then a hit-test.
+        var node = (e.target.closest && e.target.closest('g.node[data-node-id]')) || svg.__pressNode;
+        if (!node && e.clientX != null) {
+          var el = document.elementFromPoint(e.clientX, e.clientY);
+          node = el && el.closest ? el.closest('g.node[data-node-id]') : null;
+        }
         if (!node) return;
-        if (svg.classList.contains('is-panning')) return;
         var id = node.getAttribute('data-node-id');
         if (id) open(id);
       });

@@ -24,13 +24,14 @@
 
 import {
   readFileSync, writeFileSync, mkdirSync, copyFileSync,
-  existsSync, rmSync,
+  existsSync, rmSync, readdirSync,
 } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync, execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 
-import { assetBasenames, type CorePage, type NavGroup } from "./vendor/bc-renderer-core/src/index.js";
+import { assetBasenames, renderMarkdown, type CorePage, type NavGroup } from "./vendor/bc-renderer-core/src/index.js";
 import { renderSurfacePage } from "./shell-host.js";
 
 const rendererDir = path.dirname(fileURLToPath(import.meta.url));
@@ -91,13 +92,6 @@ function recencyLight(iso: string | null): Health {
   return "red";
 }
 
-const LIGHT_FILL: Record<Health, string> = {
-  green:   "var(--health-green, #2e9e5b)",
-  amber:   "var(--health-amber, #d9a514)",
-  red:     "var(--health-red, #d64545)",
-  unknown: "var(--health-unknown, #9b9b96)",
-};
-
 /** Resolve a node's authored file path: graph/<id>/<id>.md (convention). */
 function nodeFileRel(id: string): string | null {
   const rel = path.join("graph", id, `${id}.md`);
@@ -126,12 +120,18 @@ function lastUpdatedISO(relFile: string | null): string | null {
 
 // Node styling by primitive (kind). Fills reuse the vendored --node-*-fill
 // tokens so the graph reads in theme; Graphviz needs concrete fallbacks inline.
-const KIND_STYLE: Record<string, { fill: string; stroke: string; shape: string }> = {
-  skill:  { fill: "var(--node-1-fill, #ffffff)",                                    stroke: "var(--node-1-stroke, #cfcdc6)", shape: "box" },
-  agent:  { fill: "var(--node-2-fill, #eceae2)",                                    stroke: "var(--node-2-stroke, #d8d6cf)", shape: "box" },
-  script: { fill: "var(--node-central-fill, #fae042)",                              stroke: "var(--node-central-stroke, #b7a72e)", shape: "box" },
-  // fallback for anything unexpected
-  _default: { fill: "var(--node-1-fill, #ffffff)", stroke: "var(--node-1-stroke, #cfcdc6)", shape: "box" },
+// Concrete hex — Graphviz cannot resolve CSS custom properties (var()); it
+// silently falls back to black, which is the black-on-black bug. Light chips +
+// dark label read on both light and dark canvases. Legend swatches mirror these.
+// Outline-only nodes: type is encoded by STROKE colour, not fill, so the canvas
+// stays dark, the health status-lights read clearly, and the edge traces are the
+// visual focus. Mid-tone hues chosen to be legible on BOTH the light and the dark
+// canvas (Graphviz bakes concrete hex — it cannot read CSS vars).
+const KIND_STYLE: Record<string, { stroke: string; shape: string }> = {
+  skill:    { stroke: "#7c8893", shape: "box" },   // slate — the workhorse primitive
+  agent:    { stroke: "#1f97a8", shape: "box" },   // teal  — actors (accent family)
+  script:   { stroke: "#c2912f", shape: "box" },   // amber — automation
+  _default: { stroke: "#7c8893", shape: "box" },
 };
 
 // Edge styling/colour by type. The structural edges share an ink tone; the two
@@ -173,7 +173,7 @@ function buildDot(rec: GraphRecord): { dot: string; drawnEdgeKeys: Set<string> }
   lines.push("  pad=0.3;");
   lines.push("  nodesep=0.35;");
   lines.push("  ranksep=0.85;");
-  lines.push('  node [fontname="Helvetica", fontsize=11, penwidth=1.1, margin="0.14,0.09", style="filled,rounded"];');
+  lines.push('  node [fontname="Helvetica", fontsize=11, penwidth=1.5, margin="0.16,0.10", style="rounded", fontcolor="#1b1d1f"];');
   lines.push('  edge [fontname="Helvetica", fontsize=8, penwidth=1.1, arrowsize=0.7];');
 
   // Nodes
@@ -181,10 +181,12 @@ function buildDot(rec: GraphRecord): { dot: string; drawnEdgeKeys: Set<string> }
     const n = rec.nodes[id];
     const kind = n.primitive || "_default";
     const st = KIND_STYLE[kind] ?? KIND_STYLE._default;
-    const label = `${id}\\n(${kind})`;
+    // Escape id + kind individually and keep the `\n` as a RAW DOT newline. Running
+    // dotEscape over the whole label double-escaped the backslash, so Graphviz drew a
+    // literal "\n" instead of a line break (QA finding).
+    const labelText = `${dotEscape(id)}\\n(${dotEscape(kind)})`;
     lines.push(
-      `  "${dotEscape(id)}" [label="${dotEscape(label)}", shape=${st.shape}, ` +
-      `fillcolor="${st.fill}", color="${st.stroke}"];`,
+      `  "${dotEscape(id)}" [label="${labelText}", shape=${st.shape}, color="${st.stroke}"];`,
     );
   }
 
@@ -203,12 +205,17 @@ function buildDot(rec: GraphRecord): { dot: string; drawnEdgeKeys: Set<string> }
     drawnEdgeKeys.add(`${e.from}|${e.to}`);
     const st = edgeStyle(e.type);
     const styleAttr = st.style ? `, style=${st.style}` : "";
+    // Cyclic process edges (can-follow / seed-next) must NOT drive rank order —
+    // otherwise Graphviz lays them co-directionally on top of the precedes arrow
+    // and the loop is invisible. constraint=false routes them as visible back-arcs.
+    const constraintAttr =
+      (e.type === "can-follow" || e.type === "seed-next") ? ", constraint=false" : "";
     // No `tooltip` — Graphviz wraps any edge carrying one in an <a> element;
     // we surface the edge type via the SVG <title> and the sidecar instead, so
     // the edge group stays a clean <g class="edge"> with no anchor.
     lines.push(
       `  "${dotEscape(e.from)}" -> "${dotEscape(e.to)}" ` +
-      `[color="${st.color}"${styleAttr}];`,
+      `[color="${st.color}"${styleAttr}${constraintAttr}];`,
     );
   }
 
@@ -218,8 +225,14 @@ function buildDot(rec: GraphRecord): { dot: string; drawnEdgeKeys: Set<string> }
 
 // ─── Graphviz ────────────────────────────────────────────────────────────────
 
-function runGraphviz(dot: string): string {
+function runGraphviz(dot: string): string | null {
   const res = spawnSync("dot", ["-Tsvg"], { input: dot, encoding: "utf8" });
+  // Graceful degrade: a consuming workspace may not have Graphviz installed.
+  // Skip the graph SVG (render a notice) rather than failing the whole build.
+  if (res.error && (res.error as NodeJS.ErrnoException).code === "ENOENT") {
+    warn("Graphviz ('dot') not found on PATH — graph SVG skipped; the surface renders a notice. Install graphviz to enable the whole-graph view.");
+    return null;
+  }
   if (res.error || res.status !== 0) {
     const detail = res.error ? String(res.error.message) : (res.stderr || `exit ${res.status}`);
     throw new Error(
@@ -329,51 +342,68 @@ function escAttr(s: unknown): string {
  * fallbacks) so themes can re-tint. last-used is GREY/unknown (degraded).
  */
 function renderBadges(id: string, innerClean: string, b: NodeBadges | undefined): string {
-  const place = anchorPoint(innerClean);
-  if (!place) return "";
-  const { x, y } = place;
-  const r = 3.4;
-  const gap = 8.2;
+  const box = nodeBox(innerClean);
+  if (!box) return "";
   const updated = b?.lastUpdated ?? "unknown";
   const used = b?.lastUsed ?? "unknown";
-  // Two small circles just inside the top-left corner of the node box.
-  const cx1 = x + 7;
-  const cy = y + 7;
-  const cx2 = cx1 + gap;
+  // A small status "chip" floated just above the node's top-right shoulder —
+  // OUTSIDE the box, so it never overlaps the centred label (Graphviz sizes boxes
+  // tight to the label, so no in-box corner is clear). Holds two well-separated LED
+  // dots (last-updated · last-used) on an opaque backing so they read on the
+  // outline-only node; CSS colours the dots per data-state (theme-aware).
+  const r = 2.8;
+  const dotGap = 8.4;                       // centre-to-centre — leaves a clear gap
+  const padX = 4.5, padY = 4;
+  const chipW = dotGap + r * 2 + padX * 2;
+  const chipH = r * 2 + padY * 2;
+  const chipX = box.x1 - chipW;             // right-aligned to the box's right edge
+  const chipY = box.y0 - chipH - 2;         // floated just above the top edge
+  const cy = chipY + chipH / 2;
+  const cx1 = chipX + padX + r;
+  const cx2 = cx1 + dotGap;
+  const dot = (cx: number, state: Health, cls: string, title: string) =>
+    `<circle class="health-dot ${cls}" data-state="${state}" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r.toFixed(1)}">` +
+      `<title>${title}</title></circle>`;
   return (
     `<g class="node-health" aria-hidden="true">` +
-    `<circle class="health-dot health-updated" data-state="${updated}" ` +
-      `cx="${cx1.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r}" ` +
-      `fill="${LIGHT_FILL[updated]}" stroke="rgba(0,0,0,0.25)" stroke-width="0.5"><title>last-updated: ${updated}</title></circle>` +
-    `<circle class="health-dot health-used" data-state="${used}" ` +
-      `cx="${cx2.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r}" ` +
-      `fill="${LIGHT_FILL[used]}" stroke="rgba(0,0,0,0.25)" stroke-width="0.5"><title>last-used: ${used} (no projection snapshot)</title></circle>` +
+    `<rect class="health-chip" x="${chipX.toFixed(1)}" y="${chipY.toFixed(1)}" ` +
+      `width="${chipW.toFixed(1)}" height="${chipH.toFixed(1)}" rx="${(chipH / 2).toFixed(1)}"></rect>` +
+    dot(cx1, updated, "health-updated", `last-updated: ${updated}`) +
+    dot(cx2, used, "health-used", `last-used: ${used} (no projection snapshot)`) +
     `</g>`
   );
 }
 
 /**
- * Find the top-left anchor of a node group from the first geometry element.
- * Graphviz boxes are <polygon points="x1,y1 x2,y2 …">; we take the min x / min y
- * (SVG y grows downward, so min y is the top). Falls back to <text x= y=>.
+ * Bounding box of a node's shape, in the node group's local coordinate space.
+ * Handles Graphviz boxes (<polygon>), rounded boxes (<path d=…>, the style we
+ * emit), and ellipses; falls back to an approximate box around the <text> anchor.
+ * Coordinates are comma-paired (`x,y`) in every Graphviz shape, so we collect all
+ * pairs and take min/max — control points of a rounded rect sit on the rect, so
+ * the bbox is the rectangle.
  */
-function anchorPoint(inner: string): { x: number; y: number } | null {
+function nodeBox(inner: string): { x0: number; y0: number; x1: number; y1: number } | null {
+  const fromPairs = (s: string) => {
+    const xs: number[] = [], ys: number[] = [];
+    for (const m of s.matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g)) {
+      const x = Number(m[1]), y = Number(m[2]);
+      if (!Number.isNaN(x) && !Number.isNaN(y)) { xs.push(x); ys.push(y); }
+    }
+    return xs.length ? { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) } : null;
+  };
   const poly = inner.match(/<polygon[^>]*\bpoints="([^"]+)"/);
-  if (poly) {
-    const pts = poly[1].trim().split(/\s+/).map((p) => p.split(",").map(Number));
-    const xs = pts.map((p) => p[0]).filter((n) => !Number.isNaN(n));
-    const ys = pts.map((p) => p[1]).filter((n) => !Number.isNaN(n));
-    if (xs.length && ys.length) return { x: Math.min(...xs), y: Math.min(...ys) };
-  }
+  if (poly) { const box = fromPairs(poly[1]); if (box) return box; }
+  const pathEl = inner.match(/<path[^>]*\bd="([^"]+)"/);
+  if (pathEl) { const box = fromPairs(pathEl[1]); if (box) return box; }
   const ell = inner.match(/<ellipse[^>]*\bcx="([-\d.]+)"[^>]*\bcy="([-\d.]+)"[^>]*\brx="([-\d.]+)"[^>]*\bry="([-\d.]+)"/);
   if (ell) {
     const cx = Number(ell[1]), cy = Number(ell[2]), rx = Number(ell[3]), ry = Number(ell[4]);
-    if (![cx, cy, rx, ry].some(Number.isNaN)) return { x: cx - rx, y: cy - ry };
+    if (![cx, cy, rx, ry].some(Number.isNaN)) return { x0: cx - rx, y0: cy - ry, x1: cx + rx, y1: cy + ry };
   }
   const text = inner.match(/<text[^>]*\bx="([-\d.]+)"[^>]*\by="([-\d.]+)"/);
   if (text) {
     const x = Number(text[1]), y = Number(text[2]);
-    if (![x, y].some(Number.isNaN)) return { x: x - 20, y: y - 14 };
+    if (![x, y].some(Number.isNaN)) return { x0: x - 28, y0: y - 16, x1: x + 28, y1: y + 6 };
   }
   return null;
 }
@@ -424,7 +454,33 @@ interface SidecarNode {
   edges_out: SidecarEdge[];
   edges_in: SidecarEdge[];
   file: string | null;
+  document_html: string;
+  directory: { name: string; role: string }[];
   health: { last_updated: { state: Health; iso: string | null }; last_used: { state: Health; note: string } };
+}
+
+/** Read the node's directory listing (with roles) + render its canonical document body —
+ *  the artefact shown in the graph pop-out (directory summary + the skill/agent doc). */
+function readNodeDocument(id: string): { html: string; directory: { name: string; role: string }[] } {
+  const dir = path.join(repoRoot, "graph", id);
+  const out = { html: "", directory: [] as { name: string; role: string }[] };
+  if (!existsSync(dir)) return out;
+  const roleFor = (name: string): string => {
+    if (name === `${id}.md`) return "canonical node — the skill / agent";
+    if (name === "research-report.md") return "source synthesis";
+    if (name === "source-material") return "raw source material (local)";
+    return "";
+  };
+  for (const name of readdirSync(dir).sort()) out.directory.push({ name, role: roleFor(name) });
+  const nodePath = path.join(dir, `${id}.md`);
+  if (existsSync(nodePath)) {
+    const raw = readFileSync(nodePath, "utf8");
+    const m = raw.match(/^---\n[\s\S]*?\n---\n?([\s\S]*)$/);
+    const body = m ? m[1] : raw;
+    try { out.html = renderMarkdown(body, { page: { path: id, fm: {} as Record<string, unknown>, raw: body } }).html; }
+    catch { out.html = ""; }
+  }
+  return out;
 }
 
 function buildSidecar(rec: GraphRecord, lastUpdated: Map<string, string | null>): {
@@ -450,6 +506,7 @@ function buildSidecar(rec: GraphRecord, lastUpdated: Map<string, string | null>)
     const n = rec.nodes[id];
     const kind = n.primitive || "node";
     const meta = readNodeMeta(id);
+    const doc = readNodeDocument(id);
     const iso = lastUpdated.get(id) ?? null;
     const updatedState = recencyLight(iso);
     const usedState: Health = "unknown"; // degraded — no projection snapshot exists yet
@@ -463,6 +520,8 @@ function buildSidecar(rec: GraphRecord, lastUpdated: Map<string, string | null>)
       edges_out: (out.get(id) || []),
       edges_in: (inn.get(id) || []),
       file: nodeFileRel(id),
+      document_html: doc.html,
+      directory: doc.directory,
       health: {
         last_updated: { state: updatedState, iso },
         last_used: { state: usedState, note: "no projection snapshot yet — degraded" },
@@ -476,10 +535,9 @@ function buildSidecar(rec: GraphRecord, lastUpdated: Map<string, string | null>)
 
 /** The legend + the snapshot-degraded banner + the figure + sidebar + sidecar. */
 function buildBodyHtml(svg: string, sidecar: Record<string, SidecarNode>): string {
-  const legendKinds = `
-    <span class="lg-item"><span class="lg-swatch lg-skill"></span>skill</span>
-    <span class="lg-item"><span class="lg-swatch lg-agent"></span>agent</span>
-    <span class="lg-item"><span class="lg-swatch lg-script"></span>script</span>`;
+  const legendKinds = (["skill", "agent", "script"] as const)
+    .map((k) => `<span class="lg-item"><span class="lg-swatch lg-${k}" style="border-color:${KIND_STYLE[k].stroke}"></span>${k}</span>`)
+    .join("");
   // Only the edge types actually drawn between nodes.
   const drawnTypes = new Set<string>();
   for (const n of Object.values(sidecar)) {
@@ -549,8 +607,10 @@ function extraHeadCss(): string {
 /* Graph-browser surface styles (A3b-3). Surface-local — never edits vendored style.css. */
 :root {
   --health-green: #2e9e5b; --health-amber: #d9a514; --health-red: #d64545; --health-unknown: #9b9b96;
+  --trace: #167d90;   /* lit-trace accent (teal) — replaces the alarm-red highlight */
 }
-html.dark { --health-green: #46c279; --health-amber: #e7bb45; --health-red: #e76d6d; --health-unknown: #8b8b86; }
+html.dark { --health-green: #46c279; --health-amber: #e7bb45; --health-red: #e76d6d; --health-unknown: #8b8b86;
+  --trace: #5ec8db; }
 
 .graph-intro { margin-bottom: 0.8em; }
 
@@ -573,25 +633,69 @@ html.dark { --health-green: #46c279; --health-amber: #e7bb45; --health-red: #e76
   text-transform: uppercase; letter-spacing: 0.12em; color: var(--mute);
   min-width: 3.6em;
 }
-.graph-legend .lg-item { display: inline-flex; align-items: center; gap: 0.35em; color: var(--fg-soft); }
-.lg-swatch { width: 13px; height: 13px; border-radius: 2px; border: 1px solid var(--node-1-stroke, #cfcdc6); display: inline-block; }
-.lg-skill  { background: var(--node-1-fill, #fff); }
-.lg-agent  { background: var(--node-2-fill, #eceae2); }
-.lg-script { background: var(--node-central-fill, #fae042); }
+.graph-legend .lg-item { display: inline-flex; align-items: center; gap: 0.4em; color: var(--fg-soft); }
+/* nodes are outline-only now — the legend chip is a transparent box ringed in the
+   type's stroke colour (border-color set inline from KIND_STYLE so they always match). */
+.lg-swatch { width: 16px; height: 11px; border-radius: 3px; background: transparent; border: 1.5px solid var(--mute); display: inline-block; }
 .lg-line { width: 20px; height: 0; border-top: 2px solid var(--lg-line-color, var(--edge-stroke)); display: inline-block; }
-.health-key { width: 11px; height: 11px; border-radius: 999px; display: inline-block; border: 1px solid rgba(0,0,0,0.2); }
-.health-green { background: var(--health-green); } .health-amber { background: var(--health-amber); }
-.health-red { background: var(--health-red); } .health-unknown { background: var(--health-unknown); }
+/* legend status-lights mirror the in-graph LEDs: a bright dot inside a soft glow ring */
+.health-key { width: 9px; height: 9px; border-radius: 999px; display: inline-block; position: relative; }
+.health-key::after { content: ""; position: absolute; inset: -3px; border-radius: 999px; background: currentColor; opacity: 0.22; }
+.health-green { background: var(--health-green); color: var(--health-green); }
+.health-amber { background: var(--health-amber); color: var(--health-amber); }
+.health-red { background: var(--health-red); color: var(--health-red); }
+.health-unknown { background: var(--health-unknown); color: var(--health-unknown); }
 
-/* node health badges drawn into the SVG */
-.requires-graph svg .node-health .health-dot { transition: opacity 200ms ease; }
+/* Per-node status chip (top-right): an opaque pill holding two LED dots
+   (last-updated · last-used), coloured per data-state in CSS (theme-aware). */
+.requires-graph svg .node-health { pointer-events: none; }
+.requires-graph svg .health-chip { fill: var(--bg); stroke: var(--hair); stroke-width: 0.5; }
+.requires-graph svg .health-dot { stroke: color-mix(in srgb, var(--bg) 60%, transparent); stroke-width: 0.5; }
+.requires-graph svg .health-dot[data-state="green"]   { fill: var(--health-green); }
+.requires-graph svg .health-dot[data-state="amber"]   { fill: var(--health-amber); }
+.requires-graph svg .health-dot[data-state="red"]     { fill: var(--health-red); }
+.requires-graph svg .health-dot[data-state="unknown"] { fill: var(--health-unknown); }
+
+/* outline-only nodes: text adapts to the theme; the whole box stays clickable despite no fill */
+.requires-graph svg .node text { fill: var(--fg); }
+.requires-graph svg .node path, .requires-graph svg .node polygon { pointer-events: all; }
 .requires-graph svg .node[data-node-id] { cursor: pointer; }
+
+/* ── Lineage highlight (overrides the vendored brand-red rules) ──
+   Light up the LINE traces in the accent — never fill the area under an edge
+   curve — and dim everything else. Pins to the selected node (see graph-browser.js). */
+.requires-graph.is-highlighting svg .node:not(.path-active) path,
+.requires-graph.is-highlighting svg .node:not(.path-active) text,
+.requires-graph.is-highlighting svg .node:not(.path-active) .node-health { opacity: 0.15; }
+.requires-graph.is-highlighting svg .edge:not(.path-active) path,
+.requires-graph.is-highlighting svg .edge:not(.path-active) polygon { opacity: 0.1; }
+.requires-graph.is-highlighting svg .node.path-active path {
+  stroke: var(--trace); stroke-width: 2;
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--trace) 55%, transparent));
+}
+.requires-graph.is-highlighting svg .edge.path-active path {
+  stroke: var(--trace); fill: none; stroke-width: 1.8;
+  filter: drop-shadow(0 0 2px color-mix(in srgb, var(--trace) 45%, transparent));
+}
+.requires-graph.is-highlighting svg .edge.path-active polygon { fill: var(--trace); stroke: var(--trace); }
+
+/* Selected node: a strong, persistent outline (the trace stays pinned to it). */
+.requires-graph svg .node.is-selected path {
+  stroke: var(--trace); stroke-width: 2.6;
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--trace) 60%, transparent));
+}
+
+/* full-bleed graph: breathing room + a canvas that uses the viewport */
+.layout-full-bleed .content { padding: 1.1rem 1.4rem 1.6rem; }
+.requires-graph { margin: 0; }
+.requires-graph-stage { height: calc(100vh - 240px); min-height: 460px; }
+.graph-unavailable { padding: 1.5em; border: 1px dashed var(--hair); border-radius: 6px; color: var(--fg-soft); background: var(--code-bg); font-size: .9rem; }
 .requires-graph svg .node[data-node-id]:hover path,
-.requires-graph svg .node[data-node-id]:hover polygon { filter: brightness(0.97); }
+.requires-graph svg .node[data-node-id]:hover polygon { stroke-width: 2.2; }
 
 /* detail sidebar */
 #graph-sidebar {
-  position: fixed; top: 0; right: 0; height: 100vh; width: min(380px, 92vw);
+  position: fixed; top: 0; right: 0; height: 100vh; width: min(680px, 52vw);
   background: var(--bg); border-left: 1px solid var(--hair);
   box-shadow: -8px 0 28px rgba(0,0,0,0.16);
   z-index: 50; overflow-y: auto; padding: 1.4em 1.3em 2em;
@@ -636,6 +740,18 @@ html.dark { --health-green: #46c279; --health-amber: #e7bb45; --health-red: #e76
 #graph-sidebar .gs-file { font-size: 0.84rem; }
 #graph-sidebar .gs-file code { word-break: break-all; }
 #graph-sidebar .gs-empty { color: var(--mute); font-style: italic; }
+#graph-sidebar .gs-dir { list-style: none; margin: .2em 0 0; padding: 0; }
+#graph-sidebar .gs-dir li { font-size: .82rem; margin: .25em 0; }
+#graph-sidebar .gs-dir code { font-family: var(--mono); font-size: .78rem; color: var(--fg); }
+#graph-sidebar .gs-dir .gs-role { color: var(--mute); }
+#graph-sidebar .gs-doc { margin-top: .5em; border-top: 1px solid var(--hair); padding-top: 1em; font-size: .88rem; line-height: 1.55; }
+#graph-sidebar .gs-doc h1, #graph-sidebar .gs-doc h2, #graph-sidebar .gs-doc h3 { font-family: var(--display); line-height: 1.25; margin: 1em 0 .4em; color: var(--fg); }
+#graph-sidebar .gs-doc h1 { font-size: 1.15rem; } #graph-sidebar .gs-doc h2 { font-size: 1rem; } #graph-sidebar .gs-doc h3 { font-size: .9rem; }
+#graph-sidebar .gs-doc p, #graph-sidebar .gs-doc li { color: var(--fg-soft); }
+#graph-sidebar .gs-doc pre { background: var(--code-bg); border: 1px solid var(--hair); border-radius: 4px; padding: .6em .7em; overflow-x: auto; font-size: .8rem; }
+#graph-sidebar .gs-doc code { font-family: var(--mono); }
+#graph-sidebar .gs-doc table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+#graph-sidebar .gs-doc th, #graph-sidebar .gs-doc td { border: 1px solid var(--hair); padding: .3em .5em; text-align: left; }
 </style>`;
 }
 
@@ -661,13 +777,18 @@ log(`  last-updated: ${gitOk}/${nodeIds.length} resolved from git; last-used: de
 // Build sidecar (also yields per-node badge states).
 const { data: sidecar, badges } = buildSidecar(rec, lastUpdated);
 
-// DOT → SVG → post-process.
+// DOT → SVG → post-process. Degrades to a notice when Graphviz is absent.
 const { dot } = buildDot(rec);
 const rawSvg = runGraphviz(dot);
-const { svg, nodeIdCount } = postProcessSvg(rawSvg, badges);
-
-if (nodeIdCount !== nodeIds.length) {
-  warn(`data-node-id count (${nodeIdCount}) != node count (${nodeIds.length}) — investigate.`);
+let svg: string;
+let nodeIdCount = 0;
+if (rawSvg === null) {
+  svg = `<div class="graph-unavailable">The whole-graph view requires <strong>Graphviz</strong> (the <code>dot</code> binary) at build time. Install graphviz and rebuild to render the graph; the legend and per-node detail below still describe the model.</div>`;
+} else {
+  ({ svg, nodeIdCount } = postProcessSvg(rawSvg, badges));
+  if (nodeIdCount !== nodeIds.length) {
+    warn(`data-node-id count (${nodeIdCount}) != node count (${nodeIds.length}) — investigate.`);
+  }
 }
 
 // Clean ONLY the graph surface dir (never the whole dist/).
@@ -690,6 +811,9 @@ if (!existsSync(browserSrc)) {
   throw new Error(`graph-browser.js not found at ${browserSrc} — fork it from vendor/.../graph-viewer.js`);
 }
 copyFileSync(browserSrc, path.join(surfaceDir, "graph-browser.js"));
+// Content-hash cache-bust so a normal refresh always serves the current script
+// (the browser was caching a stale graph-browser.js across rebuilds).
+const browserHash = createHash("sha1").update(readFileSync(browserSrc, "utf8")).digest("hex").slice(0, 8);
 
 // Single-page nav.
 const nav: NavGroup[] = [{ group: "Workspace", pages: [""] }];
@@ -709,9 +833,10 @@ const html = renderSurfacePage({
   nav,
   bodyHtml,
   showToc: false,
+  layoutVariant: "full-bleed",
   pageLabel: () => "Graph browser",
   extraHead: () => extraHeadCss(),
-  bodyScripts: () => `<script src="graph-browser.js" defer></script>`,
+  bodyScripts: () => `<script src="graph-browser.js?v=${browserHash}" defer></script>`,
 });
 
 writeHtml(path.join(surfaceDir, "index.html"), html);

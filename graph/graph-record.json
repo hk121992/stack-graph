@@ -828,7 +828,7 @@
     "IU-schema": {
       "kind": "reference",
       "title": "Implementation-Unit schema \u2014 the plan\u2194build field contract",
-      "status": "v0.2.0 \u2014 2026-06-03",
+      "status": "v0.4.0 \u2014 2026-06-04",
       "consumed_by": [
         "build",
         "plan"
