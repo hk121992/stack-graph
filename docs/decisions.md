@@ -705,6 +705,29 @@ topology.* *Design:* `docs/artefacts-design.md` (+ `work-item-schema` v0.2.0). *
 contract); the **plugin build** + **harness build** are the two remaining prerequisites to exercise the loop.
 *Status:* Accepted (design); build in progress (product seats landed; handbook amendments pending).
 
+**D60 — The learnings-proposals archive is a committed surface, not `.stack-graph/`.**
+`capture-learnings` reads `metrics_report.prior_proposals` to flag a learning that recurs without
+enactment (`recurring_unacted`), but **where the un-enacted proposals archive lives** was
+unspecified (reconciliation `capture-learnings CF-4`) — committed `workspace/<surface>/` vs gitignored
+`.stack-graph/`. **Decided: a committed workspace surface.** The decisive test is D51's own:
+`.stack-graph/` holds **derived** state *replayable from the event log* (the projected carrier stage);
+a proposals list is **generative** — synthesised once at debrief — and **cannot be rebuilt**, so
+gitignoring it would silently destroy cross-sprint recurrence detection on every fresh clone, the exact
+signal the node exists to produce. **Mechanics:** the **gate** (`debrief`/`reconcile`) persists the
+surviving-but-un-enacted proposals — it already owns the write path (D31/D38), so `capture-learnings`
+keeps its *writes-nothing* invariant; enacted learnings still route to their homes (gbrain /
+handbook-curator `raise` / `decisions.md`), the archive holds only the open tail. Bound via a new
+**`learnings-archive`** key so the path is never hardcoded. **Fallback:** `prior_proposals: null` →
+read the committed archive directly (the `metrics_report` pointer is an optimisation, not the source of
+truth); neither present (first sprint / fresh harness) → empty prior set, no `recurring_unacted` flags —
+degrade cleanly, the same posture as the no-gbrain path (CF-7). *Why:* a proposals list is
+generative-and-non-replayable, which D51 routes to a committed artefact, not the derived `.stack-graph/`
+class. *Applies* D51 (authored-committed vs derived-gitignored split — the test), D31/D38 (write path at
+the gate). *Resolves* reconciliation `capture-learnings CF-4` (+ unblocks CF-7's wider fallback). *Spec:*
+artefacts-design (§1 + a learnings-archive surface), bindings-contract (`learnings-archive` key),
+`capture-learnings`, `debrief`/`reconcile` (the gate write). *Status:* Decided; folds into the cluster-E
+amend wave (capture-learnings CF-4/CF-7 + the artefacts/bindings touchpoint).
+
 ## Workspace portal
 
 **D52 — Workspace portal: deployed = authored-from-git ⨝ a published projection snapshot; fail-closed.** The
@@ -771,6 +794,30 @@ step performed in the product user (which the admin/tooling user cannot even wri
 (the plugin ships the harness-instantiation capability). *Status:* Accepted; built + vendored. The
 exercise (Phase C) is a be-civic session running `harness-init` → `product-dashboard-curator`
 add-item → `align-context`→`design`.
+
+**D61 — The harness ambient surface is the org-root `CLAUDE.md`; `harness-init` scaffolds and
+validates it.** `harness-init`'s research-report parked an open question (reconciliation
+`harness-init C2`): does a stack-graph harness have an ambient-instructions file — like be-civic's
+`harness-CLAUDE.md` — that `harness-init` writes, or is the harness declared entirely through
+`bindings.yaml` + the plugin's CLAUDE.md? **Decided: it is the org-root `CLAUDE.md`** — already
+mandated by `04-harness/01-directory-topology` (D42): one `CLAUDE.md` at the org root carrying the
+handbook-index pointer **made ambient**, the graph-usage navigation, and the bindings reference. This is
+**not a new fork** — it conforms the node to an existing spec. **Mechanics:** (1) `scaffold` gains a
+step — write a **templated** org-root `CLAUDE.md` (handbook-index pointer + bindings-reference pointer +
+graph-usage navigation), **structure-only** and **idempotent** (never clobber an authored one; warn).
+(2) `validate` (the C2 fix) checks the org-root `CLAUDE.md` exists, reaches the bindings reference, and
+carries the handbook-index pointer — the runtime pre-flight the gate was missing. **Out of scope:** the
+be-civic-style **session-start self-check** (`harness-CLAUDE.md` §3.0) is a hook / ambient rule, a
+separate post-init runtime concern — *not* a `harness-init` mode (per the node's own research-report);
+keeps the amendment tight. **Scope note:** this is slightly broader than reconciliation C2 (scoped to
+`validate` only) — `scaffold` must *write* the file `validate` checks, else validate guards a file
+nothing creates. *Why:* directory-topology already decided the org root carries one ambient `CLAUDE.md`;
+`harness-init` simply wasn't wired to scaffold or check it. *Applies* D42 (org-root ambient `CLAUDE.md`
+/ directory topology), D54 (harness ships via the plugin; `harness-init` is the executable
+instantiation). *Resolves* reconciliation `harness-init C2` + the node's open-Q#3. *Spec:*
+`04-harness/01-directory-topology`, `harness-init` (scaffold + validate), `bindings-contract` (the
+CLAUDE.md template). *Status:* Decided; folds into the cluster-E amend wave (harness-init scaffold +
+validate).
 
 ## Authoring rigor & language
 
