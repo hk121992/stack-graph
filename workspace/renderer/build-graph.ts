@@ -342,53 +342,68 @@ function escAttr(s: unknown): string {
  * fallbacks) so themes can re-tint. last-used is GREY/unknown (degraded).
  */
 function renderBadges(id: string, innerClean: string, b: NodeBadges | undefined): string {
-  const place = anchorPoint(innerClean);
-  if (!place) return "";
-  const { x, y } = place;
-  const r = 3.2;                       // bright LED core
-  const gap = 8.6;
+  const box = nodeBox(innerClean);
+  if (!box) return "";
   const updated = b?.lastUpdated ?? "unknown";
   const used = b?.lastUsed ?? "unknown";
-  // Two LED-style status-lights just inside the top-left corner: a soft halo + a
-  // bright core. CSS colours them per data-state (theme-aware) so they glow on
-  // the now-transparent node instead of being washed out by a fill.
-  const cx1 = x + 7.5;
-  const cy = y + 7.5;
-  const cx2 = cx1 + gap;
-  const led = (cx: number, state: Health, cls: string, title: string) =>
-    `<circle class="health-halo" data-state="${state}" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${(r * 2.1).toFixed(1)}"></circle>` +
+  // A small status "chip" floated just above the node's top-right shoulder —
+  // OUTSIDE the box, so it never overlaps the centred label (Graphviz sizes boxes
+  // tight to the label, so no in-box corner is clear). Holds two well-separated LED
+  // dots (last-updated · last-used) on an opaque backing so they read on the
+  // outline-only node; CSS colours the dots per data-state (theme-aware).
+  const r = 2.8;
+  const dotGap = 8.4;                       // centre-to-centre — leaves a clear gap
+  const padX = 4.5, padY = 4;
+  const chipW = dotGap + r * 2 + padX * 2;
+  const chipH = r * 2 + padY * 2;
+  const chipX = box.x1 - chipW;             // right-aligned to the box's right edge
+  const chipY = box.y0 - chipH - 2;         // floated just above the top edge
+  const cy = chipY + chipH / 2;
+  const cx1 = chipX + padX + r;
+  const cx2 = cx1 + dotGap;
+  const dot = (cx: number, state: Health, cls: string, title: string) =>
     `<circle class="health-dot ${cls}" data-state="${state}" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r.toFixed(1)}">` +
       `<title>${title}</title></circle>`;
   return (
     `<g class="node-health" aria-hidden="true">` +
-    led(cx1, updated, "health-updated", `last-updated: ${updated}`) +
-    led(cx2, used, "health-used", `last-used: ${used} (no projection snapshot)`) +
+    `<rect class="health-chip" x="${chipX.toFixed(1)}" y="${chipY.toFixed(1)}" ` +
+      `width="${chipW.toFixed(1)}" height="${chipH.toFixed(1)}" rx="${(chipH / 2).toFixed(1)}"></rect>` +
+    dot(cx1, updated, "health-updated", `last-updated: ${updated}`) +
+    dot(cx2, used, "health-used", `last-used: ${used} (no projection snapshot)`) +
     `</g>`
   );
 }
 
 /**
- * Find the top-left anchor of a node group from the first geometry element.
- * Graphviz boxes are <polygon points="x1,y1 x2,y2 …">; we take the min x / min y
- * (SVG y grows downward, so min y is the top). Falls back to <text x= y=>.
+ * Bounding box of a node's shape, in the node group's local coordinate space.
+ * Handles Graphviz boxes (<polygon>), rounded boxes (<path d=…>, the style we
+ * emit), and ellipses; falls back to an approximate box around the <text> anchor.
+ * Coordinates are comma-paired (`x,y`) in every Graphviz shape, so we collect all
+ * pairs and take min/max — control points of a rounded rect sit on the rect, so
+ * the bbox is the rectangle.
  */
-function anchorPoint(inner: string): { x: number; y: number } | null {
+function nodeBox(inner: string): { x0: number; y0: number; x1: number; y1: number } | null {
+  const fromPairs = (s: string) => {
+    const xs: number[] = [], ys: number[] = [];
+    for (const m of s.matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g)) {
+      const x = Number(m[1]), y = Number(m[2]);
+      if (!Number.isNaN(x) && !Number.isNaN(y)) { xs.push(x); ys.push(y); }
+    }
+    return xs.length ? { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) } : null;
+  };
   const poly = inner.match(/<polygon[^>]*\bpoints="([^"]+)"/);
-  if (poly) {
-    const pts = poly[1].trim().split(/\s+/).map((p) => p.split(",").map(Number));
-    const xs = pts.map((p) => p[0]).filter((n) => !Number.isNaN(n));
-    const ys = pts.map((p) => p[1]).filter((n) => !Number.isNaN(n));
-    if (xs.length && ys.length) return { x: Math.min(...xs), y: Math.min(...ys) };
-  }
+  if (poly) { const box = fromPairs(poly[1]); if (box) return box; }
+  const pathEl = inner.match(/<path[^>]*\bd="([^"]+)"/);
+  if (pathEl) { const box = fromPairs(pathEl[1]); if (box) return box; }
   const ell = inner.match(/<ellipse[^>]*\bcx="([-\d.]+)"[^>]*\bcy="([-\d.]+)"[^>]*\brx="([-\d.]+)"[^>]*\bry="([-\d.]+)"/);
   if (ell) {
     const cx = Number(ell[1]), cy = Number(ell[2]), rx = Number(ell[3]), ry = Number(ell[4]);
-    if (![cx, cy, rx, ry].some(Number.isNaN)) return { x: cx - rx, y: cy - ry };
+    if (![cx, cy, rx, ry].some(Number.isNaN)) return { x0: cx - rx, y0: cy - ry, x1: cx + rx, y1: cy + ry };
   }
   const text = inner.match(/<text[^>]*\bx="([-\d.]+)"[^>]*\by="([-\d.]+)"/);
   if (text) {
     const x = Number(text[1]), y = Number(text[2]);
-    if (![x, y].some(Number.isNaN)) return { x: x - 20, y: y - 14 };
+    if (![x, y].some(Number.isNaN)) return { x0: x - 28, y0: y - 16, x1: x + 28, y1: y + 6 };
   }
   return null;
 }
@@ -592,8 +607,10 @@ function extraHeadCss(): string {
 /* Graph-browser surface styles (A3b-3). Surface-local — never edits vendored style.css. */
 :root {
   --health-green: #2e9e5b; --health-amber: #d9a514; --health-red: #d64545; --health-unknown: #9b9b96;
+  --trace: #167d90;   /* lit-trace accent (teal) — replaces the alarm-red highlight */
 }
-html.dark { --health-green: #46c279; --health-amber: #e7bb45; --health-red: #e76d6d; --health-unknown: #8b8b86; }
+html.dark { --health-green: #46c279; --health-amber: #e7bb45; --health-red: #e76d6d; --health-unknown: #8b8b86;
+  --trace: #5ec8db; }
 
 .graph-intro { margin-bottom: 0.8em; }
 
@@ -629,20 +646,44 @@ html.dark { --health-green: #46c279; --health-amber: #e7bb45; --health-red: #e76
 .health-red { background: var(--health-red); color: var(--health-red); }
 .health-unknown { background: var(--health-unknown); color: var(--health-unknown); }
 
-/* node health status-lights drawn into the SVG (LED = soft halo + bright core);
-   coloured per data-state in CSS so they stay theme-aware. */
+/* Per-node status chip (top-right): an opaque pill holding two LED dots
+   (last-updated · last-used), coloured per data-state in CSS (theme-aware). */
 .requires-graph svg .node-health { pointer-events: none; }
-.requires-graph svg .health-dot { transition: opacity 200ms ease; stroke: rgba(255,255,255,0.55); stroke-width: 0.4; }
-.requires-graph svg .health-halo { opacity: 0.22; }
-.requires-graph svg .health-dot[data-state="green"], .requires-graph svg .health-halo[data-state="green"] { fill: var(--health-green); }
-.requires-graph svg .health-dot[data-state="amber"], .requires-graph svg .health-halo[data-state="amber"] { fill: var(--health-amber); }
-.requires-graph svg .health-dot[data-state="red"],   .requires-graph svg .health-halo[data-state="red"]   { fill: var(--health-red); }
-.requires-graph svg .health-dot[data-state="unknown"], .requires-graph svg .health-halo[data-state="unknown"] { fill: var(--health-unknown); }
+.requires-graph svg .health-chip { fill: var(--bg); stroke: var(--hair); stroke-width: 0.5; }
+.requires-graph svg .health-dot { stroke: color-mix(in srgb, var(--bg) 60%, transparent); stroke-width: 0.5; }
+.requires-graph svg .health-dot[data-state="green"]   { fill: var(--health-green); }
+.requires-graph svg .health-dot[data-state="amber"]   { fill: var(--health-amber); }
+.requires-graph svg .health-dot[data-state="red"]     { fill: var(--health-red); }
+.requires-graph svg .health-dot[data-state="unknown"] { fill: var(--health-unknown); }
 
 /* outline-only nodes: text adapts to the theme; the whole box stays clickable despite no fill */
 .requires-graph svg .node text { fill: var(--fg); }
 .requires-graph svg .node path, .requires-graph svg .node polygon { pointer-events: all; }
 .requires-graph svg .node[data-node-id] { cursor: pointer; }
+
+/* ── Lineage highlight (overrides the vendored brand-red rules) ──
+   Light up the LINE traces in the accent — never fill the area under an edge
+   curve — and dim everything else. Pins to the selected node (see graph-browser.js). */
+.requires-graph.is-highlighting svg .node:not(.path-active) path,
+.requires-graph.is-highlighting svg .node:not(.path-active) text,
+.requires-graph.is-highlighting svg .node:not(.path-active) .node-health { opacity: 0.15; }
+.requires-graph.is-highlighting svg .edge:not(.path-active) path,
+.requires-graph.is-highlighting svg .edge:not(.path-active) polygon { opacity: 0.1; }
+.requires-graph.is-highlighting svg .node.path-active path {
+  stroke: var(--trace); stroke-width: 2;
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--trace) 55%, transparent));
+}
+.requires-graph.is-highlighting svg .edge.path-active path {
+  stroke: var(--trace); fill: none; stroke-width: 1.8;
+  filter: drop-shadow(0 0 2px color-mix(in srgb, var(--trace) 45%, transparent));
+}
+.requires-graph.is-highlighting svg .edge.path-active polygon { fill: var(--trace); stroke: var(--trace); }
+
+/* Selected node: a strong, persistent outline (the trace stays pinned to it). */
+.requires-graph svg .node.is-selected path {
+  stroke: var(--trace); stroke-width: 2.6;
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--trace) 60%, transparent));
+}
 
 /* full-bleed graph: breathing room + a canvas that uses the viewport */
 .layout-full-bleed .content { padding: 1.1rem 1.4rem 1.6rem; }
