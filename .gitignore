@@ -10,6 +10,9 @@ handbook/renderer/dist/
 # working dir only; the committed research-report's Source inventory preserves provenance
 graph/*/source-material/
 
+# maintainer/reviewer .bak backups — local deliberate-orphan safety copies, never committed
+*.bak
+
 # stray generated images (e.g. dropped into the repo root)
 *.png
 # ...but the vendored brand favicon set is a committed source asset

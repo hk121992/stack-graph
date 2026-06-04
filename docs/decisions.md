@@ -771,3 +771,85 @@ step performed in the product user (which the admin/tooling user cannot even wri
 (the plugin ships the harness-instantiation capability). *Status:* Accepted; built + vendored. The
 exercise (Phase C) is a be-civic session running `harness-init` → `product-dashboard-curator`
 add-item → `align-context`→`design`.
+
+## Authoring rigor & language
+
+**D55 — Research reports must cite real external analogues; a Pocock-derived skill-language
+standard cuts token cost; both bake into the maintainer.** An audit found ~21 of 29 authored
+nodes (the whole dev-sprint backbone + the PM-pack) were authored from in-repo design docs only
+— `sources_lifted: 0`, no comparison against how the job is really done. The *instructions* were
+fine (`researcher.md` step 3 already said "search for `.claude` primitives"); the *execution*
+skipped the external search and nobody caught it. **Three fixes.** (1) **Sourcing rigor** —
+`researcher.md` step 3 now mandates AND records an external search across the real corpora
+(operator `.claude` skills, reference plugins, the product harness, published best practice),
+with an `external_corpora_searched` + `external_analogue_found` summary; the acceptance gate
+**challenges** `sources_lifted: 0` / `external_analogue_found: false` instead of waving it
+through; the report template gains an `## External analogues searched` section + frontmatter
+fields; handbook `05` gains an "Adequate sourcing" rule (in-repo design docs are *input*, not an
+external analogue; the sin is the unrecorded skip, not the honest absence). (2) **Skill-language
+standard** — distilled from Matt Pocock's `write-a-skill` / `caveman` / `improve-codebase-
+architecture` (MIT; lifted verbatim into `tooling/sg-language-reviewer/source-material/` with
+provenance): a **description shape** (two parts — what + `Use when …`; routing signal; ~200–350
+chars) and **prose economy** (the core test; no throat-clearing; one term per concept; split past
+~100 lines), canonical in `00-overview/03-agent-surfaces`, with a **safety exception** (never
+compress security warnings, irreversible-action confirmations, order-bearing steps). (3) **A new
+dev-tooling skill `sg-language-reviewer`** (modes `descriptions` + `tighten`; grades against
+`references/skill-language-standard.md`; proposes, never silently rewrites; honours the safety
+exception) — and the same discipline baked into `sg-graph-maintainer`'s translator + a hard
+constraint + the templates, so new nodes are born tight ("just how we do things", not a new mode).
+The 21 thin reports are being **deepened + challenged against their real analogues via a Workflow**
+(reports + a triage table only; node amendments are a follow-up operator session). *Spec:*
+00-overview/03-agent-surfaces, 05-maintenance-skill. *Status:* Phase 1+2 built; backfill +
+description-sweep running; node amendments deferred to the operator.
+
+**D56 — The incremental-improvement workflow (standalone-IU light loop) is designed +
+Codex-reviewed; build deferred.** A second, lighter loop beside the heavyweight dev-sprint, for
+small traceable improvement (the factory's most common change shape — it improves itself).
+Modelled on Pocock's tracer-bullet / vertical-slice discipline. The unit is a **standalone IU**
+(a carrier-lite — no parent work-item, no front), which must be a **vertical slice with proper
+testing**. A new `incremental` arc (`triage → specify-slice → build → review → land`) **reuses**
+build/review/land and adds two front nodes; standalone IUs stay **off** the product-dashboard
+work-ledger (their own `improvements-root` surface). Keeps the Workspace — **no GitHub move**.
+Design at `docs/incremental-improvement-design.md` (7 operator forks A–G with recommendations).
+**Codex review (6 findings, all accepted):** the `standalone` variant must be a strict **`oneOf`**
+(child-IU vs carrier shapes, hard field exclusions), not "IU + a flag"; the **lifecycle writers**
+must split (proposed/in-delivery = authored/event-driven, only the terminal transition is
+gate-written) or it violates three-writers; **`promote` needs a new one-way `escalates` edge
+type**, not gated `precedes` (which would pollute traversal/projection); reused nodes need
+**carrier-keyed projection (carrier id + kind + arc) + an explicit carrier interface**; the
+**promote/`improves` provenance bridge is mandatory**. Resolutions folded into design §9. *Spec:*
+per the design's Spec-touchpoints table (02-graph-spec incl. the new `escalates` edge, 01-concepts,
+07-decomposition, 04-harness, 06-analytics, 08-devops, IU-schema, work-item-schema). *Status:*
+Designed + reviewed; **build deferred to a follow-up session** per the operator.
+
+## IU sizing & decomposition
+
+**D57 — The IU is a single-agent-implementable unit; its context budget is a measured dial, and
+tokens-per-IU is a first-class analytics metric.** Today an IU's only sizing signal is `size:
+XS–XL` (rough *effort*), which gives `plan` no checkable decomposition target and leaves the
+actual context cost unmeasured. **Reframe:** an implementation unit should be **buildable by one
+fresh agent within its best-work context budget** — "one agent, bounded fresh context, split
+diligently" (Pocock's tracer-bullet discipline). **Five parts.** (1) **Single-agent-implementable
+invariant** — an IU's `goal`+`files`+`acceptance` must fit one fresh agent; an explicit
+decomposition criterion in `plan` and a soft invariant in `IU-schema`; `L`/`XL` read as "probably
+split." (2) **Budget is a dial, not a constant** — durable *principle*, ~100k tokens as the
+documented **harness-tunable default** (the best-work window is model/version-dependent — verify,
+don't bake in); the harness carries the value, the schema carries the principle. (3)
+**Tokens-per-IU is measured** — `build` emits `tokens_per_iu` on the per-IU **unit-complete event**
+it already emits (no new machinery; rides the same event CF-1 adds runnable evidence to); it lands
+in the analytics event log's product-outcomes stream; `measure-outcomes` derives the distribution +
+**over-budget share** against the budget. This makes the dial empirical (set default → measure →
+tune) **and** a decomposition-quality signal — a high over-budget share means `plan` is drawing IUs
+too coarse (same shape as build's "weak acceptance = a *plan* gap" framing); earns-keep =
+over-budget share trends toward zero. (4) **Build default = one-IU-one-fresh-context** —
+generalises reconciliation **CF-3**: serial-subagent for dependent sets, parallel-subagent for
+independent; main-thread `inline` reserved for a tiny single unit or deliberate carry-forward. (5)
+**Budget is a routing test between the two loops** — a standalone (incremental) IU that won't fit
+one agent's budget is a **promote** signal (it's a work-item, not a slice). *Why:* the operator
+identified tokens-per-IU as a metric the factory must measure, and single-agent-implementability as
+the decomposition target; `size`-as-effort gave neither. *Applies* D50 (backbone), D56 (two-loop
+split / promote); *generalises* reconciliation CF-3, *rides* CF-1 (`acceptance_check` + per-IU
+evidence on the same event). *Spec:* per the design's Spec-touchpoints table (IU-schema, 06-analytics,
+07-decomposition, `plan`, `build`, incremental-improvement-design). *Design:*
+`docs/iu-sizing-design.md`. *Status:* Decided; folds into the reconciliation amend wave (IU-schema
++ plan + build + 06-analytics + measure-outcomes), not a standalone build.

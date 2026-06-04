@@ -3,7 +3,7 @@
 id: simulate-users
 primitive: agent
 title: Simulate users
-description: Autonomous experience-verification agent that runs a persona through a probabilistic product against a harness-supplied experience contract, returning a graded UX verdict and an AX (agent-experience) profile of the product agent's traversal.
+description: Autonomous experience-verification agent that runs a persona through a probabilistic product against a harness-supplied experience contract, returning a graded UX verdict and AX (agent-experience) profile.
 when-to-use: There is a built experience to verify before (or alongside) real users, and a caller wants the experience graded — both whether the output matches intent (UX) and how efficiently the product agent got there (AX). It is the experience thread's verification node, not a product-management evidence source.
 # classification — graph lens
 mode: autonomous

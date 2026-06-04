@@ -74,6 +74,25 @@ Two orderings are hard constraints:
   neighbours omits those edges (describing the behaviour in prose) and wires them in by
   `amend` once the neighbour lands. Prefer authoring backbone stages in arc order.
 
+## Adequate sourcing
+
+The research-report is the layer that lets a node be **challenged** against how its job is really
+done — not merely described from our own design. So `new` (and a re-researching `amend`) requires a
+**real external search**, recorded whether or not anything is lifted:
+
+- Search the available real-world corpora — the operator's own `.claude` skills, any reference
+  plugins present, the consuming product's harness — and **published best practice** (Anthropic's
+  build-the-primitive docs; the named methodology the node's domain operationalises). Concrete
+  corpus paths are environment-provided, never hardcoded in the general tooling.
+- Lift external analogues verbatim into `source-material/`; record the search in the report's
+  `## External analogues searched` table and in `external_corpora_searched` / `external_analogue_found`.
+- **In-repo design docs are input, not an external analogue.** A node authored only from `docs/`
+  with no recorded external search does not meet the sourcing bar. The acceptance gate challenges
+  `sources_lifted: 0` / `external_analogue_found: false` and sends the researcher back when the
+  search was skipped rather than genuinely empty.
+- A genuinely-absent counterpart is a legitimate outcome **once recorded** — name the corpora
+  searched and why none fits. The sin is the unrecorded skip, not the honest absence.
+
 References ([`graph-spec`](../02-graph-spec/README.md)) are authored by the `reference` mode
 into `graph/_refs/` and need no research-report — they are single-source curated content,
 not synthesised nodes. A node depends on one via a `references` edge carrying `load: import |

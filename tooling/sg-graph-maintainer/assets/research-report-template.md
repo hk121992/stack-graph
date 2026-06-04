@@ -8,6 +8,8 @@ amended:
   - date: {{YYYY-MM-DD}}
     note: {{one-line description of the amendment}}
 sources_lifted: <int>
+external_analogue_found: true | false   # did a real external counterpart exist after a real search?
+external_corpora_searched: []           # corpora actually searched (names, not machine paths)
 researcher_adequacy_note: |
   4–6 sentence self-assessment. Name: which sources were lifted and why; how edges
   were determined; confidence in the primitive/mode decision; whether goals were
@@ -51,6 +53,19 @@ node output.}}
 
 **Output:** {{What this node produces or surfaces — artefacts, decisions, operator
 questions.}}
+
+## External analogues searched
+
+Record the real-world search — whether or not anything was lifted. This is the rigor that lets the
+report **challenge** the node against how the job is really done, not merely describe the node.
+
+| corpus searched | query / what you looked for | found? | lifted to source-material? |
+|---|---|---|---|
+| {{operator skill set / reference plugin / product harness / published best practice}} | {{what you searched for}} | yes / no | {{filename or —}} |
+
+**If no external analogue was found:** name the corpora searched and why no counterpart exists — a
+searched-and-absent finding, never silence. In-repo design docs are *input*, not an external
+analogue; they never satisfy this section on their own.
 
 ## Source inventory
 

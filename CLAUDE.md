@@ -51,7 +51,7 @@ built. **Read `handbook/content/index.json` at task start** — it lists every p
 
 ## Building the graph — dev tooling
 
-Three dev-time skills live in `tooling/` (kept separate from the vendored plugin in the
+Four dev-time skills live in `tooling/` (kept separate from the vendored plugin in the
 `stack-graph-plugin/` submodule) and install by per-skill symlink into `~/.claude/skills/`:
 
 - **`sg-graph-maintainer`** — author and maintain graph nodes. Modes: `new` (gather
@@ -68,6 +68,13 @@ Three dev-time skills live in `tooling/` (kept separate from the vendored plugin
   Development — → surface fidelity/gap/grounding/seam findings), `roster`. Critiques **how
   the graph is built and the methodology baked in** — never the product, never gates,
   never auto-applies. Findings are suggestions the operator filters (D48).
+- **`sg-language-reviewer`** — tighten skill/node language for token cost. Modes:
+  `descriptions` (sweep every node + tooling description, propose tighter rewrites that keep
+  the routing signal, ranked by tokens saved), `tighten` (prose-economy pass on one node or
+  skill body). Grades against `tooling/sg-language-reviewer/references/skill-language-standard.md`
+  (the Pocock-derived standard; doctrine in `00-overview/03-agent-surfaces`). Proposes; never
+  silently rewrites; honours the safety exception. The discipline is also baked into
+  `sg-graph-maintainer` so new nodes are born tight.
 
 Install once (from the repo root):
 
@@ -75,6 +82,7 @@ Install once (from the repo root):
 ln -s "$PWD/tooling/sg-graph-maintainer" ~/.claude/skills/sg-graph-maintainer
 ln -s "$PWD/tooling/sg-handbook-curator"    ~/.claude/skills/sg-handbook-curator
 ln -s "$PWD/tooling/sg-advisory-council"    ~/.claude/skills/sg-advisory-council
+ln -s "$PWD/tooling/sg-language-reviewer"   ~/.claude/skills/sg-language-reviewer
 ```
 
 The repo is the source of truth; edits propagate through the symlink. **Contribution:**

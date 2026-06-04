@@ -21,9 +21,15 @@ jobs:
   vendor-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
+          # The private stack-graph-plugin submodule can't be cloned with the default
+          # repo-scoped GITHUB_TOKEN. Provide PLUGIN_REPO_TOKEN — a fine-grained PAT or
+          # GitHub App token with READ access to BOTH this repo and hk121992/stack-graph-plugin.
+          # Falls back to the default token when the secret is unset (submodule clone then
+          # still fails, but the rest of checkout is unchanged — no regression).
+          token: ${{ secrets.PLUGIN_REPO_TOKEN || github.token }}
 
       - uses: oven-sh/setup-bun@v2
         with:

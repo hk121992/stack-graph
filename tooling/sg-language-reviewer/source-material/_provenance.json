@@ -1,0 +1,42 @@
+[
+  {
+    "file": "tooling/sg-language-reviewer/source-material/pocock-write-a-skill.md",
+    "origin": "github.com/mattpocock/skills — skills/productivity/write-a-skill/SKILL.md",
+    "origin_commit": "aaf2453fbdfe7a15c07f11d861224f34ab4b53cb",
+    "lifted_at": "2026-06-03",
+    "license": "MIT (Copyright 2026 Matt Pocock)",
+    "notes": "The canonical description standard: 'Max 1024 chars; third person; first sentence = what it does; second sentence = Use when [specific triggers].' Plus the split-files-at-100-lines rule and the review checklist. PRIMARY source for the skill-language-standard."
+  },
+  {
+    "file": "tooling/sg-language-reviewer/source-material/pocock-caveman.md",
+    "origin": "github.com/mattpocock/skills — skills/productivity/caveman/SKILL.md",
+    "origin_commit": "aaf2453fbdfe7a15c07f11d861224f34ab4b53cb",
+    "lifted_at": "2026-06-03",
+    "license": "MIT (Copyright 2026 Matt Pocock)",
+    "notes": "Token-compression drop-rules (~75% reduction): drop articles, filler, pleasantries, hedging; short synonyms; one word when one word enough. The auto-clarity exception (never compress security warnings / irreversible-action confirmations) is the safety boundary the body-tightening pass must respect. Source for the prose-economy half of the standard."
+  },
+  {
+    "file": "tooling/sg-language-reviewer/source-material/pocock-ica-LANGUAGE.md",
+    "origin": "github.com/mattpocock/skills — skills/engineering/improve-codebase-architecture/LANGUAGE.md",
+    "origin_commit": "aaf2453fbdfe7a15c07f11d861224f34ab4b53cb",
+    "lifted_at": "2026-06-03",
+    "license": "MIT (Copyright 2026 Matt Pocock)",
+    "notes": "Forbidden-word discipline ('use these terms exactly; avoid X, say Y') and rejected-framings pattern. Source for the standard's terminology-consistency rule."
+  },
+  {
+    "file": "tooling/sg-language-reviewer/source-material/pocock-ica-HTML-REPORT.md",
+    "origin": "github.com/mattpocock/skills — skills/engineering/improve-codebase-architecture/HTML-REPORT.md",
+    "origin_commit": "aaf2453fbdfe7a15c07f11d861224f34ab4b53cb",
+    "lifted_at": "2026-06-03",
+    "license": "MIT (Copyright 2026 Matt Pocock)",
+    "notes": "The sharpest prose-economy statement: 'No hedging, no throat-clearing, no it-is-worth-noting. If a sentence could be a bullet, make it a bullet. If a bullet could be cut, cut it.' Source for the standard's cut-rules."
+  },
+  {
+    "file": "tooling/sg-language-reviewer/source-material/LICENSE-mattpocock-skills",
+    "origin": "github.com/mattpocock/skills — LICENSE",
+    "origin_commit": "aaf2453fbdfe7a15c07f11d861224f34ab4b53cb",
+    "lifted_at": "2026-06-03",
+    "license": "MIT (Copyright 2026 Matt Pocock)",
+    "notes": "MIT licence retained per its terms (attribution for substantial verbatim portions). The standard adopts ideas/patterns, not code — attribution here is hygiene, kept because verbatim files are co-located."
+  }
+]

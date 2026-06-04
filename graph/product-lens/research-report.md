@@ -3,41 +3,39 @@ title: Research report for product-lens
 type: research-report
 status: complete
 authored: 2026-06-01
-last_updated: 2026-06-01
-amended: []
-sources_lifted: 5
+last_updated: 2026-06-03
+amended:
+  - date: 2026-06-03
+    note: "External search backfill — lifted gstack/plan-ceo-review, CE/ce-strategy, CE/ce-product-pulse; added External analogues searched table, Challenge findings section; updated frontmatter fields external_analogue_found/external_corpora_searched/sources_lifted."
+sources_lifted: 3
+external_analogue_found: true
+external_corpora_searched:
+  - "gstack live skills (/home/gstack/.claude/skills/gstack/)"
+  - "CE plugin (/home/gstack/scratch/ce-plugin/plugins/compound-engineering/skills/)"
+  - "be-civic harness (/home/gstack/projects/be-civic/)"
+  - "Published best practice — SVPG four-risks (svpg.com/four-big-risks/, svpg.com/product-risk-taxonomies/)"
+  - "Published best practice — Teresa Torres Opportunity Solution Tree (producttalk.org)"
+  - "Published best practice — product-management-frameworks / sprint-planning review 2025"
 researcher_adequacy_note: |
-  No source-material/ dir — product-lens is synthesised from the already-settled design docs, not
-  re-researched from external prior art (the prior art it generalises — gstack's plan-ceo-review /
-  office-hours, CE's ce-strategy — is captured upstream in docs/product-management-design.md). Five
-  design-doc sources: pm-graph-map.md (the `product-lens` row in "New nodes" + "Edges at a glance" —
-  the exact edge set: composes-into dev-sprint @design/@plan; references four-risks import + the
-  strategy-canvas via binding), product-management-design.md (D43's "PM has two faces"; the product
-  lens as the delivery-coupling-front machinery; the four risks at BOTH the strategic and the item
-  altitude; "Delivered main-thread as a skill (D36)"), dev-sprint-front-design.md + graph/design/
-  design.md (the front it composes into: design reuses lens-dispatch with target: doc, and leaves the
-  product-strategy seam in prose with NO edge — product-lens fills that seam by composing in from its
-  own side), product-dashboard-design.md (the work-item/outcome it reviews against — outcome_link,
-  risk_state, the record's deliberate-decision evidence), and decisions.md (D43 PM-pack + the product
-  lens; D36 design-quality-as-skill establishing the skill-not-lens-agent shape; D49 the
-  product-dashboard the lens reviews against; D44 the carrier it must not write). EXEMPLARS mirrored:
-  the review-lens family (graph/review/review.md + graph/lens-security/lens-security.md) for the
-  composes-into-the-front + lens-contract + sibling-boundary + structural-leaf (no back-edge, D4)
-  pattern; graph/design/design.md for the front it joins and the no-carrier-write / no-gate discipline;
-  graph/strategy-curator/strategy-curator.md for PM-pack voice + the overlay/external-reference
-  convention (canvas + handbook are harness-supplied, never hardcoded). Confidence in
-  primitive: skill / mode: collaborative / determinism: generative is HIGH — D36/D43 state the product
-  lens is delivered main-thread as a skill (the right-problem judgement needs the live design
-  conversation + the operator + the substrate in context — the collaborative side of the context axis,
-  not the isolated prompt-describable lens-agent shape the code lenses take), and the check is judgment
-  not algorithm. The one shape divergence from the code-lens family — product-lens is a SKILL composing
-  into the front, the code lenses are AGENTS fanned-out-to by a dispatch — is exactly D36's call and is
-  carried forward deliberately: it composes in like a lens, but runs main-thread like design. Edge
-  targets verified on disk: dev-sprint (arc — not resolved to a file, per 02-graph-spec); four-risks +
-  okr-schema present in graph/_refs/; strategy-canvas + handbook external: true (harness-supplied,
-  correctly absent — validation/build skip them). Recommendation: authored directly to canonical (the
-  shape is fully attested by the design docs + the lens exemplars); the one judgment call to flag is
-  okr-schema as an ADDED import beyond the scope_hint's stated refs — justified below.
+  External search performed 2026-06-03. Three real corpora searched on disk: (1) gstack live
+  skills — plan-ceo-review is the strongest analogue (CEO/founder-mode plan review asking
+  "right problem?"; lifted verbatim); (2) CE plugin — ce-strategy (STRATEGY.md anchor,
+  canvas-author role) and ce-product-pulse (post-ship value measurement, SMART metric bar)
+  both lifted verbatim; (3) be-civic harness — skills are Belgian admin process skills with
+  no product-lens analogue; bmd references to value_proposition are be-civic's OWN product
+  canvas, not a review skill. Published best practice searched: SVPG four-risks (403 on
+  direct fetch; roadmap.one mirror fetched successfully); Teresa Torres OST; sprint-planning
+  PM story-review 2025. Findings confirm external_analogue_found:true — plan-ceo-review is
+  the closest real counterpart, doing the same "right problem / wrong outcome / strategy mis-
+  fit" job but at the whole-plan level rather than composing into a stage. ce-strategy is the
+  canvas-author the lens reads. ce-product-pulse closes the lifecycle loop. The SVPG canon
+  (value/usability/feasibility/viability; PM owns value+viability; discovery kills risks before
+  delivery) is the domain methodology product-lens operationalises. Challenge findings (§ below)
+  identify five gaps where the node is weaker than its analogues: missing evidence-strength
+  pushback discipline, no SMART bar for outcome_link checking, no explicit handling of
+  no-STRATEGY.md / empty-canvas, no adversarial-interview mode for weak answers, and no
+  explicit link to post-ship signal (pulse). Recommendation: proceed to translator; node
+  is otherwise sound; challenge findings are amendment candidates, not blockers.
 ---
 
 # Research report for product-lens
@@ -94,6 +92,12 @@ against a maturity bar — so `generative`; two passes over the same doc may sur
 right-problem findings. The `skill` ↔ `collaborative` pairing satisfies the schema agreement
 constraint.
 
+This is confirmed by the external analogues: plan-ceo-review is also a skill / collaborative /
+generative — it runs main-thread, uses AskUserQuestion to hold the operator in the loop on every
+scope judgement, and its "Premise Challenge" (Step 0A) operationalises exactly the same "is this the
+right problem?" check product-lens runs at item altitude. ce-strategy is similarly collaborative
+(interview-driven, blocking questions, operator-in-loop).
+
 **The one deliberate shape divergence from the code-lens family.** The code lenses are *agents* a
 stage's `lens-dispatch` fans out to in isolation; product-lens is a *skill* that **composes into** the
 front and runs main-thread. It is therefore a hybrid: it borrows the lens family's **`composes-into
@@ -126,10 +130,40 @@ contract).
 - **No carrier write and no gate decision** — `lifecycle_state` + `gate_decisions` are the PM/operator
   gate (which reads the findings); `current_stage` is projected from the traversal.
 
+## External analogues searched
+
+Record of the real-world search — whether or not anything was lifted. This is the rigor that lets the
+report **challenge** the node against how the job is really done, not merely describe the node.
+
+| corpus searched | query / what you looked for | found? | lifted to source-material? |
+|---|---|---|---|
+| gstack live skills (`/home/gstack/.claude/skills/gstack/`) | skills matching: CEO/founder-mode plan review, right-problem check, strategy review, product-strategy check in sprint/design context; scanned all SKILL.md files for keywords: ceo, product, strategy, pm, right.problem, value.prop | yes — `plan-ceo-review` | `gstack-plan-ceo-review-SKILL.md` |
+| CE plugin (`/home/gstack/scratch/ce-plugin/plugins/compound-engineering/skills/`) | skills matching: strategy, product pulse, product check, value proposition review; specifically ce-strategy, ce-product-pulse, ce-brainstorm, ce-work | yes — `ce-strategy` + `ce-product-pulse` | `ce-strategy-SKILL.md`, `ce-product-pulse-SKILL.md` |
+| be-civic harness (`/home/gstack/projects/be-civic/`) | SKILL.md files for product-lens, right-problem, value-prop, four-risk, PM-review, strategy-check patterns; bmd agents and README for product-review patterns | no — be-civic skills are Belgian admin process skills (civic/legal); bmd references to value_proposition are the product's own canvas data, not a review skill | — |
+| Published best practice — SVPG (svpg.com/four-big-risks/, svpg.com/product-risk-taxonomies/) | four-risks framework; PM responsibility for value+viability; item-level vs discovery-level application; evidence strength grading; delivery gate patterns | yes — canonical domain methodology; 403 on direct fetch, roadmap.one mirror fetched successfully | not lifted verbatim (published, no machine path) |
+| Published best practice — Teresa Torres Opportunity Solution Tree (producttalk.org) | OST approach to linking items to outcomes; assumption testing before build; PM gate patterns | yes — confirms outcome-link discipline; "test riskiest assumptions before building" pattern; no item-altitude risk-check skill found | not lifted verbatim |
+| Published best practice — sprint-planning PM story review 2025 (websearch) | "right problem" value-proposition check at story/item level; front-door product PM gate practices | no dedicated practice found — SVPG and OST are the closest published precedents; sprint review literature focuses on ceremony, not pre-build product-strategy check | — |
+
+**Primary analogue:** `gstack-plan-ceo-review-SKILL.md` — the strongest real-world counterpart. It runs
+the same "is this the right problem / does this serve a real user/business outcome?" check as
+product-lens, in the same collaborative/main-thread/generative shape. The gap between them — plan-ceo-
+review operates on a full plan before build, product-lens composes into a stage and targets item-
+altitude value+viability — is precisely the structural position product-lens claims.
+
+**No direct counterpart found** for the specific pattern of a product-strategy lens that **composes
+into a shared front stage**, runs alongside code/design lenses, and emits findings to a shared
+finding contract at item altitude. The job exists in practice as a PM behavior (the PM in a product
+trio who asks "is this the right thing?" during sprint planning or story refinement), but no skill or
+agent in the searched corpora encodes it as a structured, invocable, finding-emitting node. That
+makes product-lens genuinely novel in shape, while being well-grounded in the domain methodology.
+
 ## Source inventory
 
 | source | status | notes |
 |------|--------|-------|
+| `source-material/gstack-plan-ceo-review-SKILL.md` | keep (analogue) | The primary external analogue. Step 0A (Premise Challenge: "Is this the right problem?", "What is the actual user/business outcome?", "What would happen if we did nothing?") is the closest real counterpart to product-lens's Phase 1–2. The 18 CEO cognitive patterns (inversion reflex, proxy skepticism, focus as subtraction, etc.) are the heuristic substrate product-lens's evidence-grading should draw from. The four modes (SCOPE EXPANSION / SELECTIVE EXPANSION / HOLD SCOPE / SCOPE REDUCTION) show what a multi-mode product-strategy check looks like — product-lens deliberately has no modes (it reads the maturity bar from the binding), but the analogue shows that mode-selection is a real design question. The Prime Directives (zero silent failures, every error has a name, observability is scope) are the engineering analogue to product-lens's earns-keep discipline. Drop: engineering-specific sections (error/rescue map, test diagram, frontend scope detection, diagrams-are-mandatory), scope expansion ceremony, and plan-writing mechanics — those are not product-lens's job. |
+| `source-material/ce-strategy-SKILL.md` | keep (canvas-author analogue) | ce-strategy is what product-lens reads (the STRATEGY.md / canvas equivalent). Its core principles (anchor not plan; rigor in questions not headings; short is a feature; durable across runs) and its Rumelt grounding (diagnosis + guiding policy + coherent action) define the quality bar for what the canvas product-lens reads should contain — and therefore define what product-lens can actually check. The pushback rules ("interest is not demand", "the status quo is your real competitor", "narrow beats wide early") are the item-altitude questions product-lens should ask when checking value risk. The interview section structure (target problem / approach / who it's for / metrics / tracks) maps directly to the dimensions product-lens reads from the canvas: value proposition, target user, served objective. Drop: the write-STRATEGY.md workflow, the downstream handoff, and the interview mechanics — product-lens reads, not writes. |
+| `source-material/ce-product-pulse-SKILL.md` | keep (post-ship outcome-measurement analogue) | ce-product-pulse measures whether shipped items actually delivered value — the outcome side of the loop product-lens's earns-keep metrics depend on. Its SMART metric bar (specific, measurable, actionable, relevant, timely applied to every event/signal the user proposes) is the standard product-lens should apply to outcome_link checking. Its "read it like a founder" posture and the strategy-seeded-when-available approach (reads STRATEGY.md first, carries forward key metrics as seeds) show how the canvas grounds the check. Its "pulse_pending_metrics" concept (metrics awaiting instrumentation, rendered as no-data) is the post-ship analogue of product-lens's "open" risk state. Drop: the technical data-source wiring, the pulse report format, the scheduling mechanics — those are pulse's domain, not product-lens's. |
 | `docs/pm-graph-map.md` | keep (edge-defining) | The `product-lens` row in "New nodes" + the "Edges at a glance" composes-into line — the exact edge set: composes-into dev-sprint @design/@plan; references four-risks (import) + the strategy-canvas (via binding). Every edge below traces here. The "structural leaf like the other lenses" framing. |
 | `docs/product-management-design.md` | keep | D43's two-faces; "A product lens — the CEO/founder/strategy review … Delivered main-thread as a skill (D36)"; the four risks at BOTH the strategic and the item altitude (the table); "the front blends a PM product-lens + eng/design; reads VPC / personas / strategy". The authoritative source for *what the lens is*. Drop the discovery-loop / outcome-layer / curator content (separate nodes). |
 | `docs/dev-sprint-front-design.md` + `graph/design/design.md` | keep (seam-defining) | The front it composes into: `design` reuses `review`'s `lens-dispatch` with `target: doc`, and **leaves the product-strategy seam in prose with NO edge (F7)** — "The product-lens composes into `@design` from its own side (built separately) — leave the seam in prose, no edge." product-lens is the node that fills that seam by composing in from its own side. Also the no-carrier-write / no-gate discipline the front nodes hold. |
@@ -207,6 +241,11 @@ contract).
   are overlay-bound/overlay-resolved and `external: true` (factory ships only the pointer; the harness
   supplies the target; validation/build skip them). The **work-item** is read for context via the
   harness surface (no write-edge — D44).
+- **→ post-ship outcome measurement (no edge, lifecycle seam):** the earns-keep metrics for product-
+  lens (ship-then-discover-it-was-wrong events trend down; front-stage findings displace debrief
+  surprises) require post-ship signal — the `debrief` node and a pulse-equivalent (ce-product-pulse
+  pattern) are the downstream consumers of the record product-lens writes. No direct edge; the
+  connection is through the carrier record the PM/operator gate owns.
 
 ## Fit
 
@@ -224,6 +263,13 @@ branches** — it runs one check (the right-problem / four-risks-at-item-altitud
 handled by **composing into two stages**, not by a body mode (the check is the same; only the doc it
 reads differs — the front stage sets that). This matches the scope_hint ("be a structural leaf … no
 modes implied") and keeps the lens lean.
+
+Note from analogue comparison: plan-ceo-review has four explicit modes (EXPANSION / SELECTIVE
+EXPANSION / HOLD SCOPE / REDUCTION). The analogue confirms that mode-selection is a real design
+question for product-strategy review. Product-lens's no-mode choice is correct for the item-altitude
+use case (the maturity bar does the mode-equivalent work) but the operator should be aware that a
+full-plan product review (like plan-ceo-review) would benefit from mode selection — product-lens is
+scoped below that level.
 
 ## Edges
 
@@ -256,7 +302,8 @@ modes implied") and keeps the lens lean.
 
 **`primitive:`↔`mode:` agreement:** `skill` ↔ `collaborative` — agrees (D36/D43 deliver it
 main-thread; the right-problem judgement needs the live thread). Matches the PM-pack sibling
-`strategy-curator` and the front node `design`.
+`strategy-curator` and the front node `design`. Confirmed by analogue: plan-ceo-review is also
+`skill` / `collaborative` / `generative` for the same reason.
 
 **`goals:` as outcomes:** all three read as outcomes (the right-problem question is settled at the
 front; value/viability checked at item altitude before later surprises; trustworthy anchored
@@ -280,6 +327,87 @@ design.md's second goal is the parallel).
 `external: true` harness surface. No edge to a non-existent node (the `plan`-stage seam rides the arc,
 not a node; the product-strategy seam `design` left in prose is filled by composing in, not by an edge
 back).
+
+## Challenge findings
+
+These findings challenge the node against its real-world analogues (plan-ceo-review, ce-strategy, ce-
+product-pulse) and the domain methodology (SVPG four-risks, Torres OST). Each cites the analogue and
+names the gap. These are amendment candidates — not blockers for the current node version, which
+carries the (v0.1.0) qualifier — but the operator should review them before the lens runs at scale.
+
+**CF-1 (high severity): No evidence-strength pushback discipline.**
+The node body says "name the current evidence and its strength rung (weak / moderate / strong — a
+said-yes is not a did-yes)" but gives no pushback rules for when the operator offers a weak answer.
+plan-ceo-review's analogue (office-hours Phase 2A) has explicit anti-sycophancy rules and five named
+pushback patterns (vague market → force specificity; social proof → demand test; platform vision →
+wedge challenge; growth stats → vision test; undefined terms → precision demand). ce-strategy has
+"apply the pushback rules from references/interview.md — two rounds maximum; do not rubber-stamp
+existing weak content." The SVPG canon distinguishes *said*-yes (interview interest) from *did*-yes
+(behavior/payment) as the evidence gap that most commonly fools PMs. Product-lens names the
+distinction ("a said-yes is not a did-yes") but does not tell the lens HOW to push back when the
+operator presents only said-evidence for a value risk. A lens that accepts weak evidence gracefully
+fails its own earns-keep metric ("findings are trustworthy signal, not strategy theatre").
+*Recommendation: add a "Pushback discipline" subsection to Phase 2 naming at least three
+evidence-challenge patterns analogous to plan-ceo-review's Anti-Sycophancy Rules.*
+
+**CF-2 (high severity): No SMART bar for outcome_link checking.**
+The node checks that the outcome_link names "a real outcome, not a feature" (via okr-schema), but
+does not apply a SMART test to the outcome. ce-product-pulse applies the SMART bar (specific,
+measurable, actionable, relevant, timely) to every metric/event/signal the operator proposes and
+"push back on anything vague, vanity, or unactionable." Torres's OST requires that outcomes be
+business outcomes (not solution outputs). An outcome_link that says "improve user experience" or
+"increase engagement" passes the current node's "is it an outcome not a feature?" test but fails the
+SMART bar — and a vague outcome_link makes the entire value-risk check unfalsifiable. The okr-schema
+import provides the structure, but the body does not tell the lens to challenge the quality of the
+outcome itself, only its type.
+*Recommendation: add an explicit outcome-quality check to Phase 1 step 3 ("if the outcome is not
+specific and measurable, that is already a finding — vague objectives make the value risk
+unfalsifiable") and reference the SMART bar from the okr-schema / four-risks references.*
+
+**CF-3 (medium severity): No handling of an absent or thin strategy canvas.**
+Phase 1 step 2 reads the strategy canvas on-demand. The node does not specify what to do when the
+canvas is absent, thin, or unmaintained — a common real-world state for an early-stage harness.
+ce-product-pulse handles this explicitly: "If STRATEGY.md does not exist, note that explicitly in
+chat: no strategy doc on file, running setup from scratch, and mention that ce-strategy can seed
+pulse later if run first." ce-strategy handles it similarly (Phase 0 routes by file state; missing →
+first run). plan-ceo-review handles it: "No design doc found — offer the prerequisite skill." In
+stack-graph terms, if `strategy-canvas` (external) resolves to an empty binding or an absent file,
+the lens currently has no fallback — it would silently check the solution against nothing, producing
+findings that look grounded but are not.
+*Recommendation: add a Phase 1 step 2a: "if the strategy canvas cannot be read (absent, empty, or
+binding unresolved), surface that as a stop-and-resolve finding before running any value-risk check
+— a product-strategy check against an absent canvas is not a product-strategy check."*
+
+**CF-4 (medium severity): No link to post-ship outcome measurement (the closing loop).**
+The earns-keep metrics for product-lens (ship-then-discover-it-was-wrong events trend down; front-
+stage findings displace debrief surprises) require post-ship signal to be measured. The node
+correctly does not emit a pulse / analytics call (that is post-ship, not pre-build), but it does not
+name the downstream node that provides that signal, nor does it name what the lens's recorded
+strategy frame feeds into post-ship. ce-product-pulse closes this loop explicitly: it reads
+STRATEGY.md (the canvas product-lens reads) and measures whether shipped items delivered on the
+objectives they claimed. The node's earns-keep is therefore unfalsifiable without a named post-ship
+signal source. In the graph, `debrief` is the intended downstream consumer of the carrier record
+product-lens populates — but neither the body nor the edges name this dependency.
+*Recommendation: add a note in the Contract (Output) section that the recorded strategy frame
+(four-risks evidence-state + served objective) feeds the `debrief` node's post-ship confirm/kill
+check — making the measurement loop explicit without adding a graph edge.*
+
+**CF-5 (low severity): The four-risks at item altitude are not distinguished from the four-risks at
+discovery altitude.**
+The node correctly scopes to item altitude and cites the `four-risks` reference. But the body does
+not explicitly name the key item-altitude adaptation: at item altitude, the risks are ALREADY scoped
+past the venture-level question (does this business model work?) to the specific-item question (does
+THIS implementation of THIS solution, for THIS item, work for the business?). SVPG's taxonomy names
+this: the discovery loop kills the venture-level risk; delivery's job is to kill the item-level risk
+(does this specific design decision serve the value proposition we've already validated?). Without
+naming this distinction explicitly, a lens operator could apply the discovery-altitude risk check
+(which would be too broad and redundant with strategy-curator's work) instead of the item-altitude
+check. plan-ceo-review's 0C Dream State Mapping (current → this plan → 12-month ideal) is the
+closest analogue — it keeps the check scoped to the specific plan, not the venture.
+*Recommendation: add a one-sentence clarification to "The check you run — the four risks at the item
+altitude" section distinguishing item-altitude risk (does this specific item's design serve the
+already-validated value proposition?) from discovery-altitude risk (is the value proposition
+itself valid?) — the latter is strategy-curator's job, not product-lens's.*
 
 ## Open questions
 
@@ -312,3 +440,8 @@ back).
   bindings with no edge) — the canvas carries the target-user frame the lens needs; a deeper persona
   read is the discovery loop's job. The operator may later add a personas binding via overlay if a
   harness wants it.
+- **CF-1 through CF-5 (from Challenge findings above) are amendment candidates.** CF-1 (pushback
+  discipline) and CF-2 (SMART outcome bar) are high-severity and should be addressed before the lens
+  runs in a real harness. CF-3 (absent canvas fallback) and CF-4 (post-ship loop naming) are medium-
+  severity and should be addressed in the next amendment pass. CF-5 (item vs discovery altitude
+  distinction) is low-severity and can be addressed in a cleanup pass.

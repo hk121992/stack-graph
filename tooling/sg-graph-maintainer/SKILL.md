@@ -1,6 +1,6 @@
 ---
 name: sg-graph-maintainer
-description: Dev-time tooling for authoring and maintaining nodes in the stack-graph factory. Six modes — new (greenfield node: research-report → synthesise canonical), family (derive N near-identical siblings from a template node, in parallel), reference (author a shared reference — a standard graph/_refs/ reference or a handbook-reference that renders into the handbook), amend (update research-report first, then re-render canonical), validate (schema + judgment check against the 02-graph-spec schema, incl. references/maintains edges, handbook-reference + extends discipline, orphan-maintains sweep), index (scan edge frontmatter across all node files, regenerate the global graph record + handbook-reference page-graph). Reads as instructions to Claude inside a Claude Code session. Use when authoring or maintaining graph nodes in the authoring workspace at graph/<id>/. NOT a runtime skill shipped to product end-users.
+description: Dev-time tooling for authoring and maintaining nodes in the stack-graph factory. Modes — new (greenfield node), family (derive N siblings from a template), reference (author a graph/_refs/ or handbook reference), amend (update research-report then re-render canonical), validate (schema + judgment check), index (regenerate the global graph record). Use when authoring or maintaining graph nodes in the authoring workspace at graph/<id>/. NOT a runtime skill shipped to product end-users.
 ---
 
 # sg-graph-maintainer
@@ -161,6 +161,14 @@ positional arg.
    operator via AskUserQuestion: "Researcher self-assesses coverage: <quote>.
    Proceed to synthesis, send researcher back, or abort?". On "another pass",
    re-dispatch the researcher with a refined scope hint. On "proceed", continue.
+
+   **Challenge a thin external search.** If the summary shows `external_analogue_found: false`
+   or `sources_lifted: 0`, do NOT wave it through. Surface the external-search record explicitly:
+   "No external analogue was lifted. Researcher searched: <external_corpora_searched>. Confirm a
+   real external search was done and no counterpart exists — or send the researcher back to search
+   <named corpus>?" A node authored only from in-repo design docs, with no recorded external
+   search, fails this gate — send the researcher back. (This is the gate that lets a node be
+   challenged against how the job is really done, not just against our own design.)
 6. **Phase 2 — Synthesis.** Dispatch `agents/translator.md` via the Agent tool.
    Input: `{ id, research_report_path, target_node_path: graph/<id>/<id>.md,
    force_rerender: false }`. The translator synthesises the canonical node file from
@@ -620,6 +628,12 @@ validator result is missing required fields):
 - **MUST use imperative voice in node bodies.** The body is the skill/agent
   instructions. Operator-internal references are allowed (contrast: the Be Civic
   corpus customer-facing rule). Plain English; no invented jargon.
+- **MUST author tight language.** The `description` follows the description-shape standard (two
+  parts — what it does + `Use when …`; routing signal; ~200–350 chars); the body follows prose
+  economy (the core test; no throat-clearing; split past ~100 lines). The description loads every
+  session and the body every run — both are standing context cost. Doctrine:
+  `handbook/content/00-overview/03-agent-surfaces.md`. The safety exception always holds (never
+  compress security warnings, irreversible-action confirmations, or order-bearing steps).
 - **MUST declare `primitive:`↔`mode:` consistently.** `skill` ↔ `collaborative`;
   `agent` ↔ `autonomous`. Validate enforces this; synthesis must produce it correctly
   in the first place.
