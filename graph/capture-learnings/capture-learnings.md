@@ -11,11 +11,11 @@ determinism: generative
 # edges — the graph
 # Leaf agent — no composes-into.
 # no-Skill constraint: this must remain an agent (isolated context); see graph-map.md.
-# decisions-store ref is not yet authored (_refs/ absent) — read inline via the path in the
-# graph-record; declared as F7 prose until the ref exists.
+# gbrain is an inline MCP call (mcp__gbrain__query), not a graph edge — per non-nodes table.
 edges:
   references:
     - { id: handbook, load: on-demand, external: true }
+    - { id: decisions-store, load: on-demand }
 # analytics — the loop
 goals:
   - outcome: Each sprint closes with a curated proposals list — durable learnings classified by knowledge home, deduped against what is already recorded.
@@ -24,7 +24,7 @@ goals:
   - outcome: Learnings that are genuinely new and durable are not dropped — the proposals list captures them even if the operator does not act immediately.
     metric: learnings surfaced per sprint that are eventually enacted (over a rolling 3-sprint window); recall-miss rate (learnings the next sprint re-derives that were in a prior proposals list but never enacted).
     earns-keep: re-derivation of prior proposals is flagged and trends down; a learning that recurs across three sprints without enactment is a signal to escalate or drop.
-status: v0.1.0 — 2026-06-01
+status: v0.2.0 — 2026-06-04
 ---
 
 # Capture learnings
@@ -49,6 +49,7 @@ decisions_made: [<string>, ...]       # list of decisions logged this sprint (fr
 metrics_report: <object> | null       # output of measure-outcomes for this sprint, if available
 graph_record: <path>                  # path to graph-record.json (for earns-keep / node goals)
 decisions_store_path: <path>          # path to docs/decisions.md
+learnings_archive_path: <path> | null # the committed prior-proposals archive (the gate's `learnings-archive` surface, D60); null on a first sprint / fresh harness
 ```
 
 ## Procedure
@@ -61,8 +62,10 @@ Read `sprint_summary`, `decisions_made`, and (if available) the `metrics_report`
 Check the knowledge substrate before deriving anything new:
 
 - **Recall (gbrain):** query `mcp__gbrain__query` for the sprint's key topics to find prior
-  learnings. Capability-gated: if gbrain is unavailable, read `decisions_store_path` and
-  Grep the transcript instead.
+  learnings. Capability-gated: if gbrain is unavailable, fall back to the full degraded set —
+  `decisions_store_path`, the prior-proposals archive (`learnings_archive_path`), your `handbook`
+  reference, and a Grep of the transcript — and note in the emitted summary that the duplicate-rate
+  metric is **degraded** without recall (the fallback set is narrower than a gbrain semantic query).
 - **Curated canon:** navigate your `handbook` reference to the relevant pages. Check whether
   a candidate finding is already stated there before proposing it.
 
@@ -83,17 +86,32 @@ Candidate classes:
 | Pattern that should update an earns-keep or goal | canon (node file, gated amend) | operator-reviewed node amend |
 | Workflow improvement / tooling finding | recall or canon depending on scope | as above |
 
-### 3. Dedup
+### 3. Dedup — graduated overlap, not binary
 
-For each candidate, check:
+For each candidate, **score its overlap** against what is already recorded and act on the level —
+do not treat dedup as a binary keep/drop:
 
-1. **Recall check:** is this already in gbrain? If yes, flag `duplicate_recall` and skip
-   unless the new version meaningfully refines it — in which case propose a refinement.
-2. **Canon check:** is this already stated in the handbook or `decisions_store_path`? If yes,
-   flag `duplicate_canon` and skip.
-3. **Prior proposals:** if a prior debrief's proposals list is available (passed in
-   `metrics_report.prior_proposals`), check against it — if the finding recurred without
-   enactment, flag `recurring_unacted`.
+| overlap | meaning | action |
+|---|---|---|
+| **verbatim** | already stated, same substance | skip; flag `duplicate_recall` or `duplicate_canon` by where it was found |
+| **same domain, different angle** | the topic exists but this adds a new facet, condition, or counter-example | propose as a **refinement** (`refinement_of:<prior-id>`), not a fresh learning |
+| **genuinely new** | no prior record covers it | propose as new |
+
+Score against three sources:
+
+1. **Recall (gbrain):** is this in gbrain? (Capability-gated — if absent, the recall arm of the
+   score is degraded; see step 1.)
+2. **Canon:** is this in the `handbook` or `decisions_store_path`?
+3. **Prior proposals:** read the prior-proposals archive at `learnings_archive_path` — the
+   committed `learnings-archive` surface the gate writes (D60); `metrics_report.prior_proposals`
+   is only an optional inline copy. If a finding **recurs there without enactment**, flag
+   `recurring_unacted`. If neither the archive nor the inline copy is present (first sprint /
+   fresh harness), treat the prior set as empty and emit **no** `recurring_unacted` flags —
+   degrade cleanly.
+
+**Supersession check:** also test whether a *new* finding **invalidates** a prior learning (makes
+it wrong, not merely refines it). List those prior ids in `supersedes_candidates` on the proposal
+— a flag for the gate to act on, never a write (D38's homes own enactment).
 
 ### 4. Classify and propose
 
@@ -118,6 +136,7 @@ proposals:
     learning: <one sentence — imperative, general>
     evidence: <one sentence — the sprint moment or metric that grounds it>
     dedup_status: new | refinement_of:<prior-id> | recurring_unacted
+    supersedes_candidates: [<prior-id>, ...] | null  # prior learnings this finding invalidates (a flag for the gate, not a write)
     write_path: <how this gets enacted — recall write at debrief, curator raise, operator node amend>
 skipped:
   - candidate: <short description>
@@ -128,6 +147,11 @@ summary:
   skipped: <N>
   recurring_unacted: <N>
 ```
+
+After the gate filters this list, the **surviving-but-unenacted** proposals are persisted to the
+committed `learnings-archive` surface **by the gate** (`debrief`/`reconcile`), per D60 — that is
+the archive step 3 reads next sprint to detect `recurring_unacted`. You do not write it; you only
+read the prior one.
 
 ## Hard limits
 

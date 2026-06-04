@@ -348,3 +348,28 @@ operator), and the fallback (ask) when invoked without a mode.
   a new required binding key, existing harnesses will fail validate until re-bound. The
   node doesn't address this migration case. Is there a `migrate` mode or does the operator
   run `bind` manually?
+
+## Amendment applied — cluster-E batch (2026-06-04)
+
+Reconciliation (`docs/research-backfill-reconciliation.md` §E) verdicts C1/C2/C3 as **APPLY**;
+**D61** resolves the node's open question on the harness ambient surface. Re-rendered to **v0.2.0**:
+
+- **C1 — crash-window recovery.** Added `scaffold` step 0: detect a half-written harness (bindings
+  present but surface absent; surface present but bindings absent; CLAUDE.md present but bindings
+  absent) and switch to **targeted repair** — complete only the missing artefacts, never error or
+  overwrite. Fixed the old step-3 footgun (blanket "if bindings.yaml exists, switch to `bind`",
+  which abandoned an incomplete surface) to defer to the step-0 partial-state logic.
+- **C2 + D61 — the ambient surface is the org-root `CLAUDE.md`.** Resolved the open question in
+  favour of *yes, there is an ambient file* — already mandated by `04-harness/01-directory-topology`
+  (D42). `scaffold` now writes a **templated** org-root `CLAUDE.md` (handbook-index ambient pointer
+  + bindings-reference pointer + graph-usage nav) from the `bindings-contract` template, idempotently;
+  `validate` checks it exists + reaches the bindings reference + carries the handbook-index pointer
+  (the runtime pre-flight that was missing). **Scope (held):** the be-civic-style session-start
+  self-check is a harness hook/ambient rule, **not** a harness-init mode — explicitly excluded.
+  *Note:* this slightly widens reconciliation C2 (which scoped only `validate`) — scaffold must
+  *write* the file validate checks, else validate guards a file nothing creates (logged in D61).
+- **C3 — load canary.** Added a post-scaffold handoff describing the expected first-message signal
+  when the harness loads correctly (handbook index reachable by name; a bindings-bound node resolves
+  its surface).
+- **D60 key.** `scaffold` step 2 now names the `learnings-archive` binding (the committed
+  prior-proposals surface) in the key set it resolves from `bindings-contract`.

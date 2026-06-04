@@ -253,3 +253,28 @@ The fallback is good, but the **scope of the fallback is narrower than the prima
 - **Should `confidence` be added to proposals?** The gstack /learn schema has it; capture-learnings' priority field is not a substitute. Operator decision. (See CF-6.)
 - **F7 `decisions-store` ref** — pending; will resolve to a `references decisions-store (load: on-demand)` edge once authored.
 - **Overlap-severity rubric** — should this be a referenced schema (a `_refs/` reference) or inline in the agent body? Given that dedup is a core step, a lightweight inline rubric (high/moderate/low with three criteria) may be more appropriate than a separate reference.
+
+## Amendment applied — cluster-E batch (2026-06-04)
+
+Reconciliation (`docs/research-backfill-reconciliation.md` §E) verdicts CF-1/2/4/7 as **APPLY**;
+**D60** settles the proposals-archive home. Re-rendered the canonical to **v0.2.0**:
+
+- **CF-1 — graduated overlap, not binary.** Step 3 dedup is rewritten as a three-level overlap
+  score (verbatim → skip; same-domain-different-angle → propose as `refinement_of`; genuinely-new →
+  propose) run against recall + canon + prior proposals, replacing the binary duplicate/skip.
+- **CF-2 — supersession signal.** Added an optional `supersedes_candidates: [<prior-id>,…] | null`
+  to the proposal schema + a step-3 check for prior learnings the new finding *invalidates* (not
+  just refines). A flag for the gate, never a write (D38 homes own enactment).
+- **CF-4 + D60 — proposals-archive home fixed.** The prior-proposals set is read from
+  `learnings_archive_path` — the **committed `learnings-archive` surface the gate (debrief/reconcile)
+  writes**, per D60 (a proposals list is generative/non-replayable, so it is a committed artefact, not
+  `.stack-graph/`). `metrics_report.prior_proposals` demoted to an optional inline copy. **Fallback:**
+  archive absent → use the inline copy; neither present (first sprint / fresh harness) → empty prior
+  set, no `recurring_unacted` flags — degrade cleanly. Added `learnings_archive_path` to the spawn
+  bundle (the gate resolves the `learnings-archive` binding; the agent stays write-free).
+- **CF-7 — wider no-gbrain fallback.** Step 1 recall-degraded path now reads the prior-proposals
+  archive + `decisions_store_path` + the `handbook` reference (not gbrain alone), and notes the
+  duplicate-rate metric is degraded without recall.
+- **Edge wired.** Dropped the stale F7 comment (`decisions-store` now exists) and added
+  `references: { id: decisions-store, load: on-demand }` — this node is a declared *reader* of the
+  store (`decisions-store.md` §"Read vs write"); on-demand, since it reads for prior context.

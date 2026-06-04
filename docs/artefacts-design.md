@@ -48,6 +48,14 @@ frontmatter-structured / index-derived* pattern to runtime artefacts. *Decision:
 manifest — not a JSON record, not a graph node.* It generalises BC, stays human-navigable and
 renderer-friendly, keeps structured state machine-readable.
 
+The committed/derived line follows one test: **`.stack-graph/` holds only state that is *derived*
+and *replayable* from the event log** (the carrier stage, its traversal sequence); anything
+*generative* and *non-replayable* must be committed. By that test, `capture-learnings`' proposals
+archive — a model-synthesised list the next sprint reads to detect recurrence — is a **committed
+surface** (the `learnings-archive` binding, `workspace/<surface>/learnings/`), **never**
+`.stack-graph/`: gitignoring it would silently destroy cross-sprint recurrence detection on every
+fresh clone (D60).
+
 ## 2. The work-item artefact — authored facts only
 
 **File:** `workspace/<dashboard-surface>/items/<id>.md`. Per `work-item-schema`.

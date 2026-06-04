@@ -354,3 +354,29 @@ with no access to gbrain can understand and act on it." Keep the metric as the e
 - **Consequences field:** Translator should decide whether to add `consequences` to the spawn bundle. ADR best practice (Nygard, Pocock, AWS) strongly suggests it; the node currently omits it. The cost is one more optional field; the gain is a complete record.
 
 - **Caller-filter documentation:** The three-gate discipline (Pocock) belongs in the caller nodes (`design`, `reconcile`, `debrief`), not here. Confirm the callers will document this explicitly so the split responsibility is traceable from both sides.
+
+## Amendment applied — cluster-E batch (2026-06-04)
+
+The reconciliation (`docs/research-backfill-reconciliation.md` §E) verdicts C1/C2/C3 as **APPLY**
+and the now-authored `_refs/decisions-store.md` resolves the open questions above. Re-rendered the
+canonical to **v0.2.0**:
+
+- **Edge wired.** `references: [{ id: decisions-store, load: import }]` replaces the F7-prose
+  comment — `decisions-store.md` exists. `import` (not on-demand) mirrors `harness-init ↔
+  bindings-contract`: the agent writes *against* this contract every run, so the entry shape +
+  supersede-in-place rule + single-writer guarantee are guaranteed-present, not read-when.
+- **C1 + C4 — consequences.** Added optional `consequences: [<string>,…] | null` to the spawn
+  bundle, emitted in **both** layers (the conclusion entry when non-null, and the gbrain reasoning
+  block). Resolves the "no capture path for consequences" gap in one field.
+- **C2 — caller owns significance.** Added a body sentence: the decision to invoke rests with the
+  caller (`design`/`reconcile`/`debrief`); `log-decision` records any settled decision without
+  assessing significance. (The Pocock three-gate filter lives in the callers, not here — per the
+  report's own open question.)
+- **C3 — supersession operationalised** via **option (a)**: on `status: supersedes:<prior-id>`,
+  append a targeted `Superseded by: <new-id>` note **in place** to the prior entry. This is the
+  store's documented supersede-in-place convention (`decisions-store.md` §"Supersede in place"), an
+  in-place annotation, **not** a reorder — so the hard limit is refined from "do not reorder or edit"
+  to "do not reorder; the only permitted edit to a prior entry is this back-annotation."
+- **C5/C6 (LOW)** left as-is: C5's query/index model belongs to `decisions-store` (it now names the
+  entry shape; a full index is deferred — no lookup need at this scale); C6's self-containedness stays
+  a formatting constraint + retrospective metric.
