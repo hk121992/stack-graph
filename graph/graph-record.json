@@ -1,9 +1,9 @@
 {
-  "generated": "2026-06-04T21:10:46Z",
+  "generated": "2026-06-05T10:05:00Z",
   "node_count": 31,
-  "reference_count": 20,
+  "reference_count": 21,
   "handbook_reference_count": 0,
-  "edge_count": 153,
+  "edge_count": 155,
   "nodes": {
     "align-context": {
       "primitive": "skill",
@@ -77,6 +77,10 @@
           },
           {
             "id": "carrier-interface",
+            "load": "on-demand"
+          },
+          {
+            "id": "test-discipline",
             "load": "on-demand"
           }
         ],
@@ -450,6 +454,12 @@
           {
             "id": "dev-sprint",
             "stage": "plan"
+          }
+        ],
+        "references": [
+          {
+            "id": "test-discipline",
+            "load": "on-demand"
           }
         ]
       }
@@ -1155,6 +1165,15 @@
         "spec-diff"
       ]
     },
+    "test-discipline": {
+      "kind": "reference",
+      "title": "Test discipline \u2014 the test-quality standard",
+      "status": "v0.1.0 \u2014 2026-06-05",
+      "consumed_by": [
+        "build",
+        "lens-tests"
+      ]
+    },
     "vpc-schema": {
       "kind": "reference",
       "title": "Value Proposition Canvas \u2014 schema",
@@ -1253,6 +1272,12 @@
     {
       "from": "build",
       "to": "carrier-interface",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "build",
+      "to": "test-discipline",
       "type": "references",
       "load": "on-demand"
     },
@@ -1585,6 +1610,12 @@
       "to": "dev-sprint",
       "type": "composes-into",
       "stage": "plan"
+    },
+    {
+      "from": "lens-tests",
+      "to": "test-discipline",
+      "type": "references",
+      "load": "on-demand"
     },
     {
       "from": "log-decision",

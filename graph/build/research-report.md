@@ -11,6 +11,8 @@ amended:
     note: "Reconciliation fold-in — CF-1..CF-6 marked ACCEPTED/APPLY with resolutions (per docs/research-backfill-reconciliation.md A-cluster); D57 single-agent-implementable IU + tokens_per_iu emission folded into Contract + body-relevant sections; serial mode re-framed to one-IU-one-fresh-context default. CF-7 (low) left as-is. IU-schema now carries acceptance_check + the single-agent invariant (v0.2.0)."
   - date: 2026-06-04
     note: "Incremental-arc amend (D56, docs/incremental-improvement-design.md §4/§8.5/§9-R4) — build is now REUSED across two arcs. Added composes-into {incremental, stage: build} (second arc) + references carrier-interface (on-demand). Body gained an 'Incremental arc — build mode' section: the tracer-bullet inner loop (TRACER BULLET → INCREMENTAL → REFACTOR → DONE, vertical-not-horizontal + minimal-code rules, non-code analogue), the slice_type: HITL pause, and carrier consumption via the carrier-interface (reads carrier_kind/arc; standalone fields only behind a carrier_kind check; unit-complete + stage events carrier-keyed by id+kind+arc). Dev-sprint behaviour unchanged; review→build fix loop reused as-is. Node bumped v0.1.0 → v0.2.0."
+  - date: 2026-06-05
+    note: "test-discipline reference wiring — added references: test-discipline (load: on-demand). The Pocock-derived test-quality standard (graph/_refs/test-discipline.md) now governs the SHAPE of the tests build writes; build owns the RED→GREEN→REFACTOR ORDER, the reference owns test quality. Body gained a 'Test shape — test-discipline' bullet in the tracer-bullet loop. Surgical edge+pointer amend (not a full re-render); loop mechanics unchanged."
 sources_lifted: 5
 external_analogue_found: true
 external_corpora_searched:
@@ -149,6 +151,7 @@ This is the **complete** edge set (both arcs) so a re-render does not drop pre-e
 | references | IU-schema (`load: import`) | the IU-schema governs every implementation unit build consumes; must always be present |
 | references | instrumentation-preamble (`load: import`) | build-level injection; consistent with sibling node treatment (design.md, specify.md) |
 | references | carrier-interface (`load: on-demand`) | **(D56)** the explicit field-set a reused node may assume — build reads `carrier_kind`/`arc` and the standalone fields only behind a `carrier_kind` check; consumed on-demand, not always-present |
+| references | test-discipline (`load: on-demand`) | the test-quality standard governing the shape of the tests build writes (behaviour through public interfaces, mock at boundaries); read at the test-writing step, not always-present. build owns the RED→GREEN→REFACTOR order; the reference owns test quality |
 | can-follow | review | fix loop: a review finding triggers review→build re-entry. **REUSED for the incremental arc unchanged** — the same review→build corrective loop serves both arcs (no new edge) |
 | can-follow | reconcile | rework loop: a reconcile rework decision triggers reconcile→build re-entry (dev-sprint only) |
 | precedes | review | build hands off to review after stage-complete (both arcs) |
