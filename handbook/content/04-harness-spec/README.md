@@ -116,17 +116,30 @@ node grows them in the harness overlay and reaches them by a stable `external: t
 edge (the manifest) and `invokes` edges (scripts) — so the node body never changes, only the
 manifest and scripts grow. New or changed ones are gated at `reconcile`, like any other change.
 
+The **measure-vs-baseline family** (`canary`, `benchmark`, `health`) is the worked case. Each
+writes its **crystallisation manifest** harness-local on its first run — the product's pages,
+performance budgets, quality bars, and prior baseline (`benchmark-manifest`, `health-manifest`,
+the canary equivalent) — and replays deterministically against it thereafter. These manifests are
+**never vendored**: they are product-specific by definition, so the factory ships only the
+vendored node's pointer and the manifest lives in the harness overlay
+([`graph-spec`](../02-graph-spec/README.md) — References).
+
 ## Harness-supplied surfaces
 
 A harness contributes several surfaces beyond nodes and edges. These are harness-local state
 and configuration that the factory graph depends on but cannot supply — they are product- or
 workspace-specific by definition.
 
+The experience thread consumes its two harness-supplied inputs through named **binding keys** —
+`personas` and `experience-contract` (the binding contract is in the
+[directory topology](01-directory-topology.md)). The vendored experience-thread nodes declare
+these keys as required; the harness supplies the values.
+
 - **Personas** — a function-owned surface (typically maintained under the function's own
-  node-bundle) that the experience thread consumes to drive scenario simulation. The function
-  that owns the product's target-user definitions maintains personas; the experience thread
-  reads them as an `external: true` reference. Personas are not an experience-thread artefact
-  — they are a cross-thread input to it.
+  node-bundle) that the experience thread consumes to drive scenario simulation, supplied
+  through the **`personas`** binding key. The function that owns the product's target-user
+  definitions maintains personas; the experience thread reads them as an `external: true`
+  reference. Personas are not an experience-thread artefact — they are a cross-thread input to it.
 
 - **Maturity posture** — harness-local state recording the current rigour level of the
   process. The maturity × tier dial ([`concepts`](../01-concepts/README.md)) sets default
@@ -134,11 +147,13 @@ workspace-specific by definition.
   that dial, not a factory-supplied default.
 
 - **Experience contract** — the harness-supplied intended-experience specification that the
-  experience thread grades against. It declares the UX invariants and named failure modes the
-  product must hold, plus the AX budgets (tokens, latency, intended tool-path). It is an
-  `external: true` reference consumed by the experience-thread nodes; the factory ships the
-  pointer, the harness supplies the target. Its content is product-specific and therefore
-  always local — a factory node could not author it.
+  experience thread grades against, supplied through the **`experience-contract`** binding key.
+  It declares the UX invariants and named failure modes the product must hold, plus the AX
+  budgets (tokens, latency, intended tool-path). It is an `external: true` reference consumed by
+  the experience-thread nodes; the factory ships the pointer, the harness supplies the target.
+  Its content is product-specific and therefore always local — a factory node could not author
+  it. `simulate-users` grades the product run against it and emits the
+  `experience-contract:<pass|fail>` UX-conformance gate ([`analytics`](../06-analytics/README.md)).
 
 ## Namespacing
 

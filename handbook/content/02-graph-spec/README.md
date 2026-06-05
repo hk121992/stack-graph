@@ -101,6 +101,13 @@ every loop rides a process edge. **`escalates` is the process-class exception: i
 acyclic** — a cross-arc exit hands work off, it never returns along the same edge, so it can never
 form a loop.
 
+The canonical dev-sprint arc is **`align-context → design → specify → plan → build → review →
+verify → reconcile → land → debrief`**. **`verify`** sits between `review` and `reconcile`: it
+proves the built change against its *running* behaviour before it lands, dispatching its
+verification modalities (`qa`, `design-review`, `simulate-users`) and surfacing a single
+verification gate — mirroring `review`'s lens dispatch but over the running build rather than the
+diff. It carries a corrective `can-follow → review` loop, like every other backbone re-entry.
+
 **Cyclic-edge discipline.** Happy-path forward flow is expressed with **`precedes`** (declared on
 the source node). **Corrective loops and re-entries use `can-follow`**, and every `can-follow`
 edge must carry three things: an **exit criterion** (the condition under which the loop terminates
@@ -258,6 +265,15 @@ the harness supplies the target. Validation and the build skip an external refer
 no factory file to resolve or single-source. This is **overlay resolution, not `{{token}}`
 injection**: the body carries a stable "follow your `handbook` reference", and the overlay
 binds what it points at (a path / index) — the binding is harness config, never a body splice.
+
+The **measure-vs-baseline family** (`benchmark`, `health`, `canary`) is the worked case of an
+`external: true` manifest. On its **first run** a node in this family reasons generatively to work
+out the specific product (its pages, budgets, quality bars, thresholds) and **crystallises** that
+judgment into a harness-local manifest (`benchmark-manifest`, `health-manifest`, …); every later run
+**replays deterministically** against that crystallised baseline. The node reaches its manifest by a
+stable `external: true` `references` edge — the factory ships only the pointer, the harness holds the
+content — so the node body never changes, only the manifest grows. The manifest is **never vendored**
+([analytics](../06-analytics/) — Crystallization; [harness-spec](../04-harness-spec/)).
 
 Shared content destined for a spawned **agent** (e.g. a lens's finding contract) is passed by
 the orchestrator into the agent's **spawn prompt**, not imported by the agent — the orchestrator

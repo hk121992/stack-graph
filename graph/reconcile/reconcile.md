@@ -4,7 +4,7 @@ id: reconcile
 primitive: skill
 title: Reconcile
 description: Close the spec-reality gap after build and review — compute the diff, hold the operator-driven adjudication (amend-spec vs fix-build vs accept), apply the chosen path, and surface the commit-to-land gate. Modes — draft (compute the diff) / adjudicate (operator decides) / enact (apply the path).
-when-to-use: The build and review spans are complete and the change must be verified against its spec touchpoints before landing — either as part of the dev-sprint backbone or standalone.
+when-to-use: The build, review, and verify spans are complete and the change must be checked against its spec touchpoints before landing — either as part of the dev-sprint backbone or standalone.
 # classification — graph lens
 mode: collaborative
 determinism: generative
@@ -12,8 +12,13 @@ determinism: generative
 # Process edges — backbone wiring pass (wave 1c):
 #   precedes land      — wired (happy-path forward edge)
 #   can-follow land    — wired (revert loop: land→reconcile)
-# Removed in normalization pass: can-follow review (redundant — review precedes reconcile);
-# precedes build (redundant — build can-follow reconcile declares the rework loop).
+# Inbound: the happy-path forward edge `verify → reconcile` lives on VERIFY's frontmatter
+# (verify-stage insertion 2026-06-05; reconcile declares no inbound edge). reconcile models no
+# revert loop to its predecessor, so no `can-follow verify` is added — the only `can-follow` is
+# the downstream land→reconcile revert.
+# Removed in normalization pass: can-follow review (redundant — the upstream forward edge is
+# declared on the predecessor's side); precedes build (redundant — build can-follow reconcile
+# declares the rework loop).
 edges:
   invokes:
     - { id: spec-diff }
@@ -45,11 +50,12 @@ status: v0.2.0 — 2026-06-04
 
 # Reconcile
 
-You are the post-review, pre-land stage of the dev-sprint. You close the **spec-reality
-gap**: compute the diff between what the spec said should be built and what was actually
-built, hold the operator through adjudication of any drift, apply the chosen resolution
-path, and surface the **commit-to-land** gate. You own the **`reconcile → build` rework
-loop** on the fix-build path.
+You are the post-verify, pre-land stage of the dev-sprint — the backbone runs
+`… → review → verify → reconcile → land → …`, so you are reached after the running build has
+been proven at `verify`. You close the **spec-reality gap**: compute the diff between what the
+spec said should be built and what was actually built, hold the operator through adjudication
+of any drift, apply the chosen resolution path, and surface the **commit-to-land** gate. You
+own the **`reconcile → build` rework loop** on the fix-build path.
 
 You are a **secondary canon-author**: when the amend-spec path is chosen, you raise a
 labelled spec amendment PR into the same queue that `specify` uses. You do not integrate
@@ -70,14 +76,15 @@ reached *after* you. Your completion is what moves the item to that gate; the ca
 
 ## When to invoke
 
-Invoke after the review span is complete and its findings triaged. The operator passes the
-**mode token** (`draft` / `adjudicate` / `enact`) and a pointer to the **build artefacts**
-(a diff or the changed files). Default to running all three modes in sequence when no
-token is given — most reconcile sessions run the full arc.
+Invoke after the **verify** span is complete — the running build has been proven and its
+findings triaged. The operator passes the **mode token** (`draft` / `adjudicate` / `enact`)
+and a pointer to the **build artefacts** (a diff or the changed files). Default to running all
+three modes in sequence when no token is given — most reconcile sessions run the full arc.
 
-The upstream seam (`review → reconcile`) and the downstream seam (`reconcile → land`)
-are process edges wired in the backbone process-edge pass (F7); the flow holds in prose:
-reconcile follows review, land follows reconcile.
+The upstream seam (`verify → reconcile`, the happy-path forward edge declared on verify's
+side) and the downstream seam (`reconcile → land`, declared here) place reconcile in the
+backbone as `… → review → verify → reconcile → land → …`: reconcile follows verify, land
+follows reconcile.
 
 ## Phase 1 — Draft: compute the diff (`draft` mode)
 
@@ -212,11 +219,10 @@ For findings adjudicated as `fix-build`:
 1. **Produce a rework brief** — the specific gaps the build must close, expressed as
    concrete implementation requirements.
 2. **Re-enter `build`.** Hand off the rework brief as the build's new input. The
-   `reconcile → build` rework loop is a `can-follow` process edge wired in the backbone
-   process-edge pass (F7); the behaviour holds in prose: reconcile re-enters build when
-   the fix-build path is taken.
-3. After build completes and review re-runs, reconcile is invoked again (starting at
-   `draft` mode). The loop is **bounded**:
+   `reconcile → build` rework loop is the `build can-follow reconcile` process edge declared
+   on **build's** frontmatter; reconcile re-enters build when the fix-build path is taken.
+3. After build completes and review + verify re-run over the corrected change, reconcile is
+   invoked again (starting at `draft` mode). The loop is **bounded**:
    - **Max-pass bound — 2 fix-build passes.** Before re-entering build for a **third** pass,
      stop and escalate.
    - **Gap-recurrence criterion.** A gap **recurs** when the **same spec touchpoint + status**
@@ -245,18 +251,22 @@ resolved) and confirm to the operator that the change is ready for the gate. The
 gate decision — advancing `lifecycle_state` from `in-delivery` to `shipped` and recording
 the `gate_decision` entry — is the PM / operator's call, not yours.
 
-## Process seams (deferred edges — F7)
+## Process seams
 
-These inter-stage process edges are wired in the backbone process-edge pass once all
-backbone stages exist. They are described here in prose; no edge is declared to a
-non-existent node.
+The inter-stage process edges are now wired across the backbone (the verify-stage insertion,
+2026-06-05, placed reconcile after `verify`). They are summarised here in prose; each edge is
+declared on the appropriate node's frontmatter.
 
-- **← `review`** (`can-follow`, deferred): reconcile follows review; it consumes the
-  reviewed artefacts and the triaged findings the review span produced.
-- **→ `land`** (`precedes`, deferred): on a clean or all-accepted diff, reconcile
+- **← `verify`** (`precedes`, declared on **verify's** side): reconcile follows verify; it
+  consumes the proven build, the reviewed artefacts, and the triaged findings the upstream
+  review and verify spans produced. (The former `← review` seam is superseded — `verify` now
+  sits between review and reconcile on the happy path.)
+- **→ `land`** (`precedes`, declared here): on a clean or all-accepted diff, reconcile
   surfaces the commit-to-land gate and the work moves to `land`.
-- **→ `build`** (`precedes`, rework loop, deferred): on the fix-build adjudication path,
-  reconcile re-enters `build`; the loop is bounded with an escalation path.
+- **→ `build`** (rework loop): on the fix-build adjudication path, reconcile re-enters
+  `build`; the loop is bounded with an escalation path. The re-entry is the `build can-follow
+  reconcile` edge declared on **build's** side, so reconcile declares no outbound `precedes
+  build`.
 
 ## Output
 

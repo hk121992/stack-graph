@@ -2,7 +2,7 @@
 title: Decomposition principles
 type: reference
 read-when: Deciding how to break an arc into nodes, edges, and inline elements.
-related: [graph-spec, maintenance-skill, concepts]
+related: [graph-spec, maintenance-skill, analytics, concepts]
 ---
 
 # Decomposition principles
@@ -149,10 +149,45 @@ Recurring shapes a pack composes from:
   check) is a **lens**, routed by the context axis: a prompt-describable isolated examination is
   an **agent**; one that needs the live thread, the operator, or a browser is a **skill**. A lens
   composes into the stage(s) it serves; it does not own the arc.
-- **A thread.** A concern that spans an arc — defining an intent up front, verifying it later —
-  is a **thread**. The experience thread is the worked case: an **experience-contract** reference
-  authored at design, a verification **agent** that runs it at verify, and a fix-loop back to
-  build. Named for spanning the arc, not for being one.
+- **An orchestrator-over-modalities.** A stage that *proves* something dispatches a **family of
+  modalities** and consolidates their verdicts behind one gate — the same shape as a review cell
+  dispatching its lenses, but the units are verification modalities rather than review dimensions.
+  The **`verify` span** is the worked case: the `verify` skill dispatches `qa` (browser
+  behaviour), `design-review` (visual), and `simulate-users` (agent experience), consolidates
+  their findings into one ranked set, surfaces a single verification gate, and owns the corrective
+  loop back to `build`. The orchestrator owns the stage; each modality is its own node routed by
+  the context axis.
+- **A thread.** A concern that spans an arc — defining an intent up front, realising or verifying
+  it later — is a **thread**. Two worked cases:
+  - The **experience thread**: an **experience-contract** reference authored at design, a
+    verification node (`simulate-users`) that runs it at verify, and a fix-loop back to build.
+  - The **visual-design thread**: `design-shotgun` (explore variants) composes into **design**;
+    `design-implement` (realise the chosen direction in the build) composes into **build**. One
+    intent — the visual direction — picked up early and realised later, spanning the arc.
+
+  Named for spanning the arc, not for being one.
+
+### Discovery as curator modes, not a separate arc
+
+A product-discovery loop (define the strategy, simulate users to test it, reprioritise on the
+result) is **not** a new arc — it is **modes on the strategy-curator** over the same carriers and
+gates. The discovery loop closes through the curator's reads of shared authored homes (a debrief
+records outcome evidence; the curator sweeps it), not through a dedicated discovery traversal.
+Decompose discovery by giving the curator the modes it needs, not by inventing an arc parallel to
+the dev sprint.
+
+### Core vs PM-pack placement
+
+The method-agnostic **core** names no function's method; a **pack** carries it. For the product
+function, place by that line:
+
+- **Core** — the carrier, lifecycle-state, the maturity × tier dial, and the outcome layer (the
+  declared-objective-vs-measured-outcome gap the loop reprioritises on). These hold for any
+  process and name no PM method.
+- **PM-pack** — the SVPG spine (the discovery/delivery shape), Strategyzer (the
+  value-proposition / business-model canvases), the four-risks frame, and the `product-lens`.
+  These are *one* function's method over the core; a function with a different method is a
+  different pack over the same core, never a core change.
 
 ## Stay process-agnostic
 
