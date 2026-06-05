@@ -8,6 +8,7 @@
       "graph-spec",
       "devops",
       "concepts",
+      "decomposition",
       "plugin-spec",
       "harness-spec",
       "analytics/recall-substrate",
@@ -46,6 +47,7 @@
     "related": [
       "graph-spec",
       "maintenance-skill",
+      "analytics",
       "concepts"
     ]
   },

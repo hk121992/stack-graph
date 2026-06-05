@@ -3,9 +3,10 @@ title: Research report for simulate-users
 type: research-report
 status: complete
 authored: 2026-06-01
-last_updated: 2026-06-01
+last_updated: 2026-06-05
 amended:
   - { date: 2026-06-01, note: "Experience-thread carve-out (docs/experience-thread-design.md). DROPPED the four-risks reference + framing — simulate-users is the experience thread's verification node, NOT a PM/discovery evidence source; it grades against the experience contract, not the four product risks. ADDED the AX (agent-experience) dimension: alongside UX grading (output vs the contract's invariants + failure modes), the node now also MEASURES the product agent's traversal — tools used, friction/backtracking, tokens-to-outcome and latency/steps-to-outcome — with the optimise framing (same outcome, fewer tokens, faster). One run now returns BOTH a UX verdict and an AX profile. Revised goals to cover UX + AX (added the traversal-cost/friction AX outcome; reframed the value/usability-discovery goal as UX-contract grading). Kept experience-contract + personas externals and tier-1/tier-2 modes. Touched: Identity, Goals, Primitive/Mode rationale, Contract, Source inventory, Keep/Drop, Edges, Conformance, Open questions." }
+  - { date: 2026-06-05, note: "Re-home into the verify stage + wire AX into the analytics pipeline (amend, targeted Edits, no regen). THREE edges added/cleared. (1) composes-into dev-sprint stage:verify — the F7 deferral ('verify stage doesn't exist') is CLEARED: the `verify` skill now exists, invokes simulate-users, and composes-into dev-sprint stage:verify; the frontmatter comment is updated from 'deferred' to 'declared'. simulate-users still authors NO inbound invokes (verify holds the invokes edge). (2) references experience-contract-schema (load: on-demand) — the factory _refs/ SHAPE this node grades the run BY, paired with the harness-filled experience-contract EXTERNAL it grades AGAINST (the vpc-schema/bmc-schema schema+overlay pairing; resolves the report's open question 'an experience-contract schema — flagged for the operator'). Existing experience-contract + personas externals KEPT. (3) references instrumentation-preamble (load: import) — added so the node emits enter/exit events (the qa/design-review verify-sibling pattern). BODY: new 'Instrumentation' section — the product run's AX profile attaches as the `ax` aggregate object on the node-exit event in the allowlisted numeric shape the analytics AX axis projects (tokens_to_outcome, duration_ms/latency_ms, steps/steps_to_outcome, tool_calls, backtracks; plus extras like tool_path_breadth Wave 3 registers); publisher reads only allowlisted numeric keys so narrative/tool-path-order stays in the returned profile, not in `ax`; tier-1 estimate vs tier-2 measured. UX-conformance emitted as a gate experience-contract:<pass|fail> in the exit event's gates[]. New D38 section: a CONSISTENTLY-failing persona (mis-targeted-segment/unmet-need signal, not a one-off bug) is returned with a proposed route and reaches the PM surface via debrief/measure-outcomes recording to a swept authored home the strategy-curator sweeps — NOT by writing a curator, NOT via a typed edge; NO edge to strategy-curator added (D38 shared-home pattern, mirrors debrief). Spawn-bundle item 2 + the 'route durable gaps' bullet + Output item 3 tightened to cross-reference. status v0.1.0→v0.2.0. Edges after amend: composes-into dev-sprint(verify); references experience-contract(ext)/experience-contract-schema/personas(ext)/instrumentation-preamble(import). Touched: Edges frontmatter+comment, status, Read-your-spawn-bundle, shared-method bullet, Output, +2 new body sections." }
 sources_lifted: 5
 researcher_adequacy_note: |
   AMENDED 2026-06-01 for the experience-thread carve-out. The original five Be Civic
@@ -447,3 +448,52 @@ file remains for other consumers, but this node no longer points at it).
   tool-path); BC's "Experience Arc" is the UX half. If the spec later fixes a different general
   term, the external reference id may need renaming; flagged so the vocabulary stays consistent
   with 04-harness / the directory topology when those settle.
+
+## Amendment — 2026-06-05: re-home into verify + AX into analytics
+
+Three open questions above are now **resolved** by built siblings; this amend wires them in
+(targeted Edits, no regen).
+
+- **Re-homed into the `verify` stage (F7 deferral cleared).** The `verify` skill now exists,
+  invokes simulate-users, and composes-into `dev-sprint` at `stage: verify`. So this node now
+  declares `composes-into: { id: dev-sprint, stage: verify }` and its frontmatter comment moves
+  from "deferred per F7 (verify stage doesn't exist)" to "declared". It still authors **no**
+  inbound `invokes` — `verify` holds the invokes edge on its side, mirroring how `review` holds
+  the invokes to its lens agents. This closes the *Overlaps and seams* "composes into the
+  dev-sprint at the verify span (deferred per F7)" item.
+
+- **The experience-contract schema is now authored — adopted (resolves the open question
+  above).** The factory now ships `graph/_refs/experience-contract-schema.md` (the shape:
+  session-shape invariants + failure modes + AX budgets + intended tool-path + evidence state).
+  simulate-users now carries the **two-reference pairing** the open question recommended: the
+  factory `experience-contract-schema` (`load: on-demand`) it grades the run **by**, and the
+  harness-filled `experience-contract` (`external: true`) it grades **against** — the same
+  `vpc-schema`/`bmc-schema` schema-plus-overlay pattern `strategy-curator` uses. The operator
+  decision is taken.
+
+- **AX measurement now emits into the analytics pipeline (the real integration gap closed).**
+  The node imports `instrumentation-preamble` (the qa/design-review verify-sibling pattern) and
+  attaches the product run's **AX profile as the `ax` aggregate object on its node-exit event**,
+  in the **allowlisted numeric shape** `publish-projection.ts` projects on the analytics AX axis:
+  `tokens_to_outcome`, `duration_ms` / `latency_ms`, `steps` / `steps_to_outcome`, `tool_calls`,
+  `backtracks` — plus any extra numeric metric the contract names (e.g. `tool_path_breadth`,
+  registered in Wave 3). The publisher reads **only** allowlisted numeric keys and never spreads
+  `ax` verbatim, so the ranked-friction narrative and tool-path order stay in the returned
+  profile, not on the event. This is the concrete wiring of the *Overlaps and seams* "AX is the
+  product-facing instance of the factory's own traversal instrumentation" claim — same exit-event
+  shape, pointed at the product's run. The node also emits the **UX-conformance** verdict as a
+  gate `experience-contract:<pass|fail>` in the exit event's `gates[]`.
+
+- **Experience → PM feedback confirmed as D38 (no edge added).** The *Overlaps and seams*
+  "Experience → PM feedback (via `debrief`, not an edge here)" seam is now stated in the body: a
+  **consistently-failing** persona (a mis-targeted-segment / unmet-need signal, not a one-off
+  bug) is returned with a proposed route and reaches the PM surface via `debrief` /
+  `measure-outcomes` recording it to a **swept authored home** the `strategy-curator` reads — not
+  by this node writing a curator and **not** via a typed edge. **No edge to `strategy-curator`
+  was added** (D38 shared-home pattern, exactly as `debrief` holds no curator edge). The
+  *Open questions* "Experience → PM feedback edge mechanics" item resolves to: no edge, shared
+  home via `debrief`.
+
+`agent` / `autonomous` / `generative` unchanged. Edges after this amend: `composes-into`
+dev-sprint(verify); `references` experience-contract(external) / experience-contract-schema /
+personas(external) / instrumentation-preamble(import). status v0.1.0 → v0.2.0.

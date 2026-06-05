@@ -2,7 +2,7 @@
 title: Analytics & instrumentation
 type: spec
 read-when: Specifying or implementing how usage, outcomes, and arc-conformance are measured.
-related: [graph-spec, devops, concepts, plugin-spec, harness-spec, analytics/recall-substrate, harness-spec/directory-topology]
+related: [graph-spec, devops, concepts, decomposition, plugin-spec, harness-spec, analytics/recall-substrate, harness-spec/directory-topology]
 ---
 
 # Analytics & instrumentation
@@ -46,11 +46,26 @@ Locality).
 ```json
 { "ts": "<ISO>", "session": "<id>", "kind": "enter|exit|gate|traverse",
   "node": "<node-id>", "from": "<node-id>", "to": "<node-id>",
-  "arc": "<arc-id>", "outcome": "<string>", "gate": "<name:pass|fail>" }
+  "arc": "<arc-id>", "outcome": "<string>", "gate": "<name:pass|fail>",
+  "ax": { "<metric>": <number> }, "metrics": { "<series>": <number> } }
 ```
 
 `node` is present on `enter`/`exit`/`gate`; `from`+`to` on `traverse` (resolving to an
 edge). `arc` is the traversal context when one is active.
+
+A `node-exit` event may carry two **optional** numeric aggregates alongside the outcome:
+
+- **`ax`** — an agent-experience aggregate, attached by an experience-verification node
+  (`simulate-users` emits its product-run profile here — tokens-to-outcome, latency,
+  steps, tool-calls, `tool_path_breadth`). See *Experience-thread measurement*.
+- **`metrics`** — named scalar **trend measurements** for the run (e.g.
+  `{ "benchmark.perf": 2100 }`, `{ "health.quality": 8.6 }`). This is the
+  metric-trends-vs-earns-keep channel: a measure-vs-baseline node records the number it
+  produced so the projection can plot its slope over time.
+
+Both are read by a **closed numeric allowlist** at projection time, never spread verbatim —
+a non-allowlisted or non-numeric key is dropped (the sanitisation boundary, below). The
+instrumentation preamble (v0.3.0) documents both slots.
 
 ## Binding events to the graph
 
@@ -87,6 +102,42 @@ The **consistency-checker** is the best-effort **semantic backstop** that runs a
 structural gate has passed — it flags subtler contradiction (a local entry restating or
 logically contradicting an sg claim). It is a quality signal, not a gate; the three
 structural checks above are the conformance mechanism.
+
+### Two senses of "conformance"
+
+The word covers two distinct, deterministic checks — keep them apart:
+
+- **Graph-path conformance** — the observed traversal checked against an arc's declared
+  `precedes` / `can-follow` edges (above). It measures *how the agent moved through the
+  graph*: transitions on or off the authored `precedes` path, skipped gates, re-entries.
+  The subject is the traversal.
+- **Experience-contract (UX) conformance** — the product's *output* graded against the
+  harness-supplied **experience contract** (*Experience-thread measurement*, below). It
+  measures *what the user received*, not how the agent got there. The subject is the result.
+
+Both are emitted as gate tokens and tallied; neither is model judgment.
+
+## The rendered analytics surface
+
+The projection publisher reads the event log and emits a sanitised snapshot the analytics
+surface renders along **three axes**:
+
+- **Node-activity / AX** — per-node usage (last-used, traversals) and the allowlisted `ax`
+  agent-experience aggregate.
+- **Metric-trends** — the `trends` section: each allowlisted `metrics` series plotted over
+  time so its slope reads against the node's earns-keep window. The series allowlist is
+  **closed** — currently `benchmark.perf` (the measure-vs-baseline performance trend) and
+  `health.quality` (the code-quality trend). A `metrics` key outside the allowlist is
+  dropped; a non-numeric value is dropped.
+- **Conformance** — a `conformance.experience_contract` pass/fail **tally**. The publisher
+  counts the `experience-contract:<pass|fail>` exit-gate token (emitted by `simulate-users`,
+  *Experience-thread measurement*) — a **count only**, never the gate strings or any contract
+  body. This is the experience-contract UX-conformance sense above, surfaced as a running
+  tally; graph-path conformance is the separate traversal check.
+
+The sanitisation boundary holds across all three: the publisher reads numbers and gate-token
+counts against closed allowlists, never narrative, contract text, or arbitrary keys (the
+same locality and projection discipline as the carrier-state projection below).
 
 ## Earns-its-keep
 
@@ -217,7 +268,10 @@ points). The optimisation target is the same outcome for fewer tokens, faster.
 contract** — the invariants, named failure modes, and success criteria the product must
 satisfy. This is distinct from AX: AX measures the traversal (how the agent got there);
 UX conformance grades the result (what the user received). Both are deterministic checks
-against declared specifications.
+against declared specifications. `simulate-users` emits the UX-conformance verdict as an
+`experience-contract:<pass|fail>` exit-gate token; the publisher tallies it into
+`conformance.experience_contract` (*The rendered analytics surface*) — a count, never the
+contract body.
 
 ## The knowledge substrate
 

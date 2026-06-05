@@ -8,6 +8,7 @@
     "build:handbook": "bun run build-handbook.ts",
     "build:graph": "bun run build-graph.ts",
     "build:dashboard": "bun run build-dashboard.ts",
-    "publish:projection": "bun run publish-projection.ts"
+    "publish:projection": "bun run publish-projection.ts",
+    "test:publish": "bun run publish-projection.test.ts"
   }
 }

@@ -3,13 +3,27 @@ title: Research report for debrief
 type: research-report
 status: complete
 authored: 2026-06-01
-last_updated: 2026-06-04
+last_updated: 2026-06-05
 amended:
   - date: 2026-06-03
     note: External analogue backfill — gstack /retro, be-civic sprint-close docs, CE ce-sessions lifted; challenge findings section added; all template sections populated; frontmatter extended with external_analogue_found, external_corpora_searched, sources_lifted, researcher_adequacy_note.
   - date: 2026-06-04
     note: >-
       Tier-1 amend batch 2 — closed CF-1 (verdict-evidence schema authored into the work-item file per artefacts-design §2/§5), CF-2 (ratify sub-step in learn for in-sprint design divergences), CF-3 (prior verdict in the capture-learnings spawn bundle + explicit trend-delta surfacing, wiring measure-outcomes' existing baseline/trend mechanism), CF-4 (target_sprint + priority(+rationale) added to the proposals contract; owner unchanged per D40), CF-5 (capability-gated recall-query preflight before capture-learnings, falling back if gbrain absent per D31), and the measure-outcomes CF-1 residual that lands on debrief (debrief persists its metrics report to a stable baseline path the next sprint's measure-outcomes reads). Resolutions recorded in the "Amendment resolutions (2026-06-04)" section; Open questions updated. Verdicts + actions from docs/research-backfill-reconciliation.md cluster-B debrief rows + cluster-C measure-outcomes CF-1.
+  - date: 2026-06-05
+    note: >-
+      Trend-reads + PM-loop-close amend (v0.4.0). Added two invokes — benchmark + health — so
+      measure reads the crystallising perf (benchmark.perf slope) and quality (health.quality
+      composite) trend series at close, surfacing direction-of-travel alongside the outcome
+      verdict (new measure step 2; both degrade cleanly to "no trend yet"). Closed the PM
+      discovery loop the LOCKED D38 way — through shared authored homes, NOT a curator edge:
+      seed-next now WRITES the shipped-outcome → strategy-hypothesis confirm/kill evidence (to
+      the work-item record outcome fields + docs/decisions.md + gbrain recall, where
+      strategy-curator's assess reads it) and the reprioritise signal (to the work-item record +
+      docs/decisions.md, where product-dashboard-curator's reprioritise reads it). NO
+      invokes/precedes/references edge to either curator was added — the D38 sentence is preserved
+      and strengthened; the change makes debrief actually author the confirm/kill + reprioritise
+      content the curators already sweep. Resolutions in "Amendment resolutions (2026-06-05)".
 sources_lifted: 4
 external_analogue_found: true
 external_corpora_searched:
@@ -341,5 +355,61 @@ the metrics report a view, not a second source of truth.
 ## Open questions
 
 - **F7 wiring pass:** The `can-follow land` edge is currently prose-only in the node body. Formally promote to a `can-follow` frontmatter entry when `land` is confirmed built as a resolvable sibling.
-- **CF-6 (still open) — sprint-seed write location:** CF-6 proposes writing the seed-next output to a named file. The canonical location (harness-specific via bindings, or a fixed path in the work-item record) needs an operator decision before that node amendment. Not in the 2026-06-04 batch — `seed-next` still surfaces-without-write.
+- **CF-6 (still open) — sprint-seed write location:** CF-6 proposes writing the seed-next *seed candidate* to a named file. The canonical location (harness-specific via bindings, or a fixed path in the work-item record) needs an operator decision before that node amendment. Unchanged by the 2026-06-05 amend — the seed *candidate* still surfaces-without-write (the confirm/kill + reprioritise evidence that the 2026-06-05 amend added is a separate write, to the existing shared homes, not the seed-artefact home CF-6 concerns).
 - **CF-7 (still open) — recall-entry schema:** CF-7 proposes a canonical recall schema for the inline gbrain write. Should it live in `instrumentation-preamble`, a new `recall-schema` reference, or the `capture-learnings` agent's contract? Needs translator / operator decision. Not in the 2026-06-04 batch — the inline recall write keeps its current unspecified shape.
+
+## Amendment resolutions (2026-06-05)
+
+The trend-reads + PM-loop-close amend (v0.4.0). Two changes, both additive and both honouring
+the locked D38 shared-homes model.
+
+### Trend reads at close — `invokes: benchmark` + `invokes: health`
+
+**Driver:** debrief's `measure` is the sprint-close measurement surface, but it read only the
+work-item's own `outcome_link`/`trend_delta`. The crystallising measure-vs-baseline trio
+(`benchmark`, `health`, `canary`) accumulates the two across-run trend series the sprint's work
+bears on — the `benchmark.perf` slope (load-time / bundle-size / request-count drift) and the
+`health.quality` composite direction — and nothing at close was reading them.
+
+**Resolution:** added `invokes: benchmark` and `invokes: health` to the frontmatter. New
+`measure` step 2 reads both at close (`benchmark` in `trend` mode; `health` for the composite
+direction) and surfaces the slow-drift signal alongside the outcome verdict. Both degrade
+cleanly — a missing harness manifest or a first-run series with no second point surfaces as
+`no trend yet`, not a failure (mirrors each agent's own first-run contract). These are the only
+two of the trio debrief reads at close: `canary` is a post-deploy watch, not a close-time trend
+read. No structural change to instrumentation — the agents carry their own
+`instrumentation-preamble` import and emit their own measurements.
+
+### Closing the PM discovery loop — D38, the thin-PM deliverable
+
+**Driver:** the dev-sprint shipped a work item that bore on a strategy hypothesis (or
+opportunity) and implied a forward-view priority — but debrief recorded only the outcome verdict,
+leaving the *discovery loop* (shipped outcome → did it confirm/kill the hypothesis → what does
+that mean for priority) to close only in the operator's head. The locked D38 decision is that
+this loop closes **through shared authored homes, not a direct curator edge**.
+
+**Resolution:** `seed-next` gains step 2 — debrief now **writes** two pieces of evidence into the
+homes the curators already sweep, and calls **no curator**:
+
+- **Shipped-outcome → strategy-hypothesis confirm/kill evidence**, written to the **work-item
+  record's outcome fields** (`items/<id>.md`), a dated line in **`docs/decisions.md`**, and a
+  **gbrain recall** write (capability-gated per D31; falls back to the decisions log alone when
+  gbrain is absent). `strategy-curator`'s `assess` mode reads this as the outside-in finding that
+  confirms or kills the canvas claim — exactly the "the loop closes from outside, too — when a
+  downstream debrief reports a real outcome, it arrives here to confirm or kill the strategy
+  hypothesis" path that node already declares.
+- **Reprioritise signal**, written to the **work-item record** (content/disposition note) and a
+  **`docs/decisions.md`** reprioritise line, where `product-dashboard-curator`'s `reprioritise`
+  mode reads it on its rolling start-of-sprint sweep.
+
+**No curator edge added.** No `invokes`/`precedes`/`references` edge to `strategy-curator` or
+`product-dashboard-curator` exists or was added — the frontmatter is unchanged on that axis. The
+existing D38 sentence ("The loop closes through shared authored homes, not through a direct
+curator edge") is **preserved and strengthened**: the "No edge to the curators" section now names
+that debrief *writes* the confirm/kill + reprioritise evidence to those homes and the curators
+*read* it on their own cadence. The change is that debrief now actually authors the content the
+shared-homes model always assumed it would — the substrate write that makes the no-edge loop real.
+
+**Stale prose cleaned:** the seed-next `align-context` handoff note dropped its "deferred to the
+wiring pass — F7 — until `align-context` exists" clause (align-context is built and declares
+`can-follow: debrief` in its frontmatter); it now reads as wired.

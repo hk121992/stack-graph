@@ -3,8 +3,23 @@ title: Research report for review
 type: research-report
 status: complete
 authored: 2026-05-30
-last_updated: 2026-06-04
+last_updated: 2026-06-05
 amended:
+  - date: 2026-06-05
+    note: |
+      verify-stage insertion (dev-sprint backbone re-wire). The backbone order becomes
+      plan → build → review → VERIFY → reconcile → land → debrief. review's REVIEW-side edits:
+      (1) the dev-sprint forward `precedes` edge is RE-POINTED from `reconcile` to `verify`
+      (`{ id: verify, arc: dev-sprint }`); the incremental `{ id: land, arc: incremental }`
+      forward edge is UNTOUCHED. (2) Two conditional MEASUREMENT lenses are added as `invokes`
+      edges — `benchmark` (perf) and `health` (code-quality) — autonomous measurement agents
+      dispatched via `lens-dispatch` only when their trigger is met (not every review runs them);
+      both nodes already declare the inbound invoke lives on the caller's side. (3) Body + report
+      prose updated so the former "deferred edges — F7" / "Process seams (DEFERRED)" wording no
+      longer calls the forward edge or the lens invokes deferred: the dev-sprint happy path now
+      reads review → verify, the incremental path stays review → land. graph/_refs/lens-dispatch.md
+      §1 amended to list benchmark + health as conditional measurement lenses. No instrumentation,
+      goals, or other structure changed; all incremental-arc edges and behaviour preserved.
   - date: 2026-06-04
     note: |
       Incremental-arc amend (D56, maintenance-cluster batch). review is now SHARED across two
@@ -202,11 +217,12 @@ the lenses emit (consumed, not owned, by review).
 - **Reference seam (review → dispatch):** review depends on `lens-dispatch` via a
   `references` edge (`load: on-demand`) and *follows* it to run the panel — the reference is
   a `kind: reference` artefact, not a block, and the edge is hand-authored in frontmatter.
-- **Process seams (DEFERRED):** the backbone flow is build → review → reconcile, with the
-  review → build fix loop (and reconcile → build rework). These are `precedes` / `can-follow`
-  edges to `build` and `reconcile` — **both of which do not exist yet**. The validator
-  resolves process-edge targets to node files, so authoring them now fails validation. They
-  are deferred (see Open questions) and wired when build/reconcile are authored.
+- **Process seams (WIRED):** the dev-sprint backbone flow is build → review → **verify** →
+  reconcile, with the review → build fix loop. Review declares `precedes: { id: verify, arc:
+  dev-sprint }` (re-pointed from the former `reconcile` target when the `verify` stage was
+  inserted, 2026-06-05) and `precedes: { id: land, arc: incremental }`. The review → build fix
+  loop is a `can-follow` declared on **build's** side, so review authors no `can-follow` of its
+  own. All targets (`verify`, `land`) resolve to authored node files.
 - **Sub-arc seam (future):** graph-map shows review also invoking sub-arc skills (`qa`,
   `design-review`, `security` standalone) and conditional lenses. None of those are in scope
   for this authoring pass per the input (conditional lenses not yet authored; sub-arcs not
@@ -243,17 +259,20 @@ agents and the reduction to the `lens-dispatch` reference it follows.
 | references (`load: import`) | `severity-scale` | The severity scale. Imported by review and passed into each lens's spawn prompt. |
 | references (`load: import`) | `confidence-anchors` | The confidence anchors. Imported by review and passed into each lens's spawn prompt. |
 | references (`load: on-demand`) | `carrier-interface` | **Amend 2026-06-04.** The explicit carrier interface a reused node reads. Review is shared across the dev-sprint and incremental arcs; it consumes its carrier through this interface and must NOT assume work-item-only fields (`outcome_link` / `children` / `risk_state`) when `carrier_kind` is `standalone-iu`. Loaded on-demand (only the shared-node path needs it). |
-| precedes | `reconcile` | Dev-sprint forward edge: review hands a verdict to reconcile. |
-| precedes | `land` | **Amend 2026-06-04.** Incremental-arc forward edge: review → land directly, with **no reconcile**. The existing `precedes: reconcile` stays for the dev-sprint, so review now `precedes: [reconcile, land]`; the arc context + carrier-keyed projection disambiguates which path a carrier took. |
+| invokes | `benchmark` | **Amend 2026-06-05.** Conditional measurement lens (perf). Autonomous agent dispatched via `lens-dispatch` only when the change could move page-load / Core-Web-Vitals / bundle size; compares against a stored baseline and returns a regression verdict that folds into the finding set. Not every review runs it. The inbound invoke lives on review's side, matching benchmark's own frontmatter note. |
+| invokes | `health` | **Amend 2026-06-05.** Conditional measurement lens (code-quality). Autonomous agent dispatched via `lens-dispatch` only when a whole-tree quality re-score is warranted (broad refactor / dependency change / operator ask); returns a quality verdict that folds into the finding set. Not every review runs it. The inbound invoke lives on review's side, matching health's own frontmatter note. |
+| precedes | `verify` (arc: dev-sprint) | **Amend 2026-06-05.** Dev-sprint forward edge: review hands its verdict to `verify`, the new stage that proves the running build before reconcile. Re-pointed from the former `reconcile` target when the `verify` stage was inserted into the backbone (`plan → build → review → verify → reconcile → land → debrief`). |
+| precedes | `land` (arc: incremental) | **Amend 2026-06-04.** Incremental-arc forward edge: review → land directly, with **no reconcile** and **no verify**. The dev-sprint `precedes` edge now targets `verify`, so review `precedes: [{verify, arc: dev-sprint}, {land, arc: incremental}]`; the arc qualifier + carrier-keyed projection disambiguates which path a carrier took. |
 
 **Deliberately NO other edges (for now):**
-- **`precedes` now authored (`reconcile`, `land`); the review→build fix loop stays on build's
-  side.** The original report deferred all `precedes`/`can-follow` because `build`/`reconcile`
-  did not exist. Those nodes now exist: review declares `precedes: [reconcile, land]`
-  (dev-sprint → reconcile; incremental → land directly, no reconcile — amend 2026-06-04). The
-  **review → build fix loop** is a `can-follow` declared on **build's** side (already wired in
-  build's amend), so review still authors no `can-follow` of its own — confirmed defects re-enter
-  build via that edge, and the behaviour holds for both arcs.
+- **`precedes` now authored (`verify`, `land`); the review→build fix loop stays on build's
+  side.** The original report deferred all `precedes`/`can-follow` because the neighbour stages
+  did not exist. They now exist: review declares `precedes: [{verify, arc: dev-sprint}, {land,
+  arc: incremental}]` (dev-sprint → verify, the running-build proof stage that precedes reconcile;
+  incremental → land directly, no verify and no reconcile — amend 2026-06-05). The **review →
+  build fix loop** is a `can-follow` declared on **build's** side (already wired in build's
+  amend), so review still authors no `can-follow` of its own — confirmed defects re-enter build
+  via that edge, and the behaviour holds for both arcs.
 - **No edges to the conditional lenses** (performance/design/dx/runtime/adversarial/external)
   — **not yet authored**; do not invoke them yet. Wire each in as it is authored.
 - **No edges to sub-arcs** (`qa`, `design-review`, `security` standalone) — not yet authored.
@@ -277,26 +296,32 @@ reframed to the outcome "defects caught and fixed before landing."
 
 **Edge targets resolvable:** `dev-sprint` is the arc (composes-into targets an arc, not
 resolved to a file, per 02-graph-spec). The four lens targets exist as authored node files
-(`graph/lens-{correctness,security,tests,maintainability}/`). The `references` targets
-(`lens-dispatch`, `findings-schema`, `severity-scale`, `confidence-anchors`) exist as
-`kind: reference` files in `graph/_refs/`. No `precedes` / `can-follow` targets are declared
-(build/reconcile absent) — so no unresolvable edges.
+(`graph/lens-{correctness,security,tests,maintainability}/`). The two conditional measurement
+lenses (`benchmark`, `health` — amend 2026-06-05) exist as authored agent node files
+(`graph/benchmark/`, `graph/health/`). The `references` targets (`lens-dispatch`,
+`findings-schema`, `severity-scale`, `confidence-anchors`) exist as `kind: reference` files in
+`graph/_refs/`. The `precedes` targets (`verify`, `land` — amend 2026-06-05) exist as authored
+node files — so no unresolvable edges.
 
 ## Open questions
 
-- **Process edges deferred — incremental-authoring ordering constraint (REAL FINDING).** The
-  backbone `precedes`/`can-follow` edges (build → review → reconcile, and the review → build
-  fix loop) cannot be authored until `build` and `reconcile` exist, because the validator
-  resolves process-edge targets to node files and would fail on dangling targets. They are
-  intentionally omitted now. **Translator: do not invent them.** They must be added (likely
-  via `mode: amend`) once build and reconcile are authored. This ordering constraint applies
-  to any node authored before its process neighbours and is worth surfacing as a general
-  authoring-sequence note for the maintainer.
-- **Conditional lenses wire in later.** The conditional lenses (performance, design, dx,
-  runtime, adversarial, external) are selected by the `lens-dispatch` reference at runtime
-  but are **not yet authored** as nodes. Review declares no `invokes` to them yet; add each
+- **Process edges deferred — incremental-authoring ordering constraint (REAL FINDING, now
+  RESOLVED).** At first authoring the backbone `precedes`/`can-follow` edges could not be
+  authored until the neighbour stages existed, because the validator resolves process-edge
+  targets to node files and would fail on dangling targets. The neighbours now exist and the
+  edges are wired: review `precedes: [{verify, arc: dev-sprint}, {land, arc: incremental}]`;
+  the review → build fix loop is a `can-follow` on build's side. The general lesson stands —
+  a node authored before its process neighbours defers its process edges to a later amend —
+  but the deferral is closed for review.
+- **Conditional lenses wire in as authored.** The two conditional **measurement** lenses
+  — `benchmark` (perf) and `health` (code-quality) — are now authored agent nodes and review
+  declares an `invokes` to each (amend 2026-06-05); they are dispatched via `lens-dispatch`
+  only when their trigger is met, so not every review runs them. The remaining diff-judgment
+  conditional lenses (design, dx, runtime, adversarial, external) are selected by the
+  `lens-dispatch` reference at runtime but are **not yet authored** as nodes; add each
   `invokes` edge as the lens is authored. The selection *logic* lives in the dispatch
-  reference, not in review's edges — so review's body does not name them; only the edge set grows.
+  reference, not in review's edges — so review's body does not enumerate every lens; only the
+  edge set grows.
 - **`lens-dispatch` carries the panel; the finding contract is review's to pass.** Translator:
   in review's body, *point at* the `lens-dispatch` reference (a `references` edge, `load:
   on-demand`) where the panel procedure runs — do not inject it. Review holds the finding

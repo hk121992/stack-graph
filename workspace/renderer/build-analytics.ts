@@ -41,10 +41,13 @@ function esc(s: unknown): string {
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
+interface TrendPoint { at?: string; value?: number }
 interface Projection {
   provenance?: { commit?: string; generated_at?: string; generator_version?: string };
   nodes?: Record<string, { last_used?: string | null; traversals_30d?: number }>;
   ax?: Record<string, Record<string, unknown>>;
+  trends?: Record<string, TrendPoint[]>;
+  conformance?: { experience_contract?: { pass?: number; fail?: number } };
 }
 
 if (existsSync(surfaceDir)) rmSync(surfaceDir, { recursive: true, force: true });
@@ -79,9 +82,12 @@ if (!existsSync(projPath)) {
 // Real projection has data? Otherwise fall back to a clearly-labelled SAMPLE
 // fixture so the analytics views are visible before the loop is ever exercised.
 interface Carrier { current_stage: string | null; transition_summary: Array<{ stage: string; at: string }> }
+// `path_conformance` is the graph-path conformance block (on/off the authored precedes path);
+// it is illustrative SAMPLE-only data. `conformance.experience_contract` (inherited from
+// Projection) is the real, publisher-derived UX-conformance tally — a distinct axis.
 interface View extends Projection {
   carriers?: Record<string, Carrier>;
-  conformance?: { traced_carriers?: number; on_path?: number; diverged?: number; note?: string };
+  path_conformance?: { traced_carriers?: number; on_path?: number; diverged?: number; note?: string };
 }
 let view: View | null = proj as View | null;
 let sampleMode = false;
@@ -138,17 +144,18 @@ if (hasData) {
   const axEntries = view?.ax ? Object.entries(view.ax) : [];
   const axHtml = axEntries.length
     ? `<h2>Agent experience (per node)</h2>
-<table class="analytics-table"><thead><tr><th>node</th><th class="ax-num">tokens&rarr;outcome</th><th class="ax-num">duration</th><th class="ax-num">steps</th><th class="ax-num">tool calls</th><th class="ax-num">backtracks</th></tr></thead>
-<tbody>${axEntries.map(([id, a]) => { const x = a as Record<string, number>; return `<tr><td><code>${esc(id)}</code></td><td class="ax-num">${fmtK(x.tokens_to_outcome)}</td><td class="ax-num">${fmtMs(x.duration_ms)}</td><td class="ax-num">${esc(x.steps_to_outcome ?? "—")}</td><td class="ax-num">${esc(x.tool_calls ?? "—")}</td><td class="ax-num">${esc(x.backtracks ?? "—")}</td></tr>`; }).join("\n")}</tbody></table>`
+<table class="analytics-table"><thead><tr><th>node</th><th class="ax-num">tokens&rarr;outcome</th><th class="ax-num">duration</th><th class="ax-num">steps</th><th class="ax-num">tool calls</th><th class="ax-num">backtracks</th><th class="ax-num">tool-path breadth</th></tr></thead>
+<tbody>${axEntries.map(([id, a]) => { const x = a as Record<string, number>; return `<tr><td><code>${esc(id)}</code></td><td class="ax-num">${fmtK(x.tokens_to_outcome)}</td><td class="ax-num">${fmtMs(x.duration_ms)}</td><td class="ax-num">${esc(x.steps_to_outcome ?? "—")}</td><td class="ax-num">${esc(x.tool_calls ?? "—")}</td><td class="ax-num">${esc(x.backtracks ?? "—")}</td><td class="ax-num">${esc(x.tool_path_breadth ?? "—")}</td></tr>`; }).join("\n")}</tbody></table>`
     : "";
 
-  const cf = view?.conformance;
+  // Graph-path conformance (on/off the authored precedes path) — SAMPLE-only illustrative block.
+  const cf = view?.path_conformance;
   const firstCarrier = view?.carriers ? Object.values(view.carriers)[0] : undefined;
   const traceHtml = firstCarrier?.transition_summary?.length
     ? `<div class="ax-trace">${firstCarrier.transition_summary.map((t) => `<span class="ax-stage">${esc(t.stage)}</span>`).join('<span class="ax-arrow">&rarr;</span>')}</div>`
     : "";
-  const conformanceHtml = cf
-    ? `<h2>Conformance</h2>
+  const pathConformanceHtml = cf
+    ? `<h3>Graph-path conformance</h3>
 <div class="ax-stats">
   <div class="ax-stat"><div class="ax-stat-n">${esc(cf.on_path ?? "—")}</div><div class="ax-stat-l">on-path transitions</div></div>
   <div class="ax-stat"><div class="ax-stat-n">${esc(cf.diverged ?? "—")}</div><div class="ax-stat-l">diverged</div></div>
@@ -158,10 +165,50 @@ ${traceHtml}
 ${cf.note ? `<p class="ax-note">${esc(cf.note)}</p>` : ""}`
     : "";
 
+  // UX-conformance — experience-contract pass-rate (publisher-derived tally). Render only when
+  // any experience-contract gate has fired; values are numeric counts, never gate strings.
+  const ec = view?.conformance?.experience_contract;
+  const ecTotal = (typeof ec?.pass === "number" ? ec.pass : 0) + (typeof ec?.fail === "number" ? ec.fail : 0);
+  const ecRate = ecTotal > 0 ? Math.round(((ec?.pass ?? 0) / ecTotal) * 100) : null;
+  const experienceConformanceHtml = ec && ecTotal > 0
+    ? `<h3>Experience-contract conformance</h3>
+<div class="ax-stats">
+  <div class="ax-stat"><div class="ax-stat-n">${ecRate !== null ? `${ecRate}%` : "—"}</div><div class="ax-stat-l">pass rate</div></div>
+  <div class="ax-stat"><div class="ax-stat-n">${esc(ec.pass ?? 0)}</div><div class="ax-stat-l">pass</div></div>
+  <div class="ax-stat"><div class="ax-stat-n">${esc(ec.fail ?? 0)}</div><div class="ax-stat-l">fail</div></div>
+</div>`
+    : "";
+
+  const conformanceHtml = (pathConformanceHtml || experienceConformanceHtml)
+    ? `<h2>Conformance</h2>\n${pathConformanceHtml}\n${experienceConformanceHtml}`
+    : "";
+
+  // Metric trends vs earns-keep — measurement series (benchmark.perf, health.quality, …).
+  const trendEntries = view?.trends ? Object.entries(view.trends).filter(([, pts]) => Array.isArray(pts) && pts.length > 0) : [];
+  const trendsHtml = trendEntries.length
+    ? `<h2>Metric trends</h2>
+<p class="ax-note">Each series is the ordered measurement points emitted on node exit; the slope is the earns-keep read.</p>
+${trendEntries.map(([series, pts]) => {
+        const points = (pts as TrendPoint[]).filter((p) => typeof p.value === "number" && isFinite(p.value as number));
+        const vals = points.map((p) => p.value as number);
+        const min = Math.min(...vals), max = Math.max(...vals);
+        const first = vals[0], last = vals[vals.length - 1];
+        const delta = last - first;
+        const arrow = delta > 0 ? "↑" : delta < 0 ? "↓" : "→";
+        const cells = points.map((p) =>
+          `<td class="ax-num" title="${esc(p.at ? String(p.at).slice(0, 10) : "")}">${esc(p.value)}</td>`).join("");
+        return `<h3><code>${esc(series)}</code></h3>
+<table class="analytics-table"><thead><tr><th class="ax-num">points</th><th class="ax-num">min</th><th class="ax-num">max</th><th class="ax-num">latest</th><th class="ax-num">Δ</th></tr></thead>
+<tbody><tr><td class="ax-num">${points.length}</td><td class="ax-num">${esc(min)}</td><td class="ax-num">${esc(max)}</td><td class="ax-num">${esc(last)}</td><td class="ax-num">${arrow} ${esc(Math.abs(delta))}</td></tr></tbody></table>
+<table class="analytics-table"><thead><tr><th>series</th>${points.map((_, i) => `<th class="ax-num">${i + 1}</th>`).join("")}</tr></thead><tbody><tr><td><code>${esc(series)}</code></td>${cells}</tr></tbody></table>`;
+      }).join("\n")}`
+    : "";
+
   dataHtml = `<h2>Node activity</h2>
 <table class="analytics-table"><thead><tr><th>node</th><th>last used</th><th class="ax-num">30d</th><th>activity</th></tr></thead><tbody>${rows}</tbody></table>
 ${axHtml}
-${conformanceHtml}`;
+${conformanceHtml}
+${trendsHtml}`;
 } else {
   dataHtml = `<div class="callout callout-info"><p><strong>Input-gated.</strong> ${esc(staleReason ?? "No event data yet.")}
 Once the dev-sprint loop runs against this workspace and the projection snapshot is published,

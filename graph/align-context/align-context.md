@@ -20,8 +20,8 @@ determinism: generative
 # NO carrier write-edge, and does NOT advance `current_stage` (that is projected from the observed
 # traversal; entering the in-delivery window is a PM gate align-context operates inside). The
 # `precedes design` process edge is authored now (design exists in the same front batch). The
-# `can-follow debrief` seed-next-sprint loop is DEFERRED (F7 — debrief absent); it is omitted here
-# and described in prose, to be wired in via `amend` once `debrief` exists.
+# `can-follow debrief` seed-next-sprint loop is now WIRED (backbone wiring pass wave 1c — `debrief`
+# exists): align-context is re-entered when a debrief seeds the next sprint.
 edges:
   invokes:
     - { id: explore }

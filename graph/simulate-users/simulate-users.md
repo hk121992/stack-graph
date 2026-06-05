@@ -9,20 +9,29 @@ when-to-use: There is a built experience to verify before (or alongside) real us
 mode: autonomous
 determinism: generative
 # edges — the graph (scanned from here into the record)
-# No `invokes`: this is a shared sub-node *invoked by* the dev-sprint's verify span (or its
-# orchestrator), and by the operator in tier-2 — those inbound edges live on the caller's side
-# (mirroring how the review lenses carry no inbound invoke in their own frontmatter). No
-# `composes-into`: the edge into the dev-sprint verify span is deferred until those stage nodes
-# exist (F7), exactly as `explore` defers its `composes-into` edges. The `four-risks` reference
-# is intentionally absent — this node grades against the experience contract, not the four
-# product risks (the experience-thread carve-out); the reference file itself stays for other
-# consumers. The experience contract and persona library are harness-supplied externals — the
-# factory ships only the pointers; the harness overlay binds them to the product's own contract
-# (UX intent + AX intent) and personas (PM-owned).
+# No `invokes`: this is a shared sub-node *invoked by* the dev-sprint's verify stage (`verify`)
+# and by the operator in tier-2 — those inbound edges live on the caller's side (mirroring how
+# the review lenses carry no inbound invoke in their own frontmatter). `composes-into dev-sprint
+# stage: verify` is now declared: the `verify` stage node exists, so the F7 deferral ("verify
+# stage doesn't exist") is cleared. The `four-risks` reference is intentionally absent — this
+# node grades against the experience contract, not the four product risks (the experience-thread
+# carve-out); the reference file itself stays for other consumers. The experience contract and
+# persona library are harness-supplied externals — the factory ships only the pointers; the
+# harness overlay binds them to the product's own contract (UX intent + AX intent) and personas
+# (PM-owned). `experience-contract-schema` is the factory `_refs/` shape this node grades the run
+# *by* (on-demand), paired with the harness-filled `experience-contract` external it grades
+# *against* — the schema/overlay pairing strategy-curator uses for vpc-schema/bmc-schema.
+# `instrumentation-preamble` (import) is the enter/exit emit contract: this node attaches the
+# product run's AX profile as the `ax` aggregate on its node-exit event so the analytics AX axis
+# projects it (the verify-sibling pattern qa/design-review follow).
 edges:
+  composes-into:
+    - { id: dev-sprint, stage: verify }
   references:
-    - { id: experience-contract, load: on-demand, external: true }
-    - { id: personas,            load: on-demand, external: true }
+    - { id: experience-contract,        load: on-demand, external: true }
+    - { id: experience-contract-schema, load: on-demand }
+    - { id: personas,                   load: on-demand, external: true }
+    - { id: instrumentation-preamble,   load: import }
 # analytics — the loop
 goals:
   - outcome: The product behaves as intended before real users see it — edge cases the instructions do not cover are caught against the experience contract, not by eyeballing (the UX dimension).
@@ -37,7 +46,7 @@ goals:
   - outcome: The evidence is cheaper than real-user testing, so it actually gets run on every material experience change.
     metric: cost per run (wall-clock + operator attention) and run frequency vs the real-user-testing alternative it stands in for; the tier-1 vs tier-2 cost split.
     earns-keep: tier-1 stays cheap enough to run on every material experience change and tier-2 on candidate experiences; if simulation is routinely skipped for cost, the mode is restructured.
-status: v0.1.0 — 2026-06-01
+status: v0.2.0 — 2026-06-05
 ---
 
 # Simulate users
@@ -89,9 +98,11 @@ Your spawn prompt carries everything you need. Parse it first:
 2. **Experience contract** — the harness-supplied **UX intent** (session-shape invariants +
    failure modes) **and AX intent** (the intended tool-path + any token/latency/step budgets,
    plus the prior AX baseline for this experience where one exists). Read it through your
-   `experience-contract` reference (external, on-demand) at the step of need. The contract
-   supplies its own invariants and its own named failure modes — you grade *against* them; you
-   never carry a product's failure list in this node.
+   `experience-contract` reference (external, on-demand) at the step of need. You grade the run
+   *by* the `experience-contract-schema` (the factory shape — invariants + failure modes + AX
+   budgets + intended tool-path) and *against* this harness contract's filled content. The
+   contract supplies its own invariants and its own named failure modes — you grade *against*
+   them; you never carry a product's failure list in this node.
 3. **Persona(s)** — drawn from the harness-supplied, **PM-owned** persona library, read through
    your `personas` reference (external, on-demand). A persona profile carries enough to drive a
    *believable* user (goals, context, constraints, voice) and sits in a coverage matrix so the
@@ -137,7 +148,9 @@ Every run, regardless of tier, obeys the same contract:
 - **Route durable gaps as proposals.** When a run surfaces a gap worth feeding back (a missing
   capability, a recurring failure, a persona that consistently fails — which may signal a
   mis-targeted segment, not just a bug), state it as a **proposal** in the verdict for the
-  downstream routing (via `debrief`) to action — never write it yourself.
+  downstream routing to action — never write it yourself. The PM-facing case (a persona that
+  *consistently* fails) reaches the strategy surface via `debrief` recording it to a swept home,
+  not by this node writing a curator (see the D38 note at the end).
 
 ## Mode branches
 
@@ -220,7 +233,8 @@ Return one structured result to the caller's context — a **UX verdict** and an
    **tool-path** (tools/nodes used, in order), and **ranked friction points** (backtracks, dead
    ends, ambiguous-instruction stalls), measured against the intended tool-path + AX budgets and
    the AX baseline where supplied, with a **trend point**. This is the input an `optimise` cycle
-   acts on — same outcome, fewer tokens, faster.
+   acts on — same outcome, fewer tokens, faster. Its allowlisted numeric subset also rides the
+   node-exit event as the `ax` aggregate (see *Instrumentation*).
 4. **A structured verdict** plus the **transcript** — tier-1: the single alternating-turn
    document with inline `[GAP: …]` markers; tier-2: the dialogue plus the judge's graded verdict
    and AX profile (and the judge's learnings-ledger update). Shape the verdict and profile to
@@ -231,3 +245,38 @@ Return one structured result to the caller's context — a **UX verdict** and an
 Produce no operator-facing chatter and make no mutation; your contribution outward is the UX
 verdict, the AX profile, and any flagged proposals, for the caller and the downstream loop to
 act on.
+
+## Instrumentation — emit the product-AX profile and the UX-conformance result
+
+Per the imported `instrumentation-preamble`, emit a **node-enter** event before you read the
+spawn bundle and a **node-exit** event after you return the verdict, each carrying `node`,
+`carrier`, `carrier_kind`, and `arc`. You write no carrier field; your events are the
+projection's substrate. Two signals ride the exit event:
+
+- **The product run's AX profile, as the `ax` aggregate object on the node-exit event.** Attach
+  the traversal cost you measured as `ax` in the **allowlisted numeric shape** the analytics AX
+  axis projects: `tokens_to_outcome`, `duration_ms` / `latency_ms`, `steps` /
+  `steps_to_outcome`, `tool_calls`, and `backtracks` — plus any extra numeric metric the
+  contract names (e.g. `tool_path_breadth`, registered later). Emit each as a **finite number**;
+  the publisher reads only allowlisted numeric keys and drops everything else, so non-numeric
+  detail (the ranked friction narrative, the tool-path order) stays in your returned profile,
+  not in `ax`. This `ax` block is the product-facing instance of the factory's own AX
+  instrumentation — same exit-event shape, pointed at the *product's* run.
+- **The UX-conformance result, as a gate on the exit event.** Emit the run's verdict against the
+  experience contract as a conformance signal — `experience-contract:<pass|fail>` in the exit
+  event's `gates` array — `pass` only when every graded invariant holds and no failure mode
+  fired, `fail` otherwise.
+
+On a `tier-1` reconstruction the `ax` numbers are an estimate (one agent's own traversal); on a
+live `tier-2` run they are measured from the assistant-agent's transcript. Tag which in the
+returned profile; the `ax` block carries the numbers either way.
+
+## A consistently-failing persona is a PM signal, routed via `debrief` (D38)
+
+When a persona **consistently** fails — the same persona/scenario breaks across runs, signalling
+a **mis-targeted segment or an unmet need**, not a one-off bug — return that finding in your
+verdict with a **proposed route**, distinguished from the per-run gaps. You do **not** write it
+to a curator and you hold **no edge to `strategy-curator`**. It reaches the PM surface the same
+way every loop finding does (D38): `debrief` / `measure-outcomes` records it to a **swept
+authored home** the `strategy-curator` reads on its next sweep. You surface the signal; the
+shared substrate — not a typed edge, not a curator write from this node — closes the loop.

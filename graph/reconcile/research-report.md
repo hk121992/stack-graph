@@ -3,8 +3,22 @@ title: Research report for reconcile
 type: research-report
 status: complete
 authored: 2026-06-01
-last_updated: 2026-06-03
+last_updated: 2026-06-05
 amended:
+  - date: 2026-06-05
+    note: |
+      verify-stage insertion (dev-sprint backbone re-wire). The backbone order becomes
+      plan → build → review → VERIFY → reconcile → land → debrief, so reconcile's immediate
+      predecessor is now `verify`, not `review`. RECONCILE-side changes were prose-only — no
+      new forward edge: the happy-path `verify → reconcile` edge is declared on VERIFY's
+      frontmatter, and reconcile models no revert loop to its predecessor, so NO `can-follow
+      verify` was added (its edge set is unchanged: invokes spec-diff/log-decision/pr-author;
+      composes-into dev-sprint; references handbook/instrumentation-preamble/decisions-store/
+      spec-diff; precedes land; can-follow land). Body prose updated: the opening framing
+      ("post-verify, pre-land"), When-to-invoke, the header edge-comment, when-to-use, and the
+      "Process seams" section now read the backbone as review → verify → reconcile → land. The
+      Upstream-seam paragraph here was re-pointed from review → reconcile to verify → reconcile.
+      No goals, instrumentation, or other structure changed.
   - date: 2026-06-03
     note: Backfill — external corpus search, source-material lifted (3 files), External analogues searched section added, Challenge findings section added, researcher_adequacy_note updated.
   - date: 2026-06-04
@@ -187,10 +201,15 @@ Record of the real-world search performed 2026-06-03 against all required corpor
 
 ## Overlaps and seams
 
-**Upstream seam (review → reconcile):** `review` surfaces findings; `reconcile` picks up
-the reviewed change + the spec touchpoints and asks whether spec = reality. The `can-follow
-review` process edge is deferred F7 (review exists; inter-stage edges are wired in the
-dedicated wiring pass).
+**Upstream seam (verify → reconcile):** since the verify-stage insertion (2026-06-05) the
+backbone runs `… → review → verify → reconcile → …`, so reconcile's immediate predecessor is
+**`verify`**, not `review`. `verify` proves the running build and surfaces a verification
+verdict; `reconcile` then picks up the proven change + the spec touchpoints and asks whether
+spec = reality. The happy-path forward edge `verify → reconcile` is declared on **verify's**
+frontmatter; reconcile declares no inbound edge. Reconcile models no revert loop to its
+predecessor (its only `can-follow` is the downstream `land → reconcile` revert), so no
+`can-follow verify` is added — consistent with the earlier normalization that removed the
+redundant `can-follow review`.
 
 **Downstream seam (reconcile → land):** On a clean diff or accepted-all adjudication,
 reconcile surfaces the commit-to-land gate and hands off. The `precedes land` process edge
