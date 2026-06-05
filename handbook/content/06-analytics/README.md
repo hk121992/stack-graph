@@ -139,6 +139,19 @@ The sanitisation boundary holds across all three: the publisher reads numbers an
 counts against closed allowlists, never narrative, contract text, or arbitrary keys (the
 same locality and projection discipline as the carrier-state projection below).
 
+### The coverage view — a future projection seam
+
+A zone-matrix **coverage view** ([concepts](../01-concepts/)) — which cells the product's work has
+touched, and the **test status** of each — is a **future projection**, not built now. When it lands
+it follows this same discipline: a dedicated coverage renderer reads the **same sanitised snapshot**
+the analytics surface reads (the single publisher is the only thing that touches the event log),
+parallel to the analytics build. Its **test-status overlay** reads the
+`conformance.experience_contract` tally above — per-vertical the `experience-contract:<pass|fail>`
+verdict, per-cell the future per-zone check. Both are **forward references to the deferred testing
+layer**: the gate exists in the spec, but no product instances or tests emit it yet, so the view is
+**input-gated** — the seam is named and the mechanism fixed; the surface is built when there is data.
+Until then the matrix is a design/review lens, not a measured surface.
+
 ## Earns-its-keep
 
 Every node declares `goals` as **outcomes, not activities**, each with a metric and an

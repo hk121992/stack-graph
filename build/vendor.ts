@@ -102,7 +102,7 @@ const NATIVE_KEY_ORDER = [
   "argument-hint",
 ];
 
-const PLUGIN_VERSION = "0.3.0";
+const PLUGIN_VERSION = "0.4.0";
 
 // The plugin lives in its own repo, vendored into the factory as a git submodule
 // at this path. Inputs (graph/) are read from the factory root; outputs are written

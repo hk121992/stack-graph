@@ -157,6 +157,17 @@ Recurring shapes a pack composes from:
   their findings into one ranked set, surfaces a single verification gate, and owns the corrective
   loop back to `build`. The orchestrator owns the stage; each modality is its own node routed by
   the context axis.
+- **A zone matrix.** A function that must *examine a product across two responsibilities at once*
+  decomposes as a **lens over a matrix**, not a new arc: **verticals** (product-owned customer
+  experiences) × **horizontals** (eng-owned architecture layers), the **cell** their intersection.
+  The axes are **references** — each axis entry names its scope and points at the contract/spec that
+  governs it; a zone is the **derived** intersection of two axis scopes over the code-map, resolved
+  at read time, never stored ([graph-spec](../02-graph-spec/)). Zone resolution is read-only and
+  prompt-describable, so it is an **agent** mode (`explore`'s `zone` mode), not new tooling. The
+  **vertical (column) is the unit of work and parallel dispatch** — an agent holds one experience
+  across the layers it touches, UX as the end goal, resolving each cell's rules as it traverses; a
+  too-large column splits into thinner verticals, never layers. It composes into the stages it
+  serves (design, plan, build, verify); it does not own the arc.
 - **A thread.** A concern that spans an arc — defining an intent up front, realising or verifying
   it later — is a **thread**. Two worked cases:
   - The **experience thread**: an **experience-contract** reference authored at design, a

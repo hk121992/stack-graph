@@ -144,6 +144,9 @@ from there. The set of keys a process may require (not every process needs all o
 | `improvements-root` | root path of the standalone improvement-unit surface — a **sibling** of `surface-root`, not under it |
 | `improvements-manifest` | path to the improvements surface's committed index file |
 | `triage-source` | where improvements are raised from (a drift queue, a recall store, an operator note); **optional** |
+| `axis-root` | root path holding the zone-matrix axis-entry references (verticals + horizontals, each tagged `axis:`); **optional** — present only when the harness uses the zone matrix |
+| `code-map` | path to the extracted code-map under `.stack-graph/` (repo-map + ast-grep output); **optional**, path-only, degradable — read by `explore`'s `repo` and `zone` modes |
+| `zone-test-root` | where the two-tier zone/experience tests live; **optional**, **forward-referenced** — the testing layer is input-gated and realised in a harness, not the factory |
 
 This is the **factory contract** — the keys the vendored graph can require. A harness is free to
 supply additional harness-local keys for local nodes; local nodes declare their own required keys
@@ -195,6 +198,9 @@ stale-projection-policy: authored-only
 improvements-root: workspace/improvements
 improvements-manifest: workspace/improvements/manifest.json
 triage-source: workspace/improvements/triage-queue.md
+axis-root: workspace/strategy/axes          # verticals (product) + horizontals (eng), each tagged axis:
+code-map: .stack-graph/code-map.json        # extracted (repo-map + ast-grep); optional + degradable
+# zone-test-root: <set when the two-tier zone test layer is built — input-gated>
 ```
 
 ## Peers
