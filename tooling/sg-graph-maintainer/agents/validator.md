@@ -46,11 +46,14 @@ b. **`primitive`↔`mode` agreement** — `skill`↔`collaborative`, `agent`↔`
    body's character. Mismatch → failure.
 c. **`determinism` valid** — must be `deterministic` or `generative`. Else → failure.
 d. **`edges` targets resolve** — for each entry in `invokes` / `loads` /
-   `precedes` / `can-follow` / `overlay`, confirm a
+   `precedes` / `can-follow` / `escalates` / `overlay`, confirm a
    `graph/<target>/<target>.md` exists. Skip entries marked `external: true`.
    Skip `composes-into` — its target is an **arc** (a traversal derived from edges), not a
    node file ([`01-concepts`](../../../handbook/content/01-concepts/README.md)). The
-   `references` edge is checked separately in d2. Unresolved → failure.
+   `references` edge is checked separately in d2. Unresolved → failure. `escalates`
+   resolves like `precedes` (the target node must exist), but it is a **one-way cross-arc**
+   handoff to another arc's entry node and is **excluded from arc-traversal and stage
+   projection** — never treat it as next-stage flow.
 d2. **`references` edge targets resolve (D33)** — for each entry in the `references` edge
    array, confirm the target resolves: a shared reference at `graph/_refs/<target>.md`
    (`kind: reference`) or, where the reference is itself a node, `graph/<target>/<target>.md`.

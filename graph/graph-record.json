@@ -1,15 +1,15 @@
 {
-  "generated": "2026-06-04T17:15:51Z",
-  "node_count": 29,
-  "reference_count": 19,
+  "generated": "2026-06-04T21:10:46Z",
+  "node_count": 31,
+  "reference_count": 20,
   "handbook_reference_count": 0,
-  "edge_count": 128,
+  "edge_count": 153,
   "nodes": {
     "align-context": {
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Align context",
-      "status": "v0.2.0 — 2026-06-04",
+      "status": "v0.2.0 \u2014 2026-06-04",
       "edges": {
         "invokes": [
           {
@@ -49,7 +49,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Build",
-      "status": "v0.1.0 — 2026-06-01",
+      "status": "v0.2.0 \u2014 2026-06-04",
       "edges": {
         "invokes": [
           {
@@ -59,6 +59,10 @@
         "composes-into": [
           {
             "id": "dev-sprint",
+            "stage": "build"
+          },
+          {
+            "id": "incremental",
             "stage": "build"
           }
         ],
@@ -70,6 +74,10 @@
           {
             "id": "instrumentation-preamble",
             "load": "import"
+          },
+          {
+            "id": "carrier-interface",
+            "load": "on-demand"
           }
         ],
         "can-follow": [
@@ -77,7 +85,8 @@
             "id": "review"
           },
           {
-            "id": "reconcile"
+            "id": "reconcile",
+            "arc": "dev-sprint"
           }
         ],
         "precedes": [
@@ -91,7 +100,7 @@
       "primitive": "agent",
       "mode": "autonomous",
       "title": "Capture learnings",
-      "status": "v0.2.0 — 2026-06-04",
+      "status": "v0.2.0 \u2014 2026-06-04",
       "edges": {
         "references": [
           {
@@ -110,7 +119,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Debrief",
-      "status": "v0.3.0 — 2026-06-04",
+      "status": "v0.3.0 \u2014 2026-06-04",
       "edges": {
         "invokes": [
           {
@@ -141,7 +150,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Deploy",
-      "status": "v0.2.0 — 2026-06-04",
+      "status": "v0.2.0 \u2014 2026-06-04",
       "edges": {
         "references": [
           {
@@ -159,7 +168,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Design",
-      "status": "v0.2.0 — 2026-06-04",
+      "status": "v0.2.0 \u2014 2026-06-04",
       "edges": {
         "invokes": [
           {
@@ -219,7 +228,7 @@
       "primitive": "agent",
       "mode": "autonomous",
       "title": "Drift detector",
-      "status": "v0.1.0 — 2026-05-31",
+      "status": "v0.1.0 \u2014 2026-05-31",
       "edges": {
         "composes-into": [
           {
@@ -244,7 +253,7 @@
       "primitive": "agent",
       "mode": "autonomous",
       "title": "Explore (context-gathering agent)",
-      "status": "v0.3.0 — 2026-05-31",
+      "status": "v0.3.0 \u2014 2026-05-31",
       "edges": {
         "references": [
           {
@@ -259,7 +268,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Handbook curator",
-      "status": "v0.1.0 — 2026-05-31",
+      "status": "v0.1.0 \u2014 2026-05-31",
       "edges": {
         "invokes": [
           {
@@ -297,7 +306,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Harness init",
-      "status": "v0.2.0 — 2026-06-04",
+      "status": "v0.3.0 \u2014 2026-06-04",
       "edges": {
         "references": [
           {
@@ -319,7 +328,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Land",
-      "status": "v0.1.0 — 2026-06-01",
+      "status": "v0.2.0 \u2014 2026-06-04",
       "edges": {
         "invokes": [
           {
@@ -333,17 +342,26 @@
           {
             "id": "dev-sprint",
             "stage": "land"
+          },
+          {
+            "id": "incremental",
+            "stage": "land"
           }
         ],
         "references": [
           {
             "id": "instrumentation-preamble",
             "load": "import"
+          },
+          {
+            "id": "carrier-interface",
+            "load": "on-demand"
           }
         ],
         "precedes": [
           {
-            "id": "debrief"
+            "id": "debrief",
+            "arc": "dev-sprint"
           }
         ]
       }
@@ -352,7 +370,7 @@
       "primitive": "agent",
       "mode": "autonomous",
       "title": "Correctness lens",
-      "status": "v0.1.0 — 2026-05-30",
+      "status": "v0.1.0 \u2014 2026-05-30",
       "edges": {
         "composes-into": [
           {
@@ -374,7 +392,7 @@
       "primitive": "agent",
       "mode": "autonomous",
       "title": "Maintainability lens",
-      "status": "v0.1.0 — 2026-05-30",
+      "status": "v0.1.0 \u2014 2026-05-30",
       "edges": {
         "composes-into": [
           {
@@ -396,7 +414,7 @@
       "primitive": "agent",
       "mode": "autonomous",
       "title": "Security lens",
-      "status": "v0.1.0 — 2026-05-30",
+      "status": "v0.1.0 \u2014 2026-05-30",
       "edges": {
         "composes-into": [
           {
@@ -418,7 +436,7 @@
       "primitive": "agent",
       "mode": "autonomous",
       "title": "Tests lens",
-      "status": "v0.1.0 — 2026-05-30",
+      "status": "v0.1.0 \u2014 2026-05-30",
       "edges": {
         "composes-into": [
           {
@@ -440,7 +458,7 @@
       "primitive": "agent",
       "mode": "autonomous",
       "title": "Log decision",
-      "status": "v0.2.0 — 2026-06-04",
+      "status": "v0.2.0 \u2014 2026-06-04",
       "edges": {
         "references": [
           {
@@ -454,14 +472,14 @@
       "primitive": "agent",
       "mode": "autonomous",
       "title": "Measure outcomes",
-      "status": "v0.1.0 — 2026-06-01",
+      "status": "v0.1.0 \u2014 2026-06-01",
       "edges": {}
     },
     "plan": {
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Plan",
-      "status": "v0.1.0 — 2026-06-01",
+      "status": "v0.1.0 \u2014 2026-06-01",
       "edges": {
         "invokes": [
           {
@@ -516,7 +534,7 @@
       "primitive": "agent",
       "mode": "autonomous",
       "title": "PR author",
-      "status": "v0.1.0 — 2026-05-31",
+      "status": "v0.1.0 \u2014 2026-05-31",
       "edges": {
         "composes-into": [
           {
@@ -544,7 +562,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Product-dashboard curator",
-      "status": "v0.2.0 — 2026-06-04",
+      "status": "v0.2.0 \u2014 2026-06-04",
       "edges": {
         "invokes": [
           {
@@ -574,7 +592,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Product lens",
-      "status": "v0.2.0 — 2026-06-04",
+      "status": "v0.2.0 \u2014 2026-06-04",
       "edges": {
         "composes-into": [
           {
@@ -612,14 +630,14 @@
       "primitive": "agent",
       "mode": "autonomous",
       "title": "Queue checker",
-      "status": "v0.1.0 — 2026-05-31",
+      "status": "v0.1.0 \u2014 2026-05-31",
       "edges": {}
     },
     "reconcile": {
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Reconcile",
-      "status": "v0.2.0 — 2026-06-04",
+      "status": "v0.2.0 \u2014 2026-06-04",
       "edges": {
         "invokes": [
           {
@@ -669,7 +687,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Review",
-      "status": "v0.1.0 — 2026-05-30",
+      "status": "v0.2.0 \u2014 2026-06-04",
       "edges": {
         "invokes": [
           {
@@ -688,6 +706,10 @@
         "composes-into": [
           {
             "id": "dev-sprint",
+            "stage": "review"
+          },
+          {
+            "id": "incremental",
             "stage": "review"
           }
         ],
@@ -711,11 +733,20 @@
           {
             "id": "instrumentation-preamble",
             "load": "import"
+          },
+          {
+            "id": "carrier-interface",
+            "load": "on-demand"
           }
         ],
         "precedes": [
           {
-            "id": "reconcile"
+            "id": "reconcile",
+            "arc": "dev-sprint"
+          },
+          {
+            "id": "land",
+            "arc": "incremental"
           }
         ]
       }
@@ -724,11 +755,15 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Ship",
-      "status": "v0.2.0 — 2026-06-04",
+      "status": "v0.3.0 \u2014 2026-06-04",
       "edges": {
         "references": [
           {
             "id": "pr-description-shape",
+            "load": "on-demand"
+          },
+          {
+            "id": "carrier-interface",
             "load": "on-demand"
           }
         ]
@@ -738,7 +773,7 @@
       "primitive": "agent",
       "mode": "autonomous",
       "title": "Simulate users",
-      "status": "v0.1.0 — 2026-06-01",
+      "status": "v0.1.0 \u2014 2026-06-01",
       "edges": {
         "references": [
           {
@@ -758,7 +793,7 @@
       "primitive": "agent",
       "mode": "autonomous",
       "title": "Spec-diff",
-      "status": "v0.2.0 — 2026-06-04",
+      "status": "v0.2.0 \u2014 2026-06-04",
       "edges": {
         "references": [
           {
@@ -768,11 +803,67 @@
         ]
       }
     },
+    "specify-slice": {
+      "primitive": "skill",
+      "mode": "collaborative",
+      "title": "Specify slice",
+      "status": "v0.1.0 \u2014 2026-06-04",
+      "edges": {
+        "invokes": [
+          {
+            "id": "explore"
+          }
+        ],
+        "composes-into": [
+          {
+            "id": "incremental",
+            "stage": "specify-slice"
+          }
+        ],
+        "references": [
+          {
+            "id": "IU-schema",
+            "load": "import"
+          },
+          {
+            "id": "carrier-interface",
+            "load": "on-demand"
+          },
+          {
+            "id": "instrumentation-preamble",
+            "load": "import"
+          },
+          {
+            "id": "lens-dispatch",
+            "load": "on-demand"
+          },
+          {
+            "id": "work-item-schema",
+            "load": "on-demand"
+          }
+        ],
+        "can-follow": [
+          {
+            "id": "triage"
+          }
+        ],
+        "precedes": [
+          {
+            "id": "build"
+          }
+        ],
+        "escalates": [
+          {
+            "id": "align-context"
+          }
+        ]
+      }
+    },
     "specify": {
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Specify",
-      "status": "v0.1.0 — 2026-06-01",
+      "status": "v0.1.0 \u2014 2026-06-01",
       "edges": {
         "invokes": [
           {
@@ -810,7 +901,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Strategy curator",
-      "status": "v0.1.0 — 2026-06-01",
+      "status": "v0.1.0 \u2014 2026-06-01",
       "edges": {
         "invokes": [
           {
@@ -847,30 +938,75 @@
           }
         ]
       }
+    },
+    "triage": {
+      "primitive": "skill",
+      "mode": "collaborative",
+      "title": "Triage",
+      "status": "v0.1.0 \u2014 2026-06-04",
+      "edges": {
+        "composes-into": [
+          {
+            "id": "incremental",
+            "stage": "triage"
+          }
+        ],
+        "references": [
+          {
+            "id": "IU-schema",
+            "load": "import"
+          },
+          {
+            "id": "bindings-contract",
+            "load": "on-demand"
+          },
+          {
+            "id": "instrumentation-preamble",
+            "load": "import"
+          },
+          {
+            "id": "work-item-schema",
+            "load": "on-demand"
+          }
+        ],
+        "precedes": [
+          {
+            "id": "specify-slice"
+          }
+        ],
+        "escalates": [
+          {
+            "id": "align-context"
+          }
+        ]
+      }
     }
   },
   "references": {
     "IU-schema": {
       "kind": "reference",
-      "title": "Implementation-Unit schema — the plan↔build field contract",
-      "status": "v0.4.0 — 2026-06-04",
+      "title": "Implementation-Unit schema \u2014 the plan\u2194build field contract (two shapes)",
+      "status": "v0.5.0 \u2014 2026-06-04",
       "consumed_by": [
         "build",
-        "plan"
+        "plan",
+        "specify-slice",
+        "triage"
       ]
     },
     "bindings-contract": {
       "kind": "reference",
-      "title": "Bindings contract — the keys a harness supplies, and the surface template",
-      "status": "v0.2.0 — 2026-06-04",
+      "title": "Bindings contract \u2014 the keys a harness supplies, and the surface template",
+      "status": "v0.3.0 \u2014 2026-06-04",
       "consumed_by": [
-        "harness-init"
+        "harness-init",
+        "triage"
       ]
     },
     "bmc-schema": {
       "kind": "reference",
-      "title": "Business Model Canvas — schema",
-      "status": "v0.1.0 — 2026-06-01",
+      "title": "Business Model Canvas \u2014 schema",
+      "status": "v0.1.0 \u2014 2026-06-01",
       "consumed_by": [
         "strategy-curator"
       ]
@@ -878,17 +1014,29 @@
     "bundling-rules": {
       "kind": "reference",
       "title": "Canon PR bundling rules",
-      "status": "v0.1.0 — 2026-05-31",
+      "status": "v0.1.0 \u2014 2026-05-31",
       "consumed_by": [
         "handbook-curator",
         "product-dashboard-curator",
         "strategy-curator"
       ]
     },
+    "carrier-interface": {
+      "kind": "reference",
+      "title": "Carrier interface \u2014 the field-set a reused node may assume about its carrier",
+      "status": "v0.1.0 \u2014 2026-06-04",
+      "consumed_by": [
+        "build",
+        "land",
+        "review",
+        "ship",
+        "specify-slice"
+      ]
+    },
     "confidence-anchors": {
       "kind": "reference",
-      "title": "Finding contract — confidence anchors",
-      "status": "v0.1.0 — 2026-05-30",
+      "title": "Finding contract \u2014 confidence anchors",
+      "status": "v0.1.0 \u2014 2026-05-30",
       "consumed_by": [
         "design",
         "plan",
@@ -897,8 +1045,8 @@
     },
     "decisions-store": {
       "kind": "reference",
-      "title": "Decisions store — the durable conclusion-layer contract",
-      "status": "v0.2.0 — 2026-06-04",
+      "title": "Decisions store \u2014 the durable conclusion-layer contract",
+      "status": "v0.2.0 \u2014 2026-06-04",
       "consumed_by": [
         "capture-learnings",
         "log-decision",
@@ -907,24 +1055,24 @@
     },
     "deploy-config": {
       "kind": "reference",
-      "title": "Deploy-config — the field set deploy validates in preflight, supplied by the harness",
-      "status": "v0.1.0 — 2026-06-04",
+      "title": "Deploy-config \u2014 the field set deploy validates in preflight, supplied by the harness",
+      "status": "v0.1.0 \u2014 2026-06-04",
       "consumed_by": [
         "deploy"
       ]
     },
     "experience-contract-schema": {
       "kind": "reference",
-      "title": "Experience contract — schema",
-      "status": "v0.1.0 — 2026-06-01",
+      "title": "Experience contract \u2014 schema",
+      "status": "v0.1.0 \u2014 2026-06-01",
       "consumed_by": [
         "design"
       ]
     },
     "findings-schema": {
       "kind": "reference",
-      "title": "Finding contract — schema",
-      "status": "v0.1.0 — 2026-05-30",
+      "title": "Finding contract \u2014 schema",
+      "status": "v0.1.0 \u2014 2026-05-30",
       "consumed_by": [
         "design",
         "plan",
@@ -933,8 +1081,8 @@
     },
     "four-risks": {
       "kind": "reference",
-      "title": "The four product risks — discovery lens",
-      "status": "v0.2.0 — 2026-06-01",
+      "title": "The four product risks \u2014 discovery lens",
+      "status": "v0.2.0 \u2014 2026-06-01",
       "consumed_by": [
         "product-lens",
         "strategy-curator"
@@ -942,8 +1090,8 @@
     },
     "instrumentation-preamble": {
       "kind": "reference",
-      "title": "Instrumentation preamble — node enter/exit emit contract",
-      "status": "v0.1.0 — 2026-06-01",
+      "title": "Instrumentation preamble \u2014 node enter/exit emit contract",
+      "status": "v0.2.0 \u2014 2026-06-04",
       "consumed_by": [
         "align-context",
         "build",
@@ -954,23 +1102,26 @@
         "plan",
         "reconcile",
         "review",
-        "specify"
+        "specify-slice",
+        "specify",
+        "triage"
       ]
     },
     "lens-dispatch": {
       "kind": "reference",
-      "title": "Lens dispatch — fan-out, merge, triage, route",
-      "status": "v0.1.0 — 2026-05-30",
+      "title": "Lens dispatch \u2014 fan-out, merge, triage, route",
+      "status": "v0.1.0 \u2014 2026-05-30",
       "consumed_by": [
         "design",
         "plan",
-        "review"
+        "review",
+        "specify-slice"
       ]
     },
     "okr-schema": {
       "kind": "reference",
       "title": "OKR / outcome-layer schema",
-      "status": "v0.1.0 — 2026-06-01",
+      "status": "v0.1.0 \u2014 2026-06-01",
       "consumed_by": [
         "harness-init",
         "product-dashboard-curator",
@@ -979,14 +1130,14 @@
     },
     "pm-methodology-provenance": {
       "kind": "reference",
-      "title": "PM pack — methodology provenance",
-      "status": "v0.1.0 — 2026-06-01",
+      "title": "PM pack \u2014 methodology provenance",
+      "status": "v0.1.0 \u2014 2026-06-01",
       "consumed_by": []
     },
     "pr-description-shape": {
       "kind": "reference",
       "title": "Canon PR description shape",
-      "status": "v0.1.0 — 2026-05-31",
+      "status": "v0.1.0 \u2014 2026-05-31",
       "consumed_by": [
         "handbook-curator",
         "pr-author",
@@ -995,8 +1146,8 @@
     },
     "severity-scale": {
       "kind": "reference",
-      "title": "Finding contract — severity scale",
-      "status": "v0.2.0 — 2026-06-04",
+      "title": "Finding contract \u2014 severity scale",
+      "status": "v0.2.0 \u2014 2026-06-04",
       "consumed_by": [
         "design",
         "plan",
@@ -1006,16 +1157,16 @@
     },
     "vpc-schema": {
       "kind": "reference",
-      "title": "Value Proposition Canvas — schema",
-      "status": "v0.1.0 — 2026-06-01",
+      "title": "Value Proposition Canvas \u2014 schema",
+      "status": "v0.1.0 \u2014 2026-06-01",
       "consumed_by": [
         "strategy-curator"
       ]
     },
     "what-belongs": {
       "kind": "reference",
-      "title": "What belongs in the canon — the gate principles",
-      "status": "v0.1.0 — 2026-05-31",
+      "title": "What belongs in the canon \u2014 the gate principles",
+      "status": "v0.1.0 \u2014 2026-05-31",
       "consumed_by": [
         "drift-detector",
         "handbook-curator",
@@ -1024,11 +1175,13 @@
     },
     "work-item-schema": {
       "kind": "reference",
-      "title": "Work-item schema — the carrier on the product-dashboard",
-      "status": "v0.2.0 — 2026-06-01",
+      "title": "Work-item schema \u2014 the carrier on the product-dashboard",
+      "status": "v0.2.0 \u2014 2026-06-01",
       "consumed_by": [
         "harness-init",
-        "product-dashboard-curator"
+        "product-dashboard-curator",
+        "specify-slice",
+        "triage"
       ]
     }
   },
@@ -1081,6 +1234,12 @@
     },
     {
       "from": "build",
+      "to": "incremental",
+      "type": "composes-into",
+      "stage": "build"
+    },
+    {
+      "from": "build",
       "to": "IU-schema",
       "type": "references",
       "load": "import"
@@ -1093,13 +1252,20 @@
     },
     {
       "from": "build",
+      "to": "carrier-interface",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "build",
       "to": "review",
       "type": "can-follow"
     },
     {
       "from": "build",
       "to": "reconcile",
-      "type": "can-follow"
+      "type": "can-follow",
+      "arc": "dev-sprint"
     },
     {
       "from": "build",
@@ -1326,14 +1492,27 @@
     },
     {
       "from": "land",
+      "to": "incremental",
+      "type": "composes-into",
+      "stage": "land"
+    },
+    {
+      "from": "land",
       "to": "instrumentation-preamble",
       "type": "references",
       "load": "import"
     },
     {
       "from": "land",
+      "to": "carrier-interface",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "land",
       "to": "debrief",
-      "type": "precedes"
+      "type": "precedes",
+      "arc": "dev-sprint"
     },
     {
       "from": "lens-correctness",
@@ -1638,6 +1817,12 @@
     },
     {
       "from": "review",
+      "to": "incremental",
+      "type": "composes-into",
+      "stage": "review"
+    },
+    {
+      "from": "review",
       "to": "lens-dispatch",
       "type": "references",
       "load": "on-demand"
@@ -1668,12 +1853,31 @@
     },
     {
       "from": "review",
+      "to": "carrier-interface",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "review",
       "to": "reconcile",
-      "type": "precedes"
+      "type": "precedes",
+      "arc": "dev-sprint"
+    },
+    {
+      "from": "review",
+      "to": "land",
+      "type": "precedes",
+      "arc": "incremental"
     },
     {
       "from": "ship",
       "to": "pr-description-shape",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "ship",
+      "to": "carrier-interface",
       "type": "references",
       "load": "on-demand"
     },
@@ -1696,6 +1900,62 @@
       "to": "severity-scale",
       "type": "references",
       "load": "on-demand"
+    },
+    {
+      "from": "specify-slice",
+      "to": "explore",
+      "type": "invokes"
+    },
+    {
+      "from": "specify-slice",
+      "to": "incremental",
+      "type": "composes-into",
+      "stage": "specify-slice"
+    },
+    {
+      "from": "specify-slice",
+      "to": "IU-schema",
+      "type": "references",
+      "load": "import"
+    },
+    {
+      "from": "specify-slice",
+      "to": "carrier-interface",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "specify-slice",
+      "to": "instrumentation-preamble",
+      "type": "references",
+      "load": "import"
+    },
+    {
+      "from": "specify-slice",
+      "to": "lens-dispatch",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "specify-slice",
+      "to": "work-item-schema",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "specify-slice",
+      "to": "triage",
+      "type": "can-follow"
+    },
+    {
+      "from": "specify-slice",
+      "to": "build",
+      "type": "precedes"
+    },
+    {
+      "from": "specify-slice",
+      "to": "align-context",
+      "type": "escalates"
     },
     {
       "from": "specify",
@@ -1776,6 +2036,46 @@
       "type": "references",
       "load": "on-demand",
       "external": true
+    },
+    {
+      "from": "triage",
+      "to": "incremental",
+      "type": "composes-into",
+      "stage": "triage"
+    },
+    {
+      "from": "triage",
+      "to": "IU-schema",
+      "type": "references",
+      "load": "import"
+    },
+    {
+      "from": "triage",
+      "to": "bindings-contract",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "triage",
+      "to": "instrumentation-preamble",
+      "type": "references",
+      "load": "import"
+    },
+    {
+      "from": "triage",
+      "to": "work-item-schema",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "triage",
+      "to": "specify-slice",
+      "type": "precedes"
+    },
+    {
+      "from": "triage",
+      "to": "align-context",
+      "type": "escalates"
     }
   ]
 }

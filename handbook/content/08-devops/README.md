@@ -22,7 +22,10 @@ Changes land on a `<kind>/<slug>` branch and carry the matching label:
 | `factory-loop/<slug>` | `factory-loop` | a general improvement raised from a consumer | `feat(factory):` |
 
 The slug names the change, not what triggered it. The PR description **is** the proposal —
-no separate proposal file ([`overview/maintenance`](../00-overview/02-maintenance.md)).
+no separate proposal file ([`overview/maintenance`](../00-overview/02-maintenance.md)). A
+lightweight **incremental** change — a single understood slice that skips the full front —
+lands on this **same** `<kind>/<slug>` branch and label model as a wholesale change; the
+loop's weight does not change how it branches or labels.
 
 ## The two improvement loops
 
@@ -39,6 +42,11 @@ whether an improvement is **general** or **product-specific**:
 
 General → factory-loop PR here; specific → harness, local. When unsure, default to the
 harness loop and propose promotion only if a second consumer would want the same change.
+
+This factory-vs-harness split is **orthogonal to loop weight**. Whether a change runs the
+heavyweight loop or the lighter incremental one ([`concepts`](../01-concepts/README.md), "Two
+loops by weight") does not change where it lands: a general incremental improvement is still a
+factory-loop PR here; a product-specific one stays in the harness.
 
 ## Steady state
 

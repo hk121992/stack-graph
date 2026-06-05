@@ -25,7 +25,7 @@ goals:
   - outcome: Instantiation is an additive local overlay — harness-init writes only harness-local files and never mutates the vendored graph, and never invents product content.
     metric: count of harness-init writes outside the harness-local tree (bindings.yaml + the org-root CLAUDE.md + the surface under surface-root) — target 0; count of work-items harness-init authored (target 0 — content is the curator's).
     earns-keep: the vendored plugin is never touched by instantiation; harness-init scaffolds empty structure, the curator family fills content.
-status: v0.2.0 — 2026-06-04
+status: v0.3.0 — 2026-06-04
 ---
 
 # Harness init
@@ -50,7 +50,8 @@ You create the **bound, empty structure**; the curator family fills the **conten
 - **You write** `<org-root>/.claude/bindings.yaml` (the binding values), the org-root **`CLAUDE.md`**
   (the harness's **ambient surface** — the handbook-index pointer + the bindings-reference pointer +
   the how-to-use-the-graph navigation), and the **surface skeleton** under `surface-root` (the
-  `strategy.md` / `objectives.md` templates, `items/` + an empty `manifest.json`, `sprints/`).
+  `strategy.md` / `objectives.md` templates, `items/` + an empty `manifest.json`, `sprints/`), **plus
+  the improvements surface** under `improvements-root` (a sibling of `surface-root`: an empty `manifest.json`).
 - **You do NOT author work items.** Work-item content is **`product-dashboard-curator`**'s
   (`add-item`/`triage`). You scaffold an empty `items/` + manifest; the first work item is added
   through the curator, under its PR gating.
@@ -104,7 +105,9 @@ bindings live at `<org-root>/.claude/bindings.yaml`). If you cannot locate it un
    guiding policy · JTBD · open questions — empty headings), `objectives.md` (per `okr-schema` —
    empty objective/north-star headings), `items/` with an **empty** `manifest.json` (`[]`),
    `sprints/`, and `learnings/` with an **empty** `archive.md` (the committed `learnings-archive`,
-   D60 — the gate populates it; you create the empty home). **Idempotent:** never clobber existing
+   D60 — the gate populates it; you create the empty home). Then, under `improvements-root` (a
+   **sibling** of `surface-root`), scaffold an **empty** `manifest.json` (`[]`) — the incremental
+   loop's surface; `triage` adds standalone-IU slices here. **Idempotent:** never clobber existing
    content — create only what's missing and warn on what's already there.
 6. **Run `validate`** (below) and report, then hand off with the **load canary**: tell the operator
    what a correctly-loaded harness looks like next session — launch at the org root, and the first
@@ -131,7 +134,8 @@ bindings live at `<org-root>/.claude/bindings.yaml`). If you cannot locate it un
    pre-flight: a harness whose ambient surface does not load the bindings + handbook index will not
    orient on the next session.
 4. **The surface exists**: `surface-root`, `items-root` + a parseable `manifest.json`,
-   `objectives-doc`, `strategy-doc`, `sprints-root`, `learnings-archive` (the committed archive
+   `objectives-doc`, `strategy-doc`, `sprints-root`, `improvements-root` + a parseable
+   `improvements-manifest`, `learnings-archive` (the committed archive
    file). The `event-log` location is reachable (the `.stack-graph/` parent exists or can be
    created).
 5. **Report pass/fail with the specific gaps.** A fail means the loop must not run yet — surface

@@ -97,6 +97,7 @@ their stage as unknown/stale until the projection rebuilds.
     │   │   ├── content/<NN-section>/
     │   │   └── index.json
     │   ├── <function-output>/          a surface per function output (roadmap, plan, register, …)
+    │   ├── <improvements-surface>/     SIBLING surface — standalone improvement units (off the work-ledger)
     │   ├── portal/                     the unified rendered UI
     │   └── <build>/                    render machinery
     │
@@ -140,6 +141,9 @@ from there. The set of keys a process may require (not every process needs all o
 | `terminal-recorder` | the recorder responsible for freezing a closed item's timeline |
 | `maturity` | the maturity-dial setting for this process / product |
 | `stale-projection-policy` | how the surface behaves when `.stack-graph/` is absent or stale |
+| `improvements-root` | root path of the standalone improvement-unit surface — a **sibling** of `surface-root`, not under it |
+| `improvements-manifest` | path to the improvements surface's committed index file |
+| `triage-source` | where improvements are raised from (a drift queue, a recall store, an operator note); **optional** |
 
 This is the **factory contract** — the keys the vendored graph can require. A harness is free to
 supply additional harness-local keys for local nodes; local nodes declare their own required keys
@@ -188,6 +192,9 @@ plan-policy:
 terminal-recorder: stack-graph:debrief-fleet
 maturity: scaling
 stale-projection-policy: authored-only
+improvements-root: workspace/improvements
+improvements-manifest: workspace/improvements/manifest.json
+triage-source: workspace/improvements/triage-queue.md
 ```
 
 ## Peers

@@ -106,7 +106,7 @@ visible as a node that never moves its metric.
 ## Carrier-state projection
 
 The instrumentation preamble emits a `node-enter` / `node-exit` event **tagged with the
-carrier id** on every stage traversal, appending to the same local event log. This makes
+carrier** on every stage traversal, appending to the same local event log. This makes
 the carrier's stage-position a **derived projection**, never a hand-written field:
 
 - **Current stage** — the latest stage event for that carrier in the log. If an operator
@@ -114,6 +114,20 @@ the carrier's stage-position a **derived projection**, never a hand-written fiel
   but overridden for presentation.
 - **Stage-traversal sequence** — the ordered series of stage events for that carrier:
   its timeline through the graph.
+
+**The projection key is a triple — carrier id + carrier kind + arc id.** A node may be
+**shared across arcs** (the same primitive reused in more than one traversal), so keying the
+projection on carrier id and latest stage **alone** would let one carrier's `current_stage`
+bleed into another's at a shared node. The **arc** keeps each traversal's projection separate;
+the **carrier kind** keeps distinct carrier shapes from colliding. Current stage is therefore
+the latest event matching all three — for that carrier id, of that kind, on that arc. The event
+must carry, or be resolvable to, all three so the projection can key correctly across shared
+nodes.
+
+A workspace's lighter unit of work projects through this **same** machinery: its `current_stage`
+is derived from the **same carrier-tagged event log** as a tracked work-item's, by the same
+triple key. The lighter loop adds **no new instrumentation** — it conforms to this model
+exactly, emitting the same node-enter / node-exit events and projecting stage the same way.
 
 These two values are **computed on read from the event log**; they are never written into
 the carrier instance file — precisely as the graph record is derived from node frontmatter,

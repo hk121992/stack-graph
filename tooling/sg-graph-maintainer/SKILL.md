@@ -460,11 +460,13 @@ when the graph record is stale.
 2. **Collect edge declarations.** Read the frontmatter `edges:` block of every node
    file — the graph lives in frontmatter, never in body tokens. Parse the typed arrays:
    `invokes`, `loads`, `composes-into`, `references`, `maintains`, `precedes`, `can-follow`,
-   `overlay`. Build the directed edge list in memory; a `references` edge carries its `load`
+   `escalates`, `overlay`. Build the directed edge list in memory; a `references` edge carries its `load`
    (`import`/`on-demand`) into the record, and a `composes-into` edge carries its
    `stage` into the record (so a node that composes into the same arc at several
    stages — e.g. a lens composing into `dev-sprint` at `review`, `design`, and
-   `plan` — emits three **distinct** edge rows, not identical duplicates). Enumerate both
+   `plan` — emits three **distinct** edge rows, not identical duplicates); a `precedes` /
+   `can-follow` edge may carry an optional `arc` qualifier, which carries into the record to
+   scope a shared node's edge to one arc. Enumerate both
    reference homes so references appear in the record alongside nodes: `graph/_refs/*.md`
    (`kind: reference`) **and** the sectioned handbook-reference home (provisionally
    `graph/_handbook/<NN-section>/*.md`, `kind: handbook-reference`).
@@ -493,12 +495,13 @@ when the graph record is stale.
        "<id>": { "type", "title", "section", "owner", "read-when", "related",
                  "status", "maintained_by": ["<id>", ...] }
      },
-     "edges": [{ "from", "to", "type", "load", "stage", "external" }, ...]
+     "edges": [{ "from", "to", "type", "load", "stage", "arc", "external" }, ...]
    }
    ```
 
    `load` is present only on `references` edges (`import`/`on-demand`); `stage` only on
-   `composes-into` edges (the arc stage); `external: true` only on edges so marked; omit each
+   `composes-into` edges (the arc stage); `arc` only on `precedes`/`can-follow` edges so
+   qualified (scoping a shared node's edge to one arc); `external: true` only on edges so marked; omit each
    elsewhere. A `composes-into` edge row **must** carry its `stage` so that a node composing
    into one arc at multiple stages yields distinct rows rather than silent duplicates.
    Handbook-references carry **no `number`** (render-computed) and **no `managed-by`**

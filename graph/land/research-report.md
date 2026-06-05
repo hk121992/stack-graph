@@ -9,6 +9,8 @@ amended:
     note: "Backfill external-analogue search: lifted gstack/land-and-deploy + CE/ce-commit-push-pr; added External analogues searched table, source inventory update, Challenge findings section, published best-practice citations (DORA, deployment-gate literature). Preserved all original content."
   - date: 2026-06-04
     note: "Reconciliation amend (cluster-A land rows): resolved CF-1 (pre-merge readiness surface on the commit-to-land gate, D45 dial sets rigour), CF-2 (revert mechanics — land owns the DECISION + the land→reconcile re-entry, deploy owns EXECUTION per deploy C5), CF-3 (deploy-event per D59 — land contributes the live-confirmed gate outcome to the existing carrier-keyed node-exit event; no second store), CF-4 (live-confirmed signal CONSUMES deploy's inline smoke check per deploy C4 — a deploy smoke test, not canary). Each finding's resolution recorded inline. CF-5/6/7 stay parked (low; out of scope). Body re-rendered to match."
+  - date: 2026-06-04
+    note: "Incremental-arc reuse amend (D56, incremental-improvement-design §4/§8 step 7, §9 R4): land is reused by the incremental loop. Added composes-into {id: incremental, stage: land} and references {id: carrier-interface, load: on-demand}. New body 'Incremental arc' section — on a standalone IU (carrier_kind: standalone-iu, arc: incremental) there is no upstream reconcile, so land fires its OWN single commit-to-land gate, which writes the terminal lifecycle_state (landed|parked|dropped) + the gate_decisions entry on the carrier-lite; the D45 maturity×tier dial auto-records on green for AFK/low-tier in a mature harness, hard-gates HITL/high-tier. Invokes ship then deploy; a non-deploying harness reaches landed via staging-only/PR-merge (no shipped→live split). Carrier-keyed live-confirmed event (id+kind+arc). NO debrief on the incremental arc (no outcome_link to read back). land consumes its carrier through carrier-interface (must not assume work-item-only fields when standalone-iu). ship/deploy invokes + all dev-sprint behaviour preserved verbatim. The review→land forward edge is declared on review's side — no inbound edge here. Status bumped v0.1.0 → v0.2.0."
 sources_lifted: 2
 external_analogue_found: true
 external_corpora_searched:
@@ -194,13 +196,16 @@ the gates, and closes the lifecycle step. One node.
 
 | edge type | target id | status | rationale |
 |-----------|-----------|--------|-----------|
-| `composes-into` | `dev-sprint` (stage: land) | declarable | backbone membership |
-| `invokes` | `ship` | declarable — exists at graph/ship/ | first sub-arc step |
-| `invokes` | `deploy` | declarable — exists at graph/deploy/ | second sub-arc step |
+| `composes-into` | `dev-sprint` (stage: land) | declared | backbone membership |
+| `composes-into` | `incremental` (stage: land) | declared — D56 amend | incremental-arc membership; land is reused, not duplicated (incremental-improvement-design §4/§8 step 7) |
+| `invokes` | `ship` | declared — exists at graph/ship/ | first sub-arc step |
+| `invokes` | `deploy` | declared — exists at graph/deploy/ | second sub-arc step |
 | `references` | `instrumentation-preamble` (`load: import`) | declared — exists at graph/_refs/ | single-sources the carrier-keyed emit; load-bearing for CF-3 (the deploy-event rides the node-exit it fires, D59) |
-| `precedes` | `debrief` | declared — exists at graph/debrief/ | happy-path exit |
+| `references` | `carrier-interface` (`load: on-demand`) | declared — D56 amend; exists at graph/_refs/ | the explicit field-set land reads about its carrier, so it serves both work-item (dev-sprint) and standalone-IU (incremental) kinds without assuming work-item-only fields (§9 R4) |
+| `precedes` | `debrief` | declared — exists at graph/debrief/ | happy-path exit — **dev-sprint only**; the incremental arc has no debrief (a standalone IU has no `outcome_link` to read back) |
 | `invokes` | `canary` | **F7 prose — canary does not exist** | wave 2; input-gated |
 | `can-follow` | `reconcile` (declared on reconcile, not land) | **declared on reconcile's side** | the `land → reconcile` revert loop is `reconcile can-follow land`; land holds no `can-follow reconcile` entry (corrective `can-follow` lives on the re-running node). NOT a `references` edge — land's relationship to deploy/reconcile is `precedes`/`can-follow` + prose |
+| inbound `precedes` | `review → land` (declared on review, not land) | **declared on review's side** | the incremental forward edge review→land (review precedes land); land holds no inbound entry |
 
 ## Conformance
 

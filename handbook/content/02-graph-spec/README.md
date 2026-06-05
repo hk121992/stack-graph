@@ -66,6 +66,7 @@ All edges are **directed** (`from → to`) and typed:
 | `triggers` | event → node | binding | no |
 | `precedes` | node → node | **process** | **yes** |
 | `can-follow` | node → node | **process** | **yes** |
+| `escalates` | stage node → entry node of another arc | **process** | no |
 | `overlay` | overlay-node → global node | composition | no |
 
 `overlay` is the harness mechanism (a local node attaches to the vendored graph; see
@@ -77,6 +78,18 @@ the reverse as `maintained_by` (symmetric to `consumed_by` for `references`). A 
 (`owner: sg`) entry carries a `maintains` edge from an **external/factory maintainer** (marked
 `external: true`), so "who maintains an entry" is uniformly graph-derived, never a special case.
 
+**`escalates`** is a directed, one-way **cross-arc handoff**: a stage node in one arc hands work
+to the **entry node of another arc** (the canonical case is a light loop's triage stage handing a
+change that outgrew it to a heavyweight front node). It is **not `precedes`** — `precedes` is
+normal next-stage order *within* an arc, and using it cross-arc would make an escalation look like
+ordinary forward flow and pollute `current_stage`. `escalates` is therefore **excluded from arc
+traversal and stage projection**: it is an exit, not a next stage. The runtime behaviour is fixed:
+an escalation **creates-or-reuses a carrier in the target arc**, **closes the source standalone
+carrier** as `dropped` (reason: promoted), and records a **two-way provenance link** between the
+two carriers. The edge entry names only its target — `escalates: [{ id: <target-node-id> }]`; the
+behaviour above is spec, not edge metadata. An `escalates` edge is **one-way and never forms a
+loop**.
+
 ## Cyclic semantics
 
 Structural, binding, and composition edges (`loads`, `invokes`, `composes-into`,
@@ -84,7 +97,9 @@ Structural, binding, and composition edges (`loads`, `invokes`, `composes-into`,
 The **process edges `precedes` / `can-follow` are the only ones that may cycle**, and that
 is exactly how an arc loops: the dev sprint closes by looping `debrief --can-follow→ align-context`,
 and the review↔build correction is a `can-follow` loop. The structural skeleton stays a DAG;
-every loop rides a process edge.
+every loop rides a process edge. **`escalates` is the process-class exception: it is one-way and
+acyclic** — a cross-arc exit hands work off, it never returns along the same edge, so it can never
+form a loop.
 
 **Cyclic-edge discipline.** Happy-path forward flow is expressed with **`precedes`** (declared on
 the source node). **Corrective loops and re-entries use `can-follow`**, and every `can-follow`
@@ -96,6 +111,15 @@ re-entry path is being taken, so the traversal record is unambiguous). Without t
 `can-follow` edge is an open cycle — the traversal has no termination guarantee and the record
 cannot distinguish a deliberate re-entry from a stuck loop. The rule: every loop in the graph is
 **explicit, bounded, and escalatable**.
+
+**Arc-qualified process edges.** When a node participates in more than one arc, a process edge
+that belongs to only one of them carries an **`arc` qualifier** (`{ id: <target>, arc: <arc-id> }`);
+an unqualified process edge applies in every arc its source participates in. This prevents a shared
+node's arc-specific forward edge from shortcutting another arc — a node shared by a heavyweight and
+a light arc may hand straight to the close stage in the light arc while the heavyweight arc still
+routes through its intermediate stage. The qualifier is the **static** counterpart to carrier-keyed
+projection: the qualifier scopes the edge at author/traversal time; the projection key
+(carrier id + kind + arc) keeps the runtime stage from bleeding across arcs that share the node.
 
 ## The carrier
 
@@ -159,6 +183,12 @@ stage emits node-enter/-exit events tagged with the carrier id; `current_stage` 
 for that carrier; the traversal sequence is the ordered history. No stage holds a write-edge into the
 instance — the stages are what make the projection real.
 
+Projection keys by **carrier id + carrier kind + arc id**, not carrier id and latest stage alone. When a
+node is **shared across two arcs** (a stage reused by more than one traversal), keying by carrier id alone
+would let one carrier's `current_stage` bleed into another's at the shared node; the arc id in the key
+keeps each arc's projection separate, and the carrier kind keeps the two carrier shapes from colliding. A
+carrier's `current_stage` is therefore the latest event matching its own id, kind, *and* arc.
+
 The **terminal snapshot** is the only point a derived value enters a committed file. It is written by a
 **recorder** — a dedicated action keyed off the terminal lifecycle transition, decoupled from the gate that
 advances the state — and it is written once, at close. After that, the closed record is complete and
@@ -168,6 +198,16 @@ self-contained.
 any frozen closed records render fully. In-flight instances show their stage as unknown or stale until the
 projection rebuilds from replayed events. The surface never implies full fidelity without the projection;
 closed items are always complete.
+
+**The carrier-lite variant.** A carrier instance need not carry the full carrier shape. A **carrier-lite**
+instance is an **implementation-unit file that *is* its own carrier** — it holds a minimal `lifecycle_state`,
+a single gate, and an `improves` pointer to the existing thing it changes, and lives in its own surface
+rather than alongside the full work-item carrier. It is the unit of a light, single-slice change: no
+decomposition children, no front, one gate. It contrasts with the **work-item carrier** — the full-shape
+instance that holds children, several gates, and tracked-progress content on its own surface. Both follow
+the same three-kinds-of-state discipline above; the carrier-lite simply instantiates it at reduced scope.
+The field detail (the discriminator, the lifecycle states, the single-gate writer split) lives in the
+implementation-unit schema, not here.
 
 ## Inline
 

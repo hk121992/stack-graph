@@ -178,6 +178,25 @@ as the cascade anchor (it carries the ambient handbook-index pointer, which reac
 and every sibling child — a sibling could not); the **workspace**; and the **product / working
 children**.
 
+### The improvements surface — a sibling of the dashboard surface
+
+A workspace carries a second, lighter unit of work beside the dashboard's tracked work-items: a
+**standalone improvement-unit** — a single bounded change, specified and delivered on its own with
+no parent and no front. It is **instantiated as a carrier-lite instance** — the same
+markdown-frontmatter-plus-manifest instance format as a work-item ([surface artefact
+format](01-directory-topology.md)), carrying its own minimal lifecycle and one gate, but a reduced
+field-set ([`graph-spec`](../02-graph-spec/README.md)).
+
+Because it is deliberately **not tracked product progress** (it improves an existing node, reference,
+or behaviour rather than advancing an objective), it is **stored in its own surface**, a **sibling of
+the dashboard surface — not under it** — so the work-ledger stays the honest record of tracked
+product work. The harness supplies this surface through the `improvements-root` and
+`improvements-manifest` bindings, alongside the existing work-ledger bindings (`surface-root`,
+`items-root`, `manifest-path`); an optional `triage-source` binding names where candidate
+improvements are raised from. The improvements surface uses the same instance-file plus committed
+manifest pattern as the work-items surface — a different surface, not a new storage mechanism — and
+the portal can render it as a distinct improvements log, separate from the work-ledger.
+
 The render that presents the workspace's surfaces as one space is **build machinery**, kept out of
 the content in a dedicated build directory.
 

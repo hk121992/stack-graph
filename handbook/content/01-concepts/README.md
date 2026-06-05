@@ -104,6 +104,20 @@ low-rigour process; a routine item fast-tracks even in a mature one). The carrie
 stages, and what each gate weighs are **domain** — the schema is general
 ([graph-spec](../02-graph-spec/)); a delivery process's work item is one carrier.
 
+### Two loops by weight
+
+A heavyweight loop is not the only shape. Alongside the full traversal — front, carrier,
+several gates, debrief — a **lighter loop** runs a single, already-understood vertical slice:
+no design fork to settle, no decomposition, deliverable on its own. The light loop *is* a
+loop instance of the same machinery, not a separate system. Its carrier is a **carrier-lite**
+— a minimal lifecycle and **one** gate — and that gate instances the same gate model run at
+**minimum rigour** on the maturity × tier dial. Choosing wholesale versus incremental is a
+**routing decision over the same loop machinery**, not a fork into a second one: an
+understood single slice takes the light path; a change that needs a design decision, splits
+into more than one slice, or belongs on the strategic surface takes the full one. The
+carrier-lite is stored off the strategic work-ledger, in its own surface; its instance shape
+is the [graph-spec](../02-graph-spec/) carrier-instance variant.
+
 ## Skill or agent — the context axis
 
 The load-bearing distinction that decides **which primitive a node is** is **context**:

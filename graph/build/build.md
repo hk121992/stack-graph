@@ -27,13 +27,15 @@ edges:
   invokes:
     - { id: explore }
   composes-into:
-    - { id: dev-sprint, stage: build }
+    - { id: dev-sprint,  stage: build }
+    - { id: incremental, stage: build }
   references:
     - { id: IU-schema,                load: import }
     - { id: instrumentation-preamble, load: import }
+    - { id: carrier-interface,        load: on-demand }
   can-follow:
     - { id: review }
-    - { id: reconcile }
+    - { id: reconcile, arc: dev-sprint }
   precedes:
     - { id: review }
 # analytics — the loop
@@ -47,7 +49,7 @@ goals:
   - outcome: The per-IU build cost is measured, so the single-agent context budget is an empirical dial and decomposition quality is observable.
     metric: tokens_per_iu emitted on each unit-complete event into the analytics product-outcomes stream; measure-outcomes derives the distribution and the over-budget share against the harness budget.
     earns-keep: over-budget share trends toward zero as decomposition matures; a persistently high share is a plan decomposition-quality signal (IUs drawn too coarse), not a build capability gap.
-status: v0.1.0 — 2026-06-01
+status: v0.2.0 — 2026-06-04
 ---
 
 # Build
@@ -83,9 +85,11 @@ advance `current_stage`; you write no carrier field.
 
 Before the autonomous span begins, run the kick-off collaboratively with the operator:
 
-1. **Read the carrier and all IU children.** Surface the unit count and dependency order. Flag now
-   (not mid-span) any IU whose `acceptance` is thin, whose `acceptance_check` is missing, or whose
-   `files` scope looks broader than `size` suggests.
+1. **Read the carrier and all IU children.** **If `arc: incremental` / `carrier_kind:
+   standalone-iu`:** skip the children / unit-count read — the single slice *is* the unit; go
+   straight to the **Incremental arc — build mode** section below. Otherwise (dev-sprint): surface
+   the unit count and dependency order. Flag now (not mid-span) any IU whose `acceptance` is thin,
+   whose `acceptance_check` is missing, or whose `files` scope looks broader than `size` suggests.
 2. **Flag horizontal IUs.** When an IU's `files` span a single layer (only model, only view) and its
    `acceptance` carries no integration check, suggest expanding it to a thin end-to-end slice — one
    interface path through the affected layers — before the span begins. A horizontal layer that defers
@@ -179,6 +183,57 @@ are not merged; that refusal is the guard that prevents losing unmerged work. `-
 destroys it. Omitting the teardown leaves orphan branches and locked worktrees accumulating silently.
 
 The orchestrating span merges completed units in dependency order before review handoff.
+
+## Incremental arc — build mode
+
+The above is the dev-sprint behaviour (a work-item's IU children, multi-IU spans). When build is
+reached on the **`incremental` arc** carrying a **standalone IU** (`carrier_kind: standalone-iu`),
+the single slice *is* the work, and the discipline is the **tracer-bullet inner loop** — vertical,
+one test at a time, not all-tests-then-all-code:
+
+```
+For the standalone slice:
+  TRACER BULLET:  write ONE test for the first behaviour → RED (fails)
+                  → minimal code to pass → GREEN  (the path is proven end-to-end)
+  INCREMENTAL:    for each remaining behaviour in `acceptance`:
+                    RED:   write the next test → fails
+                    GREEN: minimal code → passes
+                  (one test at a time; only enough code to pass; no speculative features)
+  REFACTOR:       once all acceptance tests are GREEN, refactor under green
+  DONE:           every `acceptance` condition is an observable passing test
+                  AND `verification.end_to_end` is demonstrable → emit unit-complete
+```
+
+- **Ordering rule — vertical, not horizontal.** Never write all the tests then all the code. Prove
+  one behaviour end-to-end, then add the next. The first test is the tracer bullet: it lights up the
+  whole path before any behaviour is filled in.
+- **Minimal-code rule.** Write only enough code to turn the current RED test GREEN. No speculative
+  features, no layers the acceptance set does not demand. Speculation is what `refactor`-under-green
+  consolidates, not what build front-loads.
+- **Non-code slice.** For a slice that edits a reference or doc (no runnable test), the analogue is
+  **one verifiable claim → one edit → confirm**, with the slice's `verification` fixture playing the
+  test's role — same vertical discipline, claim by claim.
+
+This is the build-mode for `arc: incremental` / `carrier_kind: standalone-iu` only; the dev-sprint
+multi-IU behaviour above is unchanged. It maps onto build's existing acceptance-driven done signal —
+the addition is the *ordering* and *minimal-code* rules, not a new schema field or new nodes.
+
+### HITL pause
+
+A standalone IU carries `slice_type: AFK | HITL`. When `slice_type == HITL` **and
+`hitl_point.stage == build`**, build pauses at the decision point — surfacing `hitl_point.decision`;
+it does not run past it unattended. If `hitl_point.stage` is a **downstream** stage (e.g. `review`),
+build does **not** pause — it hands off, and the owning stage honours the pause. An **AFK** slice
+runs the loop above unattended end-to-end. (A HITL point that turns out to be a genuine design fork
+is a *promote* signal, not a build decision.)
+
+### Carrier consumption (the carrier interface)
+
+Build consumes its carrier through the **carrier-interface** (`references`, on-demand): it reads
+`carrier_kind` and `arc` to know which arc it is on, and on the incremental arc reads the standalone
+fields (`improves`, `slice_type`, `verification`) **only behind the `carrier_kind == standalone-iu`
+check** — it never assumes work-item fields. The **unit-complete and stage events are carrier-keyed**
+(carrier id + `carrier_kind` + `arc`), so the projection keeps the two arcs' `current_stage` separate.
 
 ## Scope expansions and spec deviations
 
