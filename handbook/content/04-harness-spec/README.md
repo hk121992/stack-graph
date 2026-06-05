@@ -155,6 +155,20 @@ these keys as required; the harness supplies the values.
   it. `simulate-users` grades the product run against it and emits the
   `experience-contract:<pass|fail>` UX-conformance gate ([`analytics`](../06-analytics/README.md)).
 
+- **Zone-matrix axes** — the two axes of the [zone-matrix lens](../01-concepts/) are **harness
+  content**, because a product's experiences and architecture layers are product-specific. They split
+  by **ownership**:
+  - **Verticals** (customer experiences) are **product-owned** — authored by the product function and
+    homed with the strategy surface the `strategy-curator` maintains (a vertical is one of the
+    product's end-to-end experiences, the experience-axis counterpart to a value proposition).
+  - **Horizontals** (architecture layers) are **eng-owned** — eng-authored `kind: reference` axis
+    entries over the code-map, maintained like any engineering reference; **no curator**.
+
+  Both live under the **`axis-root`** binding, tagged by their `axis:` field; vendored zone-aware nodes
+  (the `explore` `zone` mode) reach them through an `external: true` reference the overlay resolves —
+  the factory ships the pointer, the harness supplies the entries. A harness with no axes supplied
+  degrades: the zone mode reports the matrix as unconfigured rather than inventing one.
+
 ## Namespacing
 
 Vendored nodes carry the `stack-graph:` prefix; local nodes are harness-prefixed (e.g.

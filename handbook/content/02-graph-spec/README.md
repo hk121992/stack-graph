@@ -281,6 +281,31 @@ holds the reference and fills it into the subagent's prompt at dispatch.
 Behaviour that must be *enforced* rather than merely present is a **hook** (a `triggers` edge),
 not a reference.
 
+### Axis entries and zones (the zone-matrix lens)
+
+A **zone matrix** ([concepts](../01-concepts/), [decomposition](../07-decomposition/)) adds **no new
+node kind** — it is a lens realised in references and edges, preserving *one node ⟷ one primitive*:
+
+- **An axis entry is a reference.** Each vertical and each horizontal is a `kind: reference` artefact
+  carrying an **`axis: vertical | horizontal`** tag, an **optional `scope`** (the code-map region it
+  covers — a path set for a horizontal; entry-points + traversed modules for a vertical), and
+  `references` to the contract/spec that governs it. It owns no control flow.
+- **A zone rule carries axis references.** A rule that applies to part of the matrix carries plain
+  **`references` edges to the axis entries it concerns** — there is **no `applies-to` block and no new
+  edge type**. Its reach is read by resolving each target and checking for an `axis` field (a target
+  without one is ordinary content): 1 vertical + 1 horizontal = a **cell** rule, one axis only = a
+  **column** / **row** rule, neither = **global**; an unconstrained axis means *all* its values.
+  Specificity ranks **cell > column > row > global** (column > row on a tie). A contradiction with no
+  higher-specificity rule to resolve it is surfaced, never silently merged.
+- **A zone is derived, never authored.** A zone (cell) is the **intersection of one vertical's scope
+  and one horizontal's scope over the code-map**, computed at read time — not a node, not a reference,
+  not stored. Resolution is a read-time agent mode (`explore`'s `zone` mode) answering either a single
+  **cell `(V,H)`** or a whole **column `(V,*)`** (the vertical's contract + the union of its rules +
+  the code-map-traced cross-layer path). Not a build step, not new tooling.
+
+The axes are **harness content**: the factory ships the lens shape (`axis-entry-schema`), the harness
+supplies the entries ([harness-spec](../04-harness-spec/)).
+
 ## Handbook-references
 
 A reference carries a **`kind`**. The default, `reference`, is the standard shared content

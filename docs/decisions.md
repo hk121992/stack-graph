@@ -971,3 +971,37 @@ class outside it. *Applies* D44 (carrier/projection), D49 (record-primary; debri
 D51 (three-way split), D57 (rides an existing event); *resolves* deploy C3 / land CF-3. *Spec:*
 06-analytics (deploy event shape + stream), artefacts-design §5 (frozen deploy field), `deploy`,
 `land`. *Status:* Decided; enacted in the backbone-tail amend batch.
+
+## Zone matrix
+
+**D63 — The zone matrix is a *lens* over V×H — axes-as-references, the zone derived not authored;
+resolution is an `explore` mode.** A product is read as a matrix of **verticals** (product-owned
+customer experiences) × **horizontals** (eng-owned architecture layers); a **zone** (cell) is their
+intersection. It is a **lens** (01-concepts) — it examines, does not traverse, and adds **no new node
+kind**: each axis value is a `kind: reference` **axis entry** (`axis: vertical|horizontal` + an optional
+`scope` over the code-map + `references` to its contract/spec); a rule attaches to part of the matrix by
+carrying plain **`references` edges to axis entries** (no `applies-to` block, no new edge type),
+classified cell/column/row/global by probing each target's `axis` field, ranked
+**cell > column > row > global** (column > row tiebreak), contradictions surfaced not merged. A **zone is
+derived** — the intersection of two axis scopes over the code-map (D39), resolved at read time, never a
+stored grid (authored-traceability, D38). Resolution is a new **`zone` mode of `explore`** (read-time, no
+new tooling, no new goal — it shares explore's four), answering a single **cell `(V,H)`** or a whole
+**column `(V,*)`** (the vertical's contract + the union of its rules + the code-map-traced cross-layer
+path). **The vertical (column) is the unit of work, ship, and test; the cell is the unit of
+rule-resolution** — an agent holds the whole column (UX as the end goal) and reasons over its cells; a
+too-large column splits into thinner verticals, never layers. The axes are **harness content** (the
+factory ships the `axis-entry-schema` shape + `axis-root`/`code-map` bindings; the harness fills the
+entries); enforcement of harness content is **read-time in the `zone` mode** (the maintainer is not
+vendored to the harness). *Why:* the operator asked to incorporate a matrix methodology on the
+stack-graph substrate without a factory schema overhaul; the answer rides the existing code-map +
+reference/edge model + `explore`, so the matrix is a **read-time lens, not a build construct**.
+*Refines* the originating zone-matrix design doc's A3 — **prefer one agent per column**, not one subagent per
+cell (the experience is the governing goal and must be held whole). *Applies* D38 (authored
+traceability), D39 (deterministic code-map), D46 (reference layer), D47 (experience thread = the
+per-vertical governing test). *Spec:* 01-concepts (Zone matrix), 02-graph-spec (Axis entries and zones),
+04-harness-spec (zone-matrix axes + `axis-root`/`code-map`/`zone-test-root` bindings), 06-analytics
+(coverage-view seam), 07-decomposition (A zone matrix), `explore` (`zone` mode), `IU-schema` (`zone`
+field), `work-item-schema` (`vertical_link`), `strategy-curator` (verticals home). *Out of scope
+(deferred seams):* the two-tier testing layer (input-gated; owned by Be Civic) and the coverage-view
+renderer (input-gated). *Status:* Decided; spec + shapes + `explore` `zone` mode + design/plan/build
+wiring enacted in the zone-matrix batch (this batch); testing + coverage view deferred.

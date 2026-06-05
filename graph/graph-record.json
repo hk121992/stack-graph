@@ -1,9 +1,9 @@
 {
-  "generated": "2026-06-05T11:52:43Z",
+  "generated": "2026-06-05T16:22:52Z",
   "node_count": 42,
-  "reference_count": 23,
+  "reference_count": 24,
   "handbook_reference_count": 0,
-  "edge_count": 201,
+  "edge_count": 204,
   "nodes": {
     "align-context": {
       "primitive": "skill",
@@ -68,7 +68,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Build",
-      "status": "v0.3.0 — 2026-06-05",
+      "status": "v0.4.0 — 2026-06-05",
       "edges": {
         "invokes": [
           {
@@ -253,7 +253,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Design",
-      "status": "v0.2.0 — 2026-06-04",
+      "status": "v0.3.0 — 2026-06-05",
       "edges": {
         "invokes": [
           {
@@ -420,13 +420,22 @@
       "primitive": "agent",
       "mode": "autonomous",
       "title": "Explore (context-gathering agent)",
-      "status": "v0.3.0 — 2026-05-31",
+      "status": "v0.4.0 — 2026-06-05",
       "edges": {
         "references": [
           {
             "id": "handbook",
             "load": "on-demand",
             "external": true
+          },
+          {
+            "id": "axis-root",
+            "load": "on-demand",
+            "external": true
+          },
+          {
+            "id": "axis-entry-schema",
+            "load": "on-demand"
           }
         ]
       }
@@ -710,7 +719,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Plan",
-      "status": "v0.1.0 — 2026-06-01",
+      "status": "v0.2.0 — 2026-06-05",
       "edges": {
         "invokes": [
           {
@@ -1181,7 +1190,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Strategy curator",
-      "status": "v0.1.0 — 2026-06-01",
+      "status": "v0.2.0 — 2026-06-05",
       "edges": {
         "invokes": [
           {
@@ -1201,6 +1210,10 @@
           },
           {
             "id": "bmc-schema",
+            "load": "on-demand"
+          },
+          {
+            "id": "axis-entry-schema",
             "load": "on-demand"
           },
           {
@@ -1311,7 +1324,7 @@
     "IU-schema": {
       "kind": "reference",
       "title": "Implementation-Unit schema — the plan↔build field contract (two shapes)",
-      "status": "v0.5.0 — 2026-06-04",
+      "status": "v0.6.0 — 2026-06-05",
       "consumed_by": [
         "build",
         "plan",
@@ -1319,10 +1332,19 @@
         "triage"
       ]
     },
+    "axis-entry-schema": {
+      "kind": "reference",
+      "title": "Axis entry — schema (the zone-matrix lens)",
+      "status": "v0.1.0 — 2026-06-05",
+      "consumed_by": [
+        "explore",
+        "strategy-curator"
+      ]
+    },
     "bindings-contract": {
       "kind": "reference",
       "title": "Bindings contract — the keys a harness supplies, and the surface template",
-      "status": "v0.3.0 — 2026-06-04",
+      "status": "v0.4.0 — 2026-06-05",
       "consumed_by": [
         "harness-init",
         "triage"
@@ -1543,7 +1565,7 @@
     "work-item-schema": {
       "kind": "reference",
       "title": "Work-item schema — the carrier on the product-dashboard",
-      "status": "v0.2.0 — 2026-06-01",
+      "status": "v0.3.0 — 2026-06-05",
       "consumed_by": [
         "harness-init",
         "product-dashboard-curator",
@@ -1920,6 +1942,19 @@
       "type": "references",
       "load": "on-demand",
       "external": true
+    },
+    {
+      "from": "explore",
+      "to": "axis-root",
+      "type": "references",
+      "load": "on-demand",
+      "external": true
+    },
+    {
+      "from": "explore",
+      "to": "axis-entry-schema",
+      "type": "references",
+      "load": "on-demand"
     },
     {
       "from": "handbook-curator",
@@ -2612,6 +2647,12 @@
     {
       "from": "strategy-curator",
       "to": "bmc-schema",
+      "type": "references",
+      "load": "on-demand"
+    },
+    {
+      "from": "strategy-curator",
+      "to": "axis-entry-schema",
       "type": "references",
       "load": "on-demand"
     },

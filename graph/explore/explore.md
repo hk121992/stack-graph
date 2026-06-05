@@ -4,19 +4,22 @@ id: explore
 primitive: agent
 title: Explore (context-gathering agent)
 description: Read-only context-gathering agent a stage fans out to collect just the context it needs and return a distilled digest.
-when-to-use: A stage needs scoped, isolated context (repo / learnings / framework-docs / web / best-practices) without polluting its own window or pausing for the operator.
+when-to-use: A stage needs scoped, isolated context (repo / learnings / framework-docs / web / best-practices / zone) without polluting its own window or pausing for the operator.
 # classification — graph lens
 mode: autonomous
 determinism: generative
 # edges — the graph (scanned from here into the record)
-# Code-map and gbrain recall are reached by inline read-only tools — not graph edges (D38).
-# The curated-canon home IS a first-class dependency: a `handbook` external reference
-# (D41), overlay-resolved to this product's handbook + decisions. `composes-into` edges to the
-# stages that fan explore out (align-context / design / plan / build) are deferred until those
-# stage nodes exist (F7).
+# Code-map and gbrain recall are reached by inline read-only tools — not graph edges (D38); the
+# code-map path is now a named `code-map` binding (one resolution point) but is still READ INLINE,
+# not as a reference edge. Curated canon (`handbook`, D41) and the zone-matrix axes (`axis-root`,
+# D63) ARE first-class external references — overlay-resolved and navigated at the step of need.
+# `composes-into` edges to the stages that fan explore out (align-context / design / plan / build)
+# are deferred until those stage nodes exist (F7).
 edges:
   references:
-    - { id: handbook, load: on-demand, external: true }
+    - { id: handbook,          load: on-demand, external: true }
+    - { id: axis-root,         load: on-demand, external: true }
+    - { id: axis-entry-schema, load: on-demand }
 # analytics — the loop
 goals:
   - outcome: The consuming stage starts work with the relevant context already in hand and does not re-explore the same ground.
@@ -31,7 +34,7 @@ goals:
   - outcome: Context stays bounded — a digest never blows the consuming stage's context window.
     metric: digest size vs the token budget (~500 sparse / ~1000 typical / cap ~1500); truncation/overflow incidents.
     earns-keep: digests stay within budget; overflow is rare and flagged, not silent.
-status: v0.3.0 — 2026-05-31
+status: v0.4.0 — 2026-06-05
 ---
 
 # Explore (context-gathering agent)
@@ -47,7 +50,7 @@ spawned you sees only what you return, not your working context: read heavily, r
 Your spawn prompt carries everything you need. Parse it first:
 
 1. **Scope / mode selector** — which of `repo` / `learnings` / `framework-docs` / `web` /
-   `best-practices` to run (one or several). Run the matching body branch(es) below.
+   `best-practices` / `zone` to run (one or several). Run the matching body branch(es) below.
 2. **Target / question** — the feature, dependency, topic, or decision under consideration.
 3. **Scope-rules / planning-context summary** — what to stay inside, and (optionally) a
    summary of the stage's intent so your digest stays focused.
@@ -149,6 +152,41 @@ Check curated skills FIRST, then go online. Authority ladder: a curated skill ou
 official docs, which outrank community sources — attribute accordingly. Apply the same
 deprecation check as `framework-docs`. Inline tools: skill discovery (Glob `SKILL.md`),
 Context7, WebFetch.
+
+### `zone` — a coordinate in the product's zone matrix
+
+Resolve the in-scope material for a **zone-matrix** coordinate (follow `axis-entry-schema` for the
+shape and the resolution rules). Run only when the harness binds `axis-root`; if it does not, report
+the matrix as **unconfigured** and stop — never invent axes. Your spawn bundle names a **vertical**
+plus either a **horizontal** (a single cell) or `*` (the whole column — the default for sprint work).
+
+**Mechanical core — deterministic, no judgment:**
+
+1. Resolve `axis-root` (your external reference) and **glob it**; bin every axis entry by its `axis`
+   field. Resolve the named vertical (and the horizontal, for a cell query).
+2. **Collect the zone rules.** Classify each candidate rule by resolving its `references` targets and
+   reading each target's `axis` field — cell / column / row / global per `axis-entry-schema`. Keep
+   every applicable rule and **rank** cell > column > row > global (column > row on a tie). Never drop one.
+3. **Scope the code.** Intersect the vertical's `scope` with the horizontal's over the **code-map**
+   (resolve the `code-map` binding and read it inline, exactly as `repo` mode does). For a **column
+   query**, take the union across the vertical's horizontals and trace the **path + cross-layer
+   dependencies** through the code-map's call/dep edges, so the agent can reason about reaching the
+   experience end-to-end. Degrade as `repo` mode: code-map absent → run the scope globs with
+   Glob/Grep; a scopeless vertical (or horizontal) → narrow to the other axis's region and flag it.
+4. **Surface the governing test.** For a column query, include the vertical's **experience contract**
+   (the UX end goal), read via the vertical entry's `references`.
+
+**Enforce at read time** (the harness has no maintainer): flag — fail-loud, in the digest, never
+silently absorbed — a **dangling reference** (an axis id that resolves to no file) and an
+**equal-specificity contradiction** with no higher-specificity rule to resolve it. A resolved target
+with **no `axis` field is ordinary content — ignored during classification, never flagged** (else
+every non-axis content reference a zone rule also carries would false-positive).
+
+**Synthesis (yours):** distil the ranked rules + the scoped code region (+ the contract, for a column)
+into one budget-bounded digest the consuming stage builds against, noting every degradation and
+flagged conflict. The **vertical (column) is the unit of work** — hand back enough for an agent to hold
+the whole column with the UX as the end goal, resolving each cell as it traverses the layers. Inline
+tools: repo-map, `ast-grep`, Read, Grep, Glob.
 
 ## Output
 

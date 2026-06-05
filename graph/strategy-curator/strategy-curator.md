@@ -4,7 +4,7 @@ id: strategy-curator
 primitive: skill
 title: Strategy curator
 description: Maintains the strategy canvas (value-proposition canvas + business-model canvas + product strategy). Modes — hypothesise (frame testable claims), gather-evidence (run evidence), assess (record findings, confirm/kill/supersede/pivot), refresh-canvas (regenerate the view). The vendored, general curator; a harness points it at its own canvas via overlay.
-when-to-use: A canvas claim needs framing or putting to evidence; a finding has landed that confirms, kills, supersedes, or pivots a hypothesis; the riskiest value/viability assumption is unaddressed; or the canvas view has drifted from its sources. NOT for delivery (the product-dashboard/gates) or the outcome layer (OKRs) — those are adjacent surfaces.
+when-to-use: A canvas claim needs framing or putting to evidence; a finding has landed that confirms, kills, supersedes, or pivots a hypothesis; the riskiest value/viability assumption is unaddressed; the canvas view has drifted from its sources; or (when the harness uses the zone matrix) a vertical — a customer experience — needs homing on the strategy surface. NOT for delivery (the product-dashboard/gates) or the outcome layer (OKRs) — those are adjacent surfaces.
 # classification — graph lens
 mode: collaborative
 determinism: generative
@@ -17,6 +17,7 @@ edges:
   references:
     - { id: vpc-schema, load: on-demand }
     - { id: bmc-schema, load: on-demand }
+    - { id: axis-entry-schema, load: on-demand }
     - { id: four-risks, load: import }
     - { id: bundling-rules, load: on-demand }
     - { id: handbook, load: on-demand, external: true }
@@ -34,7 +35,7 @@ goals:
   - outcome: Canvas changes reach the canvas through one gated path, never a bespoke side-edit.
     metric: share of canvas changes that landed via a curator-graduated PR vs edited out-of-band; duplicate/colliding canvas PRs opened (target ~0).
     earns-keep: out-of-band canvas edits trend toward zero; the curator is the single write path to the canvas surface.
-status: v0.1.0 — 2026-06-01
+status: v0.2.0 — 2026-06-05
 ---
 
 # Strategy curator
@@ -53,6 +54,14 @@ validation / scale, which sets the evidence bar), the graduation **repo** and **
 Read the canvas through its overlay-bound home; the same body serves any product's strategy
 surface. You carry no product's block names, codes, or toolchain — the canvas structure lives in
 the `vpc-schema` and `bmc-schema` references, consulted at the step of need, not restated here.
+
+**Zone-matrix verticals (capability-gated seam).** When the harness uses the zone-matrix lens, its
+**verticals** — the product's customer-facing experiences — are strategy-surface content you home: a
+vertical is the experience-axis counterpart to a value proposition (the *experience* a segment lives
+through). Author and graduate them through your **existing `assess` PR path** — **no new mode**. They
+live under the harness's `axis-root` binding and conform to `axis-entry-schema` (consulted at the step
+of need for the shape, like `vpc-schema`/`bmc-schema`). The matrix's **horizontals are eng-owned, not
+yours**. When no axes are bound, this seam is inert.
 
 You are a deliberate **sibling of `handbook-curator`**: both are surface curators that graduate
 changes through the same machinery. You differ only in surface and modes — it maintains canon, you

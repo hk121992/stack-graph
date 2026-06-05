@@ -64,6 +64,36 @@ by the nodes that hold a **`maintains`** edge into it. The mechanics — kinds, 
 `extends`, the `maintains` edge, numbering, and how the union renders — are in
 [graph-spec](../02-graph-spec/) and [harness-spec](../04-harness-spec/).
 
+## Zone matrix
+
+A **zone matrix** is a **lens** over a product (it *examines*; it does not traverse — it is not an
+arc). It crosses two axes and reads the product at their intersections:
+
+- **Verticals** — the product's **customer-facing experiences** (the end-to-end journeys a user
+  lives through). Verticals are **product-owned**: how the product is *experienced*.
+- **Horizontals** — the product's **architecture layers** (the technical strata a change cuts
+  across). Horizontals are **engineering-owned**: how the product is *built*.
+- A **zone** (a cell) is the **intersection** of one vertical and one horizontal — one experience
+  as it lands in one layer. A zone is **derived, not authored**: the region of the
+  [code-map](../06-analytics/) where a vertical's scope and a horizontal's scope overlap, resolved
+  at read time, never a stored grid.
+
+The axes are **references**, not new node kinds: each axis entry names its scope and points at the
+contract/spec that governs it; a rule attaches to part of the matrix by *referencing* the axis
+entries it concerns ([graph-spec](../02-graph-spec/)). The axes are **harness content** — a
+product's experiences and layers are product-specific ([harness-spec](../04-harness-spec/)).
+
+**The vertical is the unit of work, ship, and test; the cell is the unit of rule-resolution.**
+Because the experience is the governing goal, an agent reasons **down a column** — one vertical
+across the horizontals it touches — holding the UX as the end, tracing the path and cross-layer
+dependencies, resolving each cell's rules as it goes. A change is built across a column and
+**graded by the column's experience test** (the per-vertical UX test, [analytics](../06-analytics/)).
+A too-large column splits into **thinner verticals, never horizontal layers**.
+
+**Two-tier testing — a forward reference, not built here.** Cheap **per-cell unit checks** sit
+under a single **governing per-vertical UX test**. The factory leaves this a **seam**: the testing
+layer is **input-gated** and realised in a harness, not the factory.
+
 ## Arc
 
 An **arc is a named, possibly-cyclic traversal over nodes** — the unit of work the operator
