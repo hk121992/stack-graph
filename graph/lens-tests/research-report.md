@@ -4,7 +4,9 @@ type: research-report
 status: complete
 authored: 2026-05-30
 last_updated: 2026-05-30
-amended: []
+amended:
+  - date: 2026-06-05
+    note: "test-discipline reference wiring — added references: test-discipline (load: on-demand). The Pocock-derived test-quality standard (graph/_refs/test-discipline.md) is now the NAMED source the lens grades against; the tuned inline hunt-list is preserved and reframed as that standard's review-time application (one body line added before the hunt-list). on-demand (not import) — the lens already operationalises the rubric inline, so the reference is the consultable source of truth, not doubled standing context. Surgical edge+pointer amend."
 sources_lifted: 6
 researcher_adequacy_note: |
   Lifted six sources: CE's ce-testing-reviewer (the closest direct analog — an
@@ -223,8 +225,14 @@ findings reframe "file:line" to the doc location / section but keep the same sch
 - **Harness seam:** product-specific lenses attach to the family as harness **overlays**
   (a new lens node + an edge registering it with the dispatch catalog); the vendored
   family — including this node — is never mutated.
-
-## Fit
+- **Reference seam (`test-discipline`):** the lens's test-quality rubric — behaviour through public
+  interfaces, mock-at-boundaries, design-for-testability — is single-sourced from the
+  `test-discipline` reference (`graph/_refs/`), consumed via a `references` edge (`load: on-demand`).
+  The reference is the **named standard**; this lens's hunt-list is its review-time application
+  (`target: diff` = coverage of changed code; `target: doc` = testability of the proposed design). The
+  inline hunt-list is preserved (it is finely tuned) and reframed as "graded against `test-discipline`",
+  not deleted in favour of the reference. Shared with `build`, which draws on the same standard for the
+  *shape* of the tests it writes.
 
 **Single node, target-parameterised — confirmed.** Apply the
 [decomposition](../../handbook/content/07-decomposition/) discriminator: it owns its own
