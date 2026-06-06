@@ -470,8 +470,10 @@ function itemCard(item: WorkItem, proj: ProjectionResult, detailSlug: string): s
     ? `<div class="card-stage${staleClass}">stage: <strong>${esc(stage.label)}</strong>${stage.stale ? ' <span class="stale-tag">stale</span>' : ""}</div>`
     : "";
 
+  // itemCard renders on the ledger (the surface index), so the link to the progress
+  // page is relative to the surface root: progress/#<objective-id>.
   const outcomeHtml = item.fm.outcome_link
-    ? `<div class="card-meta">→ <a href="../../progress/#${esc(item.fm.outcome_link)}">${esc(item.fm.outcome_link)}</a></div>`
+    ? `<div class="card-meta">→ <a href="progress/#${esc(item.fm.outcome_link)}">${esc(item.fm.outcome_link)}</a></div>`
     : "";
 
   const dispositionHtml = item.fm.disposition
@@ -502,14 +504,16 @@ function buildNav(_items: WorkItem[]): NavGroup[] {
   return [
     {
       group: "Product dashboard",
-      pages: ["dashboard", "progress", "strategy"],
+      // The ledger IS the surface index (slug ""), with progress/strategy as
+      // sub-pages — so nav hrefs resolve from the surface root, not one level up.
+      pages: ["", "progress", "strategy"],
     },
   ];
 }
 
 function pageLabel(items: WorkItem[]): (slug: string) => string {
   const map = new Map<string, string>([
-    ["dashboard", "Work ledger"],
+    ["",          "Work ledger"],
     ["progress",  "Progress"],
     ["strategy",  "Vision & strategy"],
     ...items.map((it): [string, string] => [`item/${it.id}`, it.fm.title]),
@@ -734,7 +738,7 @@ ${popoutFor(standaloneIUs)}`;
   };
 
   return renderSurfacePage({
-    slug: "dashboard",
+    slug: "",          // the ledger is the surface index (dist/dashboard/index.html)
     page,
     nav,
     bodyHtml,

@@ -139,6 +139,15 @@ The sanitisation boundary holds across all three: the publisher reads numbers an
 counts against closed allowlists, never narrative, contract text, or arbitrary keys (the
 same locality and projection discipline as the carrier-state projection below).
 
+**The publish step.** In a harness the publisher reads the harness's **bound** event log
+(`event-log`, the `.stack-graph/events.jsonl` stream — [`harness-spec`](../04-harness-spec/README.md))
+and emits a single sanitised snapshot, `portal-projection.json`, which the vendored workspace render
+publishes **first** in the build so the dashboard + analytics surfaces join it. The snapshot is
+**input-gated**: until the loop emits events it is empty, and absent-or-stale it renders **degraded**
+(a visible provenance banner, snapshot-sourced fields shown as `unknown`) per the harness's
+`stale-projection-policy` — the authored layer always renders in full. An empty analytics surface on
+a harness that has not yet run the loop is the honest state, not a failure.
+
 ### The coverage view — a future projection seam
 
 A zone-matrix **coverage view** ([concepts](../01-concepts/)) — which cells the product's work has

@@ -26,9 +26,12 @@
  *   agents/<id>.md              — built agent nodes (13)
  *   skills/<id>/references/<refid>.md      — per-skill reference copies
  *   references/<agent-id>/<refid>.md       — per-agent reference copies
+ *   workspace/renderer/…        — the workspace portal renderer (Stage 5, 0.5.0+)
+ *   workspace/{build.sh,_headers,wrangler.jsonc} — the portal build orchestration
+ *   workspace/graph/…           — the dev-loop graph data the graph surface renders
  *   .claude-plugin/plugin.json  — version + description updated
  *
- * THE 4 STAGES (scope: 28 nodes + 16 refs; no scripts/hooks/handbook-references)
+ * THE 5 STAGES (scope: 28 nodes + 16 refs + the vendored workspace renderer)
  *   1. Place references. Per node `references` edge: resolve graph/_refs/<id>.md;
  *      SKIP external:true (handbook/personas/experience-contract/strategy-canvas —
  *      ship the pointer only). Copy (not symlink) the ref into the consumer's bundle
@@ -42,6 +45,14 @@
  *   4. Index check. Assert the emitted primitive set matches the node set in
  *      graph-record.json (parity only — the record is NOT rewritten; the maintainer
  *      owns it).
+ *   5. Vendor the workspace render (0.5.0+). Binary-safe recursive copy of
+ *      workspace/renderer/ + the build orchestration (build.sh/_headers/wrangler)
+ *      + the dev-loop graph data (graph-record.json + each node's <id>/<id>.md) into
+ *      <plugin>/workspace/. This carries the unified portal so a harness builds it
+ *      from the plugin alone (04-harness "Instantiating a harness"; bindings:
+ *      renderer/deploy-config). Self-contained tree; not run through the text
+ *      primitive pipeline (it carries fonts/favicons), so it has its own clean +
+ *      buffer-compare drift check.
  *
  * GATES
  *   G1 idempotency/freshness: deterministic serialise => re-run is byte-identical.
@@ -67,6 +78,7 @@ import {
   readdirSync,
   readFileSync,
   writeFileSync,
+  copyFileSync,
   mkdirSync,
   rmSync,
   statSync,
@@ -102,7 +114,7 @@ const NATIVE_KEY_ORDER = [
   "argument-hint",
 ];
 
-const PLUGIN_VERSION = "0.4.0";
+const PLUGIN_VERSION = "0.5.0";
 
 // The plugin lives in its own repo, vendored into the factory as a git submodule
 // at this path. Inputs (graph/) are read from the factory root; outputs are written
@@ -726,6 +738,83 @@ function walkFiles(dir: string, root: string, cb: (rel: string) => void): void {
 }
 
 // ----------------------------------------------------------------------------
+// Stage 5 — vendor the workspace render (0.5.0+).
+//
+// Binary-safe (the renderer ships woff2 fonts + png/ico favicons), so it runs
+// OUTSIDE the text-based EmittedFile pipeline: a recursive byte-copy with its own
+// clean (write) and Buffer-compare drift check (--check). The vendored tree lets a
+// harness build the unified portal from the plugin alone, pointing the renderer at
+// its bound surfaces (HANDBOOK_ROOT/DASHBOARD_ROOT/CANVAS_ROOT/BRAND_ROOT) and the
+// co-located dev-loop graph (GRAPH_ROOT=<plugin>/workspace/graph).
+// ----------------------------------------------------------------------------
+
+/** The plugin-relative subtree this stage owns; cleaned + drift-checked on its own. */
+const WORKSPACE_TREE = "workspace";
+
+/** Enumerate (absolute source, plugin-relative dest) pairs for the workspace render. */
+function workspaceFiles(factoryRoot: string): { src: string; rel: string }[] {
+  const pairs: { src: string; rel: string }[] = [];
+
+  // 1. The renderer tree, verbatim (TS + lib/ + vendor/ + brand/ + assets/ +
+  //    fixtures/ + package.json). dist/ is build output and never present here.
+  const rendererSrc = join(factoryRoot, "workspace", "renderer");
+  walkFiles(rendererSrc, rendererSrc, (rel) => {
+    pairs.push({ src: join(rendererSrc, rel), rel: join("workspace", "renderer", rel) });
+  });
+
+  // 2. The build orchestration alongside the renderer.
+  for (const f of ["build.sh", "_headers", "wrangler.jsonc"]) {
+    const src = join(factoryRoot, "workspace", f);
+    if (existsSync(src)) pairs.push({ src, rel: join("workspace", f) });
+  }
+
+  // 3. The dev-loop graph data the graph surface renders: the record + each node's
+  //    canonical <id>/<id>.md (the render reads descriptions/goals/doc-body from it;
+  //    absent files only degrade the pop-out, but we ship them for the full surface).
+  const recordSrc = join(factoryRoot, "graph", "graph-record.json");
+  pairs.push({ src: recordSrc, rel: join("workspace", "graph", "graph-record.json") });
+  const record = JSON.parse(readFileSync(recordSrc, "utf-8")) as { nodes: Record<string, unknown> };
+  for (const id of Object.keys(record.nodes).sort()) {
+    const src = join(factoryRoot, "graph", id, `${id}.md`);
+    if (existsSync(src)) pairs.push({ src, rel: join("workspace", "graph", id, `${id}.md`) });
+  }
+  return pairs;
+}
+
+/** Write the workspace render into the plugin (clean its tree first). */
+function writeWorkspace(factoryRoot: string, pluginRoot: string): number {
+  const dest = join(pluginRoot, WORKSPACE_TREE);
+  if (existsSync(dest)) rmSync(dest, { recursive: true, force: true });
+  const pairs = workspaceFiles(factoryRoot);
+  for (const { src, rel } of pairs) {
+    const abs = join(pluginRoot, rel);
+    mkdirSync(dirname(abs), { recursive: true });
+    copyFileSync(src, abs);
+  }
+  return pairs.length;
+}
+
+/** --check the workspace render: byte-compare expected files + flag stale ones. */
+function checkWorkspace(factoryRoot: string, pluginRoot: string): string[] {
+  const drift: string[] = [];
+  const pairs = workspaceFiles(factoryRoot);
+  const expected = new Set(pairs.map((p) => p.rel));
+  for (const { src, rel } of pairs) {
+    const abs = join(pluginRoot, rel);
+    if (!existsSync(abs)) { drift.push(`missing: ${rel}`); continue; }
+    if (!readFileSync(src).equals(readFileSync(abs))) drift.push(`differs: ${rel}`);
+  }
+  const destRoot = join(pluginRoot, WORKSPACE_TREE);
+  if (existsSync(destRoot)) {
+    walkFiles(destRoot, pluginRoot, (rel) => {
+      if (rel.endsWith(".gitkeep")) return;
+      if (!expected.has(rel)) drift.push(`stale: ${rel}`);
+    });
+  }
+  return drift;
+}
+
+// ----------------------------------------------------------------------------
 // Helpers + main
 // ----------------------------------------------------------------------------
 
@@ -764,8 +853,11 @@ function main(): void {
   }
 
   if (check) {
-    // G1 freshness gate.
-    const drift = checkBuild(pluginRoot, build);
+    // G1 freshness gate — primitives (text pipeline) + the vendored workspace render.
+    const drift = [
+      ...checkBuild(pluginRoot, build),
+      ...checkWorkspace(factoryRoot, pluginRoot),
+    ];
     if (drift.length > 0) {
       console.error("vendor --check: committed output is STALE vs a fresh build (G1):");
       for (const d of drift) console.error(`  - ${d}`);
@@ -774,16 +866,18 @@ function main(): void {
     console.log(
       `vendor --check: clean — committed output matches a fresh build ` +
         `(${build.counts.skills} skills, ${build.counts.agents} agents, ` +
-        `${build.counts.refCopies} reference copies). G2 load-verify: pass.`,
+        `${build.counts.refCopies} reference copies + the vendored workspace render). ` +
+        `G2 load-verify: pass.`,
     );
     return;
   }
 
   writeBuild(pluginRoot, build);
+  const wsCount = writeWorkspace(factoryRoot, pluginRoot);
   console.log(
     `vendor: emitted ${build.counts.skills} skills + ${build.counts.agents} agents + ` +
-      `${build.counts.refCopies} reference copies; plugin.json -> ${PLUGIN_VERSION}. ` +
-      `Stage 4 parity: pass. G2 load-verify: pass.`,
+      `${build.counts.refCopies} reference copies + ${wsCount} workspace-render files; ` +
+      `plugin.json -> ${PLUGIN_VERSION}. Stage 4 parity: pass. G2 load-verify: pass.`,
   );
 }
 

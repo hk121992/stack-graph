@@ -33,16 +33,78 @@ import { createHash } from "node:crypto";
 
 import { assetBasenames, renderMarkdown, type CorePage, type NavGroup } from "./vendor/bc-renderer-core/src/index.js";
 import { renderSurfacePage } from "./shell-host.js";
+import { brandRoot } from "./brand/brand.js";
 
 const rendererDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(rendererDir, "..", "..");
-const recordPath = path.join(repoRoot, "graph", "graph-record.json");
-const graphDir = path.join(repoRoot, "graph");
+
+// Graph root — the directory holding graph-record.json + the per-node
+// <id>/<id>.md source files. Default = the factory's own graph/ (factory build
+// unchanged). A harness renders ITS dev-loop graph (the vendored plugin's graph)
+// by pointing here: `--graph-root <dir>` or env GRAPH_ROOT. git last-updated runs
+// with cwd=graphRoot, so a non-git or copied tree simply degrades the badge to
+// "unknown" (the documented degraded-mode contract) rather than failing.
+function resolveGraphRoot(): string {
+  const args = process.argv.slice(2);
+  const i = args.indexOf("--graph-root");
+  if (i !== -1 && args[i + 1]) return path.resolve(args[i + 1]);
+  if (process.env["GRAPH_ROOT"]) return path.resolve(process.env["GRAPH_ROOT"]);
+  return path.join(repoRoot, "graph");
+}
+const graphRoot = resolveGraphRoot();
+const recordPath = path.join(graphRoot, "graph-record.json");
+
+// Local graph overlay — the harness's OWN graph elements (entry nodes + connecting
+// edges), composed on top of the vendored (sg) graph so the surface shows the WHOLE
+// graph, not just the vendored part. Optional + input-gated: a harness with no local
+// nodes yet simply renders the vendored graph. The overlay is a self-describing
+// manifest `{ nodes: { <id>: { primitive, title, description } }, edges: [ {from,to,type} ] }`
+// — its nodes carry their metadata inline (no .md file needed), and its edges may point
+// at vendored node ids to connect the overlay. Everything in it is tagged owner="local".
+// Bind via `--graph-local <manifest.json>` or env GRAPH_LOCAL.
+function resolveLocalGraph(): string | null {
+  const args = process.argv.slice(2);
+  const i = args.indexOf("--graph-local");
+  if (i !== -1 && args[i + 1]) return path.resolve(args[i + 1]);
+  if (process.env["GRAPH_LOCAL"]) return path.resolve(process.env["GRAPH_LOCAL"]);
+  return null;
+}
+
+/** Compose the vendored (sg) record with the optional local overlay, owner-tagging
+ *  both. Mutates+returns rec. The graph surface then renders the composed union. */
+function composeOwners(rec: GraphRecord, localPath: string | null): { sg: number; local: number } {
+  for (const id of Object.keys(rec.nodes)) rec.nodes[id].owner = "sg";
+  for (const e of rec.edges) e.owner = "sg";
+  let local = 0;
+  if (localPath && existsSync(localPath)) {
+    const overlay = JSON.parse(readFileSync(localPath, "utf8")) as Partial<GraphRecord>;
+    for (const [id, n] of Object.entries(overlay.nodes ?? {})) {
+      rec.nodes[id] = { ...(n as RecordNode), owner: "local" };
+      local++;
+    }
+    for (const e of overlay.edges ?? []) rec.edges.push({ ...e, owner: "local" });
+  }
+  return { sg: Object.keys(rec.nodes).length - local, local };
+}
+
 const distRoot = path.join(rendererDir, "..", "dist");          // workspace/dist
-const surfaceDir = path.join(distRoot, "graph");                // workspace/dist/graph
+// Mount subpath for the graph surface (default "graph"). A harness whose /graph/*
+// is already taken (e.g. a Knowledge-Graph worker) mounts it deeper — GRAPH_MOUNT
+// or --mount "graph/stack-graph" — and the surface builds directly there with the
+// right link depth (mountDepth), instead of being moved post-build (which breaks
+// the to-hub links).
+function resolveGraphMount(): string {
+  const args = process.argv.slice(2);
+  const i = args.indexOf("--mount");
+  const raw = (i !== -1 && args[i + 1]) ? args[i + 1] : (process.env["GRAPH_MOUNT"] || "graph");
+  return raw.replace(/^\/+|\/+$/g, "");           // trim slashes
+}
+const graphMount = resolveGraphMount();
+const graphMountDepth = graphMount.split("/").length;
+const surfaceDir = path.join(distRoot, ...graphMount.split("/"));  // workspace/dist/<mount>
 const vendorAssetsDir = path.join(rendererDir, "vendor", "bc-renderer-core", "assets");
 const localAssetsDir = path.join(rendererDir, "assets");        // forked graph-browser.js lives here
-const brandDir = path.join(rendererDir, "brand");
+const brandDir = brandRoot;   // BRAND_ROOT overlay, else the vendored brand/
 
 function ensureDir(dir: string) { mkdirSync(dir, { recursive: true }); }
 function writeHtml(filePath: string, html: string) {
@@ -61,6 +123,7 @@ interface RecordEdge {
   stage?: string;
   load?: string;
   external?: boolean;
+  owner?: string;             // "sg" (vendored) | "local" (harness overlay) — set at compose
 }
 interface RecordNode {
   primitive: string;          // skill | agent | command | script
@@ -68,6 +131,8 @@ interface RecordNode {
   title?: string;
   status?: string;
   edges?: Record<string, unknown>;
+  owner?: string;             // "sg" (vendored) | "local" (harness overlay) — set at compose
+  description?: string;       // local-overlay nodes carry their metadata inline (no .md file)
 }
 interface GraphRecord {
   node_count: number;
@@ -93,9 +158,12 @@ function recencyLight(iso: string | null): Health {
 }
 
 /** Resolve a node's authored file path: graph/<id>/<id>.md (convention). */
+// Path of a node's source file, relative to graphRoot (`<id>/<id>.md`). null when
+// the file is absent (e.g. a record entry with no on-disk node). Resolved against
+// graphRoot so the same code serves the factory graph and a harness's bound graph.
 function nodeFileRel(id: string): string | null {
-  const rel = path.join("graph", id, `${id}.md`);
-  return existsSync(path.join(repoRoot, rel)) ? rel : null;
+  const rel = path.join(id, `${id}.md`);
+  return existsSync(path.join(graphRoot, rel)) ? rel : null;
 }
 
 /**
@@ -108,7 +176,7 @@ function lastUpdatedISO(relFile: string | null): string | null {
   try {
     const out = execFileSync(
       "git", ["log", "-1", "--format=%cI", "--", relFile],
-      { cwd: repoRoot, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+      { cwd: graphRoot, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
     ).trim();
     return out || null;
   } catch {
@@ -184,9 +252,15 @@ function buildDot(rec: GraphRecord): { dot: string; drawnEdgeKeys: Set<string> }
     // Escape id + kind individually and keep the `\n` as a RAW DOT newline. Running
     // dotEscape over the whole label double-escaped the backslash, so Graphviz drew a
     // literal "\n" instead of a line break (QA finding).
-    const labelText = `${dotEscape(id)}\\n(${dotEscape(kind)})`;
+    // Owner: vendored (sg) nodes are solid; harness-local overlay nodes render
+    // dashed + double-bordered so the composed graph reads ownership at a glance
+    // (the graph counterpart to the handbook's sg/local badges).
+    const isLocal = n.owner === "local";
+    const ownerLabel = isLocal ? `${dotEscape(kind)}, local` : dotEscape(kind);
+    const labelText = `${dotEscape(id)}\\n(${ownerLabel})`;
+    const ownerAttr = isLocal ? `, style="rounded,dashed", peripheries=2` : "";
     lines.push(
-      `  "${dotEscape(id)}" [label="${labelText}", shape=${st.shape}, color="${st.stroke}"];`,
+      `  "${dotEscape(id)}" [label="${labelText}", shape=${st.shape}, color="${st.stroke}"${ownerAttr}];`,
     );
   }
 
@@ -415,7 +489,7 @@ function readNodeMeta(id: string): { description?: string; goals: { outcome?: st
   const rel = nodeFileRel(id);
   if (!rel) return { goals: [] };
   let raw: string;
-  try { raw = readFileSync(path.join(repoRoot, rel), "utf8"); }
+  try { raw = readFileSync(path.join(graphRoot, rel), "utf8"); }
   catch { return { goals: [] }; }
   const fmMatch = raw.match(/^---\n([\s\S]*?)\n---/);
   if (!fmMatch) return { goals: [] };
@@ -448,6 +522,7 @@ interface SidecarEdge { id: string; type: string; stage?: string; load?: string;
 interface SidecarNode {
   id: string;
   kind: string;
+  owner: string;              // "sg" (vendored) | "local" (harness overlay)
   title: string;
   description?: string;
   goals: { outcome?: string; metric?: string }[];
@@ -462,7 +537,7 @@ interface SidecarNode {
 /** Read the node's directory listing (with roles) + render its canonical document body —
  *  the artefact shown in the graph pop-out (directory summary + the skill/agent doc). */
 function readNodeDocument(id: string): { html: string; directory: { name: string; role: string }[] } {
-  const dir = path.join(repoRoot, "graph", id);
+  const dir = path.join(graphRoot, id);
   const out = { html: "", directory: [] as { name: string; role: string }[] };
   if (!existsSync(dir)) return out;
   const roleFor = (name: string): string => {
@@ -505,21 +580,27 @@ function buildSidecar(rec: GraphRecord, lastUpdated: Map<string, string | null>)
   for (const id of Object.keys(rec.nodes)) {
     const n = rec.nodes[id];
     const kind = n.primitive || "node";
-    const meta = readNodeMeta(id);
-    const doc = readNodeDocument(id);
-    const iso = lastUpdated.get(id) ?? null;
+    const owner = n.owner === "local" ? "local" : "sg";
+    // sg (vendored) nodes read their on-disk .md for rich detail; local-overlay
+    // nodes carry their metadata inline in the manifest (no .md file), so they use
+    // it directly and degrade the git/doc fields (input-gated until authored on disk).
+    const isLocal = owner === "local";
+    const meta = isLocal ? { description: n.description, goals: [] } : readNodeMeta(id);
+    const doc = isLocal ? { html: "", directory: [] } : readNodeDocument(id);
+    const iso = isLocal ? null : (lastUpdated.get(id) ?? null);
     const updatedState = recencyLight(iso);
     const usedState: Health = "unknown"; // degraded — no projection snapshot exists yet
     badges.set(id, { lastUpdated: updatedState, lastUsed: usedState });
     data[id] = {
       id,
       kind,
+      owner,
       title: n.title || id,
       description: meta.description,
       goals: meta.goals,
       edges_out: (out.get(id) || []),
       edges_in: (inn.get(id) || []),
-      file: nodeFileRel(id),
+      file: isLocal ? null : nodeFileRel(id),
       document_html: doc.html,
       directory: doc.directory,
       health: {
@@ -556,9 +637,20 @@ function buildBodyHtml(svg: string, sidecar: Record<string, SidecarNode>): strin
     `<code>portal-projection.json</code> snapshot is published.` +
     `</div>`;
 
+  // Owner row — shown only when the composed graph carries a harness-local overlay,
+  // so a vendored-only graph stays uncluttered. Solid = vendored (sg); dashed = local.
+  const hasLocal = Object.values(sidecar).some((n) => n.owner === "local");
+  const ownerRow = hasLocal
+    ? `<div class="lg-row"><span class="lg-title">Owner</span>` +
+        `<span class="lg-item"><span class="lg-swatch" style="border-color:#7c8893"></span>vendored (stack-graph)</span>` +
+        `<span class="lg-item"><span class="lg-swatch" style="border-color:#7c8893;border-style:dashed"></span>harness-local</span>` +
+      `</div>`
+    : "";
+
   const legend =
     `<div class="graph-legend" aria-label="Graph legend">` +
       `<div class="lg-row"><span class="lg-title">Nodes</span>${legendKinds}</div>` +
+      ownerRow +
       `<div class="lg-row"><span class="lg-title">Edges</span>${legendEdges}</div>` +
       `<div class="lg-row"><span class="lg-title">Health</span>` +
         `<span class="lg-item"><span class="health-key health-green"></span>fresh</span>` +
@@ -590,7 +682,8 @@ function buildBodyHtml(svg: string, sidecar: Record<string, SidecarNode>): strin
     `</script>`;
 
   return [
-    `<p class="lede graph-intro">The whole stack-graph — every node (skill / agent / script) and the typed edges between them. ` +
+    `<p class="lede graph-intro">The whole graph — every node (skill / agent / script) and the typed edges between them, ` +
+      `the vendored stack-graph graph composed with this harness's local overlay (solid = vendored, dashed = harness-local). ` +
       `Hover a node to highlight its lineage; click a node to open its detail.</p>`,
     banner,
     legend,
@@ -759,10 +852,14 @@ html.dark { --health-green: #46c279; --health-amber: #e7bb45; --health-red: #e76
 
 if (!existsSync(recordPath)) throw new Error(`graph record not found at ${recordPath}`);
 const rec = JSON.parse(readFileSync(recordPath, "utf8")) as GraphRecord;
+
+// Compose the vendored (sg) record with the optional harness-local overlay so the
+// surface renders the WHOLE graph, owner-tagged. local=0 when no overlay is bound.
+const ownerCounts = composeOwners(rec, resolveLocalGraph());
 const nodeIds = Object.keys(rec.nodes);
 if (nodeIds.length === 0) throw new Error(`no nodes in ${recordPath}`);
 
-log(`graph browser — ${nodeIds.length} nodes / ${rec.edges.length} edges → ${surfaceDir}`);
+log(`graph browser — ${nodeIds.length} nodes (${ownerCounts.sg} sg + ${ownerCounts.local} local) / ${rec.edges.length} edges → ${surfaceDir}`);
 
 // Health: last-updated from git (per node file). last-used is degraded (no snapshot).
 const lastUpdated = new Map<string, string | null>();
@@ -820,7 +917,7 @@ const nav: NavGroup[] = [{ group: "Workspace", pages: [""] }];
 
 const page: CorePage = {
   path: "",
-  fm: { title: "Graph browser", description: "The whole stack-graph — nodes, typed edges, and per-node health." },
+  fm: { title: "Graph browser", description: "The whole graph — vendored + harness-local nodes, typed edges, and per-node health." },
   raw: "",
   kind: "docs",
 };
@@ -834,6 +931,7 @@ const html = renderSurfacePage({
   bodyHtml,
   showToc: false,
   layoutVariant: "full-bleed",
+  mountDepth: graphMountDepth,   // 1 for /graph/, 2 for /graph/stack-graph/
   pageLabel: () => "Graph browser",
   extraHead: () => extraHeadCss(),
   bodyScripts: () => `<script src="graph-browser.js?v=${browserHash}" defer></script>`,

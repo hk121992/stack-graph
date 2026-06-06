@@ -8,13 +8,13 @@
 import { writeFileSync, mkdirSync, copyFileSync, existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { wordmarkSlot, brand, faviconHead } from "./brand/brand.js";
+import { wordmarkSlot, brand, faviconHead, brandRoot } from "./brand/brand.js";
 import { assetBasenames } from "./vendor/bc-renderer-core/src/index.js";
 
 const rendererDir = path.dirname(fileURLToPath(import.meta.url));
 const distRoot = path.join(rendererDir, "..", "dist");
 const vendorAssetsDir = path.join(rendererDir, "vendor", "bc-renderer-core", "assets");
-const brandDir = path.join(rendererDir, "brand");
+const brandDir = brandRoot;   // BRAND_ROOT overlay, else the vendored brand/
 
 mkdirSync(distRoot, { recursive: true });
 
@@ -36,6 +36,13 @@ if (existsSync(faviconDir)) {
 // Shared client script for the detail pop-out drawer (dashboard IUs + canvas entries).
 const popoutSrc = path.join(rendererDir, "assets", "popout.js");
 if (existsSync(popoutSrc)) copyFileSync(popoutSrc, path.join(distRoot, "popout.js"));
+// Canvas evidence-state filter (root asset, loaded by the canvas surface).
+const cvFilterSrc = path.join(rendererDir, "assets", "canvas-filter.js");
+if (existsSync(cvFilterSrc)) copyFileSync(cvFilterSrc, path.join(distRoot, "canvas-filter.js"));
+// Shared workspace structure + components — root asset linked by the hub and every
+// surface (brand-neutral; the no-drift seam). See assets/workspace.css.
+const wsCssSrc = path.join(rendererDir, "assets", "workspace.css");
+if (existsSync(wsCssSrc)) copyFileSync(wsCssSrc, path.join(distRoot, "workspace.css"));
 // Fonts served at the deploy root /fonts/ (style.css @font-face uses absolute paths).
 mkdirSync(path.join(distRoot, "fonts"), { recursive: true });
 for (const f of ["manrope-700.woff2", "manrope-800.woff2", "geist-sans.woff2", "geist-mono.woff2"]) {
@@ -44,13 +51,25 @@ for (const f of ["manrope-700.woff2", "manrope-800.woff2", "geist-sans.woff2", "
 }
 
 interface Card { title: string; href: string; blurb: string; }
-const CARDS: Card[] = [
+const DEFAULT_CARDS: Card[] = [
   { title: "Handbook", href: "handbook/", blurb: "The canon — what stack-graph is and how it's built." },
   { title: "Product-dashboard", href: "dashboard/", blurb: "The work-ledger: vision, progress, and the record of what we built and why." },
   { title: "Business model", href: "canvas/", blurb: "The Business Model + Value Proposition canvas — the bets, by evidence state." },
   { title: "Graph browser", href: "graph/", blurb: "The whole graph of .claude primitives — nodes, edges, health." },
   { title: "Analytics", href: "analytics/", blurb: "Conformance, agent-experience, and trends (activates once the loop runs)." },
 ];
+
+// Hub copy is brandable: a harness sets brand.config.json `hub` to re-title the
+// space, replace the lede/footer, and override individual card blurbs (keyed by
+// href). Unset fields fall back to the neutral factory defaults above.
+const hub = brand.hub ?? {};
+const HUB_TITLE = hub.title ?? "stack-graph workspace";
+const HUB_LEDE = hub.lede ?? "The factory's read-only comprehension surface — the canon, the work-ledger, and the graph.";
+const HUB_FOOTER = hub.footer ?? "stack-graph — the factory · read-only · act in Claude, comprehend here.";
+const CARDS: Card[] = DEFAULT_CARDS.map((c) => {
+  const o = hub.cards?.[c.href];
+  return o ? { href: o.href ?? c.href, title: o.title ?? c.title, blurb: o.blurb ?? c.blurb } : c;
+});
 
 const FOUC = `<script>(function(){try{var t=localStorage.getItem("${brand.theme_key}");var d=t==="dark"||(!t&&matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d);document.documentElement.classList.toggle("light",!d);}catch(e){}})();</script>`;
 
@@ -81,9 +100,10 @@ const html = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>stack-graph workspace</title>
+<title>${esc(HUB_TITLE)}</title>
 <meta name="robots" content="noindex,nofollow">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="workspace.css">
 <link rel="stylesheet" href="brand-overrides.css">
 ${faviconHead()}
 <style>${HUB_CSS}</style>
@@ -91,17 +111,17 @@ ${FOUC}
 </head>
 <body class="portal-hub">
 <header class="site-nav">
-  ${wordmarkSlot("./", "/favicon.svg")}
-  <button class="theme-toggle" type="button" aria-label="Toggle light/dark theme">◐</button>
+  ${wordmarkSlot("./")}
+  <span class="nav-right"><button class="theme-toggle" type="button" aria-label="Toggle light/dark theme">◐</button></span>
 </header>
 <main class="hub">
-  <h1>stack-graph workspace</h1>
-  <p class="lede">The factory's read-only comprehension surface — the canon, the work-ledger, and the graph.</p>
+  <h1>${esc(HUB_TITLE)}</h1>
+  <p class="lede">${esc(HUB_LEDE)}</p>
   <div class="hub-grid">
       ${cardsHtml}
   </div>
 </main>
-<footer class="site-footer">stack-graph — the factory · read-only · act in Claude, comprehend here.</footer>
+<footer class="site-footer">${esc(HUB_FOOTER)}</footer>
 <script src="theme.js" defer></script>
 </body>
 </html>`;
@@ -114,16 +134,17 @@ const notFound = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Not found · stack-graph workspace</title>
+<title>Not found · ${esc(HUB_TITLE)}</title>
 <meta name="robots" content="noindex,nofollow">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="workspace.css">
 <link rel="stylesheet" href="brand-overrides.css">
 ${faviconHead()}
 <style>${HUB_CSS}</style>
 ${FOUC}
 </head>
 <body class="portal-hub">
-<header class="site-nav">${wordmarkSlot("./", "/favicon.svg")}</header>
+<header class="site-nav">${wordmarkSlot("./")}</header>
 <main class="hub">
   <h1>Not found</h1>
   <p class="lede">That page does not exist. <a href="./">Return to the workspace hub.</a></p>

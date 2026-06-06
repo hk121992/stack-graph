@@ -46,7 +46,7 @@ target does not resolve.
 | `personas` | the product's user profiles | PM-owned surface; consumed by the experience thread (optional pre-launch) |
 | `experience-contract` | the session-shape invariants doc | authored by `design`; per `experience-contract-schema` |
 | `event-log` | the carrier-tagged event stream | path + shape under `.stack-graph/` (gitignored, local) |
-| `renderer` | the workspace render | entrypoint + output/portal dir (the workspace portal) |
+| `renderer` | the vendored workspace render (0.5.0+) | the bound surface roots it is pointed at (`handbook-root` / `dashboard-root` / `canvas-root` / `brand-root` / `graph-root`, plus optional `graph-local` — the harness's local graph-overlay manifest, composed onto the vendored graph so the surface shows the **whole** graph by owner) + the output/portal dir + degraded-policy. The renderer ships in the plugin; this overlays it onto the harness's surfaces (optional) |
 | `deploy-config` | the deploy target | e.g. the portal's `wrangler.jsonc` (optional) |
 | `plan-policy` | in-body vs linked plan threshold + link shape | scalar policy (see `IU-schema`) |
 | `terminal-recorder` | who freezes the timeline at a terminal state | the recorder binding (`work-item-schema` §frozen) |

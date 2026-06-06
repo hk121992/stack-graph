@@ -27,14 +27,29 @@ import {
 import { discover, rewriteMdLinks } from "./lib/content.js";
 import { prepareHeadings, applyHeadingIdsAndNumbers } from "./lib/heading-render.js";
 import { renderSurfacePage } from "./shell-host.js";
+import { brandRoot } from "./brand/brand.js";
 
 const rendererDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(rendererDir, "..", "..");
-const contentRoot = path.join(repoRoot, "handbook", "content");
+
+// Handbook content root. Default = the factory's own handbook/content (so the
+// factory build is unchanged). A harness overrides it to render ITS handbook
+// through the same renderer: `--handbook-root <dir>` or env HANDBOOK_ROOT, where
+// <dir> is the `content/` directory (the dir holding NN-section/README.md). This
+// is the surgical parameterization that lets one vendored renderer serve any
+// harness's canon (mirrors DASHBOARD_ROOT/CANVAS_ROOT).
+function resolveContentRoot(): string {
+  const args = process.argv.slice(2);
+  const i = args.indexOf("--handbook-root");
+  if (i !== -1 && args[i + 1]) return path.resolve(args[i + 1]);
+  if (process.env["HANDBOOK_ROOT"]) return path.resolve(process.env["HANDBOOK_ROOT"]);
+  return path.join(repoRoot, "handbook", "content");
+}
+const contentRoot = resolveContentRoot();
 const distRoot = path.join(rendererDir, "..", "dist");        // workspace/dist
 const surfaceDir = path.join(distRoot, "handbook");           // workspace/dist/handbook
 const vendorAssetsDir = path.join(rendererDir, "vendor", "bc-renderer-core", "assets");
-const brandDir = path.join(rendererDir, "brand");
+const brandDir = brandRoot;   // BRAND_ROOT overlay, else the vendored brand/
 
 function ensureDir(dir: string) { mkdirSync(dir, { recursive: true }); }
 function writeHtml(filePath: string, html: string) {
@@ -64,6 +79,13 @@ for (const basename of assetBasenames) {
 for (const brandAsset of ["brand-overrides.css", "favicon.svg"]) {
   const src = path.join(brandDir, brandAsset);
   if (existsSync(src)) copyFileSync(src, path.join(surfaceDir, brandAsset));
+}
+// Handbook search client (queries the Pagefind index at /pagefind/). The index
+// itself is built by the harness build wiring; search.js degrades gracefully if
+// absent. Copied to the surface root so the surface-relative assetUrl resolves.
+{
+  const src = path.join(rendererDir, "assets", "search.js");
+  if (existsSync(src)) copyFileSync(src, path.join(surfaceDir, "search.js"));
 }
 
 const allWarnings: string[] = [];
@@ -104,6 +126,7 @@ function renderOne(page: CorePage): string {
     nav,
     bodyHtml: applied.html,
     pageLabel: (s) => titleFor.get(s) ?? s,
+    searchSlot: true,
   });
 }
 
@@ -127,6 +150,7 @@ writeHtml(path.join(surfaceDir, "404.html"), renderSurfacePage({
   slug: "404", page: notFound, nav,
   bodyHtml: `<p>That page does not exist. <a href="./">Return to the handbook index.</a></p>`,
   pageLabel: (s) => titleFor.get(s) ?? s,
+  searchSlot: true,
 }));
 
 log(`\nhandbook: built ${built} pages${allWarnings.length ? `, ${allWarnings.length} warning(s)` : ""}.`);
