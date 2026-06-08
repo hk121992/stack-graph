@@ -48,6 +48,18 @@
     }
   });
 
-  var initial = decodeURIComponent((location.hash || "").slice(1));
-  if (initial && items[initial]) open(initial);
+  // Hash → drawer. If the hash IS a sidecar id, open it directly. Otherwise the hash
+  // is a deep-link to an element inside a drill target (e.g. a canvas /#H-CP-03 entry
+  // anchor that lives in a block cell) — find it, climb to the enclosing [data-popout],
+  // and open THAT drawer. The browser still scrolls to the anchor for the no-JS case.
+  function openForHash() {
+    var h = decodeURIComponent((location.hash || "").slice(1));
+    if (!h) return;
+    if (items[h]) { open(h); return; }
+    var el = document.getElementById(h);
+    var host = el && el.closest ? el.closest("[data-popout]") : null;
+    if (host) open(host.getAttribute("data-popout"));
+  }
+  openForHash();
+  window.addEventListener("hashchange", openForHash);
 })();

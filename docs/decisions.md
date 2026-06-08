@@ -1005,3 +1005,55 @@ field), `work-item-schema` (`vertical_link`), `strategy-curator` (verticals home
 (deferred seams):* the two-tier testing layer (input-gated; owned by Be Civic) and the coverage-view
 renderer (input-gated). *Status:* Decided; spec + shapes + `explore` `zone` mode + design/plan/build
 wiring enacted in the zone-matrix batch (this batch); testing + coverage view deferred.
+
+## Dashboard throughline
+
+**D64 — The dashboard's strategic surfaces become one navigable throughline (vision → bets →
+objectives → work → record), rendered from authored fields, not new stores.** The product-dashboard's
+thin static-doc surfaces are reworked into a coherent product *direction*: the redesign renders the
+*links* the schemas already carry (D38 authored-not-inferred) plus deterministic reverse indexes, and
+adds at most one small authored link. **T1 (strategy↔canvas redundancy = split roles):** `strategy.md`
+is the **Product Strategy thesis** — the guiding document for all product decisions (Rumelt kernel
+diagnosis→guiding-policy→coherent-action + JTBD + open questions + decided/not-doing), NOT a bmd
+inventory; the **canvas** owns bets-by-evidence (the grid). The redundancy was a **binding drift** (a
+harness had bound `strategy-doc` to the bmd hypothesis inventory the canvas already renders); the fix
+returns `strategy-doc` to its D49 role (bmd stays the canvas source, not orphaned). **T2=B
+(Direction-as-home):** a new **Direction** overview takes the surface index (slug `""`); the work-ledger
+moves to `/ledger`; cross-links are computed via a depth-aware link helper so the re-route doesn't
+dangle them. **T3 (add `objective → bet` now):** `okr-schema` gains an optional `strategy_link` pinned to
+a **canvas entry id** (resolvable, symmetric with `value_prop_link`); it closes the spine and gives a
+*killed* bet a home upward to the objective it undercut (the pivot signal). **The bets rollup is two
+axes that must not be conflated** (council #1): lifecycle **state** (assumed/tested/confirmed/killed/
+superseded) and evidence-**strength** rung (weak/moderate/strong = synthetic/said-yes/did-yes, per
+`four-risks`), rendered as **one stacked posture bar** (colour = state, opacity = strength — confirmed-
+on-weak renders pale, so a silent upgrade is *visually impossible*). **Four-risks coverage is split**
+(council #2): value + viability from `canvas.json` (the generic BMC/VPC taxonomy — VPC = value, the rest
+of the BMC = viability), usability + feasibility from the work-items' `risk_state` aggregate.
+**Aggregation is honest (honesty ≥ green):** a coverage cell is "strong" only when discovery is
+essentially complete (a strong-confirmed bet *and* no assumption left); item risk reads the
+*most-exposed* item, not the best. **Riskiest-first ranking is conditional** (council #3): present only
+when `canvas.json` carries an importance signal (else "open bets by state", asserting no order it cannot
+compute). The **demand-tested** signal (did/said/untested) is kept distinct from the input-gated trend
+layer (council #5). **Phase 0.5:** `canvas.json` per-entry gains optional `strength` + `importance_rank`;
+be-civic's `refresh-canvas.ts` adapter derives `strength` from the did/said-yes `strength_counts` it
+previously discarded (retired bets carry no rung) and normalises `criticality` → the generic rank;
+absent ⇒ the rollup degrades (state-axis only, no ranking), and an **unbound `canvas-root`** degrades to
+a visible "canvas not bound" placeholder (never vanishes). *Generality held:* `build-dashboard.ts` stays
+product-agnostic (no be-civic term/path/H-code/block code; the rollup reads generic state/strength/
+importance enums); cross-surface bet links navigate to `/canvas/#<entry>` (canvas-side per-entry
+anchors + a popout.js hash→drawer hook make them land); canvas free-text is `esc()`'d only, never
+`renderMarkdown`'d (M6); the held work-ledger↔roadmap binding is untouched; `current_stage` stays
+projected-only. *Why:* the operator asked for surfaces that answer "does this product have coherent
+direction?" — the answer is to render the existing outcome layer as a navigable spine, not invent a new
+store. *Applies* D38 (authored links + deterministic reverse indexes), D49 (record-primary; one-carrier/
+three-projections; three-analytics-namespaces — the north-star trend stays input-gated, never pooled).
+*Spec:* `product-dashboard-design` §7 (rendering filled; anti-redundancy rule), `okr-schema` v0.3.0
+(`strategy_link` + vision-owned-by-apex), `work-item-schema` v0.3.1 (`value_prop_link` may resolve to a
+canvas entry id), `bindings-contract` v0.4.1 (`strategy-doc` = authored thesis; `canvas-root` optional +
+degrade), `four-risks` v0.2.1 (two-axis rule + `strength`/`importance_rank` canvas.json fields),
+03-plugin-spec / 04-harness-spec (the general dashboard rendering capability + shared `canvas.json`
+read). *Coordinated with* the canvas-redesign chip (shared `canvas.json` contract — the chip owns the
+grid/drill, this owns the rollup). *Status:* Decided; **built + rehearsal-verified** (factory fixture +
+the be-civic content pack: throughline coheres, deep-links land, rollup matches the canvas, the full
+hostile-fixture battery degrades without crashing); be-civic `strategy.md` reverted to the authored
+thesis + the two objectives author `strategy_link` (Phase 4).

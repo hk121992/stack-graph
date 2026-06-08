@@ -256,3 +256,25 @@ Open (for the build / for review):
 - **`children` decomposition** — edges vs embedded list.
 - **The product-vs-factory analytics seam** — shared machinery, kept distinct.
 - **Rendering** — how the four surfaces (and the contribution view) render for the operator.
+  *Resolved — see `docs/dashboard-strategic-surfaces-design.md`.* The dashboard renders five
+  pages threaded as a throughline (vision → bets → objectives → work → record):
+  - **Direction** (`""`) — the overview: vision apex, bets posture (two-axis rollup from
+    `canvas.json` — lifecycle state *and* evidence-strength rung), per-objective key-result
+    progress, in-flight strip, and recently shipped/learned. The answer to "does this product
+    have coherent direction?" Direction is the home; the work-ledger moves to `/ledger`.
+  - **Work ledger** (`/ledger`) — the Kanban forward-view + record (moved from the root slug).
+  - **Progress** (`/progress`) — live OKR cascade: vision apex, each objective with key-result
+    progress bars, contribution view (reverse index of `outcome_link`), north-star/KPIs
+    (input-gated on real user signal, per §4 above).
+  - **Vision & strategy** (`/strategy`) — the Product Strategy thesis: vision (composed from
+    `objectives.md` apex, §3/4 — **not restated in `strategy.md`**), Rumelt kernel (diagnosis
+    → guiding policy → coherent action), who & JTBD, open questions, decided/not-doing, and a
+    compact bets rollup into the canvas. `strategy-doc` binds the **authored vision narrative**
+    (the thesis); a harness **must not** bind `strategy-doc` to a canvas/bmd inventory — the
+    canvas owns the bets, the strategy page owns the narrative + linkage. (Anti-redundancy rule.)
+  - **Work-item detail** (`/item/<id>`) — cross-links: → objective → vision; → bet via
+    `value_prop_link` (navigates to the canvas entry); risk-state grid; → debrief/record.
+  Cross-link contract: every strategic surface carries the persistent spine breadcrumb
+  `vision ▸ bets ▸ objectives ▸ work ▸ record`. The bets rollup reads the canvas via the
+  optional `renderer.canvas-root` sub-key and **degrades gracefully** (narrative + objectives
+  only) when the canvas is not bound.

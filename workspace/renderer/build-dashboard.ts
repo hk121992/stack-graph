@@ -35,6 +35,7 @@ import {
 } from "./vendor/bc-renderer-core/src/index.js";
 import type { NavGroup } from "./vendor/bc-renderer-core/src/index.js";
 import { renderSurfacePage } from "./shell-host.js";
+import { assetPrefix, makePageHref } from "./lib/asset-prefix.js";
 
 // ── Path setup ───────────────────────────────────────────────────────────────
 
@@ -250,6 +251,11 @@ function loadProjection(): ProjectionResult {
     };
   }
 
+  // Valid JSON that is not an object (literal null / array) ⇒ degrade like a stale snapshot.
+  if (!projection || typeof projection !== "object") {
+    return { projection: null, fresh: false, staleReason: "portal-projection.json is not an object (degraded).", gitHead };
+  }
+
   const snapshotCommit = projection.provenance?.commit ?? null;
   if (!gitHead || !snapshotCommit || snapshotCommit !== gitHead) {
     const reason = !gitHead
@@ -312,7 +318,13 @@ function loadItems(): WorkItem[] {
     const sourcePath = path.join(itemsDir, f);
     const raw = readFileSync(sourcePath, "utf-8");
     const { fm, body } = parseFrontmatter(raw);
-    return { id: (fm as WorkItemFm).id ?? f.replace(/\.md$/, ""), fm: fm as WorkItemFm, body, sourcePath };
+    // The id becomes a filesystem path segment (item/<id>/index.html) and a URL slug.
+    // Constrain it so a hostile/typo'd frontmatter id can't traverse out of the surface
+    // dir at build time or break out of an href — fall back to the (on-disk) filename.
+    const rawId = String((fm as WorkItemFm).id ?? f.replace(/\.md$/, ""));
+    const id = /^[A-Za-z0-9._-]+$/.test(rawId) ? rawId : f.replace(/\.md$/, "").replace(/[^A-Za-z0-9._-]/g, "-");
+    if (id !== rawId) warn(`work-item id "${rawId}" is not path-safe — using "${id}"`);
+    return { id, fm: fm as WorkItemFm, body, sourcePath };
   });
 }
 
@@ -462,7 +474,10 @@ function riskPill(risk?: RiskState): string {
 
 // ── Item card (for ledger) ────────────────────────────────────────────────────
 
-function itemCard(item: WorkItem, proj: ProjectionResult, detailSlug: string): string {
+// itemCard renders on BOTH the Direction overview (slug "") and the ledger (slug
+// "ledger") — at different depths — so all its links are computed via the page's
+// depth-aware Links helper, never hard-coded relative paths (T2=B re-route).
+function itemCard(item: WorkItem, proj: ProjectionResult, L: Links): string {
   const stage = stageDisplay(item, proj);
   const staleClass = stage.stale ? " stage-stale" : "";
 
@@ -470,10 +485,8 @@ function itemCard(item: WorkItem, proj: ProjectionResult, detailSlug: string): s
     ? `<div class="card-stage${staleClass}">stage: <strong>${esc(stage.label)}</strong>${stage.stale ? ' <span class="stale-tag">stale</span>' : ""}</div>`
     : "";
 
-  // itemCard renders on the ledger (the surface index), so the link to the progress
-  // page is relative to the surface root: progress/#<objective-id>.
   const outcomeHtml = item.fm.outcome_link
-    ? `<div class="card-meta">→ <a href="progress/#${esc(item.fm.outcome_link)}">${esc(item.fm.outcome_link)}</a></div>`
+    ? `<div class="card-meta">→ <a href="${L.page("progress", item.fm.outcome_link)}">${esc(item.fm.outcome_link)}</a></div>`
     : "";
 
   const dispositionHtml = item.fm.disposition
@@ -482,7 +495,7 @@ function itemCard(item: WorkItem, proj: ProjectionResult, detailSlug: string): s
 
   return `<div class="item-card lifecycle-${esc(item.fm.lifecycle_state)}">
   <div class="card-header">
-    <a class="card-title" href="${esc(detailSlug)}">${esc(item.fm.title)}</a>
+    <a class="card-title" href="${L.page("item/" + item.id)}">${esc(item.fm.title)}</a>
     ${tierBadge(item.fm.tier)}
     ${riskPill(item.fm.risk_state)}
   </div>
@@ -504,16 +517,16 @@ function buildNav(_items: WorkItem[]): NavGroup[] {
   return [
     {
       group: "Product dashboard",
-      // The ledger IS the surface index (slug ""), with progress/strategy as
-      // sub-pages — so nav hrefs resolve from the surface root, not one level up.
-      pages: ["", "progress", "strategy"],
+      // T2=B: Direction is the surface index (slug ""); the ledger moved to /ledger.
+      pages: ["", "ledger", "progress", "strategy"],
     },
   ];
 }
 
 function pageLabel(items: WorkItem[]): (slug: string) => string {
   const map = new Map<string, string>([
-    ["",          "Work ledger"],
+    ["",          "Direction"],
+    ["ledger",    "Work ledger"],
     ["progress",  "Progress"],
     ["strategy",  "Vision & strategy"],
     ...items.map((it): [string, string] => [`item/${it.id}`, it.fm.title]),
@@ -652,6 +665,184 @@ const DASHBOARD_STYLES = `
 .okr-kr-table { width: 100%; border-collapse: collapse; margin-top: .5em; font-size: .84rem; }
 .okr-kr-table th { text-align: left; color: var(--mute); font-size: .8rem; padding: .3em .5em; border-bottom: 1px solid var(--hair); }
 .okr-kr-table td { padding: .35em .5em; border-bottom: 1px solid var(--hair); }
+
+/* ══ Throughline — spine, vision apex, OKR cascade, cross-links ══════════════ */
+
+/* Spine breadcrumb: a persistent thin stepper, current step highlighted. */
+.spine { display: flex; flex-wrap: wrap; align-items: center; gap: .5em; margin: 0 0 1.25em;
+  font-family: var(--mono); font-size: .7rem; text-transform: uppercase; letter-spacing: .07em; }
+.spine-step { color: var(--mute); text-decoration: none; padding: .15em .1em; border-bottom: 2px solid transparent; }
+a.spine-step:hover { color: var(--fg); }
+.spine-step.is-current { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600; }
+.spine-sep { color: var(--hair); }
+
+/* Vision apex — composed once, from objectives.md. Durable, quiet, top-of-page. */
+.vision-apex { border-left: 3px solid var(--accent); padding: .1em 0 .1em 1em; margin: 0 0 1.5em; }
+.vision-label { font-family: var(--mono); font-size: .66rem; text-transform: uppercase; letter-spacing: .08em; color: var(--mute); margin-bottom: .25em; }
+.vision-horizon { text-transform: none; letter-spacing: 0; }
+.vision-statement { margin: 0; font-family: var(--display); font-size: 1.05rem; line-height: 1.45; color: var(--fg); }
+
+/* Objective sections — id-keyed headings; the cascade. */
+.objective { padding-bottom: 1.4em; margin-bottom: 1.4em; border-bottom: 1px solid var(--hair); }
+.obj-head { scroll-margin-top: 1em; }
+.obj-intro { color: var(--fg-soft); font-size: .92rem; }
+.obj-bet { font-size: .82rem; color: var(--mute); margin: -.3em 0 .6em; }
+.obj-bet code, .xlink code { font-family: var(--mono); font-size: .82em; background: var(--code-bg); border: 1px solid var(--hair); border-radius: 3px; padding: 0 .35em; }
+.obj-bet a { color: var(--accent); text-decoration: none; }
+.obj-ns { font-size: .8rem; color: var(--mute); margin: .4em 0; }
+.obj-maturity { font-size: .82rem; color: var(--mute); font-style: italic; margin: .6em 0 0; }
+
+/* Key-result rows — honest status LED + (only when numeric) a desaturated fill. */
+.kr-list { display: flex; flex-direction: column; gap: .5em; margin: .8em 0; }
+.kr-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .3em 1em;
+  padding: .5em .7em; background: var(--code-bg); border: 1px solid var(--hair); border-radius: 6px; }
+.kr-main { flex: 1 1 60%; min-width: 0; }
+.kr-metric { display: flex; align-items: baseline; gap: .5em; font-size: .88rem; color: var(--fg); line-height: 1.35; }
+.kr-led { flex: none; width: .5em; height: .5em; border-radius: 999px; background: var(--st-planned); transform: translateY(-1px); }
+.kr-done .kr-led, .kr-led.kr-done { background: var(--st-done); }
+.kr-progress .kr-led, .kr-led.kr-progress { background: var(--st-building); }
+.kr-todo .kr-led, .kr-led.kr-todo { background: var(--st-planned); }
+.kr-unknown .kr-led, .kr-led.kr-unknown { background: var(--st-planned); }
+/* Desaturated relative to the bets posture — order ≠ weight (honesty ≥ green). */
+.kr-bar { height: 4px; border-radius: 999px; background: color-mix(in srgb, var(--hair) 70%, transparent); margin: .4em 0 0; overflow: hidden; }
+.kr-bar-fill { display: block; height: 100%; background: color-mix(in srgb, var(--st-done) 55%, var(--mute)); }
+.kr-rt { display: flex; flex-direction: column; align-items: flex-end; gap: .15em; text-align: right; font-size: .76rem; }
+.kr-target { color: var(--mute); }
+.kr-current { color: var(--fg-soft); }
+.kr-current.kr-done { color: var(--st-done); }
+
+/* Contribution view — the reverse index of outcome_link, per objective. */
+.contrib-block { margin-top: .8em; }
+.contrib-label { font-family: var(--mono); font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; color: var(--mute); margin-bottom: .45em; }
+.contrib-count { background: var(--code-bg); border: 1px solid var(--hair); border-radius: 999px; padding: 0 .45em; color: var(--fg-soft); }
+.contrib-list { display: flex; flex-wrap: wrap; gap: .45em; }
+.contrib { display: inline-flex; align-items: center; gap: .45em; text-decoration: none;
+  border: 1px solid var(--hair); border-left: 3px solid var(--mute); border-radius: 0 5px 5px 0;
+  background: var(--bg); padding: .25em .55em; font-size: .82rem; color: var(--fg); }
+.contrib:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--hair)); border-left-color: var(--accent); }
+.contrib-state { font-family: var(--mono); font-size: .64rem; text-transform: uppercase; letter-spacing: .04em; color: var(--mute); }
+.contrib-title { color: var(--fg); }
+.contrib-stage { font-family: var(--mono); font-size: .66rem; color: var(--accent); }
+.contrib-empty { color: var(--mute); font-style: italic; font-size: .85rem; margin: .3em 0 0; }
+.lifecycle-shipped.contrib, .lifecycle-live.contrib { border-left-color: var(--st-done); }
+.lifecycle-in-delivery.contrib { border-left-color: var(--st-building); }
+.lifecycle-killed.contrib, .lifecycle-parked.contrib { border-left-color: var(--st-blocked); }
+
+/* Unresolved-link affordance — visible, never a broken anchor or a fabricated target. */
+.progress-issues { margin-top: 1.5em; }
+.progress-issue { font-size: .85rem; color: var(--fg-soft); margin: .4em 0; }
+.unresolved-tag { font-family: var(--mono); font-size: .64rem; color: #9a7400;
+  background: color-mix(in srgb, var(--st-building) 16%, transparent); border-radius: 3px; padding: 0 .4em; }
+.xlink-unresolved code { border-style: dashed; }
+.northstar p { color: var(--fg-soft); }
+
+/* Item-detail throughline cross-links + four-risks coverage strip. */
+.item-throughline { display: flex; flex-direction: column; gap: .5em; margin: 0 0 1.5em;
+  padding: .8em 1em; background: var(--code-bg); border: 1px solid var(--hair); border-radius: 8px; }
+.xlink { display: flex; flex-wrap: wrap; align-items: center; gap: .5em; font-size: .88rem; }
+.xlink-label { font-family: var(--mono); font-size: .64rem; text-transform: uppercase; letter-spacing: .06em; color: var(--mute); min-width: 6.5em; }
+.xlink a { color: var(--accent); text-decoration: none; }
+.xlink-note { color: var(--mute); font-size: .85em; }
+.xlink-vision { color: var(--mute) !important; font-size: .8em; }
+.xlink-risk { align-items: flex-start; }
+.risk-grid { display: flex; flex-wrap: wrap; gap: .4em; }
+.risk-cell { display: inline-flex; align-items: center; gap: .4em; --lt: var(--st-planned);
+  border: 1px solid color-mix(in srgb, var(--lt) 34%, var(--hair)); background: color-mix(in srgb, var(--lt) 10%, transparent);
+  border-radius: 999px; padding: .12em .6em; font-size: .72rem; }
+.risk-cell-dot { width: .5em; height: .5em; border-radius: 999px; background: var(--lt);
+  box-shadow: 0 0 0 .12em color-mix(in srgb, var(--lt) 24%, transparent); }
+.risk-cell-label { color: var(--fg); font-family: var(--mono); font-size: .68rem; }
+.risk-cell-rung { color: var(--mute); }
+
+/* ══ Bets rollup — the two-axis evidence posture (honesty ≥ green: weightier
+      than the progress bars; order ≠ weight) ══════════════════════════════════ */
+.bets-rollup { --ev-confirmed: #2e9e6b; --ev-tested: #d9a514; --ev-assumed: #9aa0a6;
+  --ev-killed: #cf3b3b; --ev-superseded: #b9bdc2;
+  border: 1px solid var(--hair); border-radius: 8px; padding: 1em 1.1em; margin: .5em 0 1.5em;
+  background: color-mix(in srgb, var(--accent) 3%, var(--bg)); }
+.bets-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5em; margin-bottom: .7em; }
+.bets-counts { font-size: .88rem; color: var(--fg-soft); }
+.bets-counts strong { color: var(--fg); }
+.bp-demand { font-family: var(--mono); font-size: .66rem; border-radius: 999px; padding: .15em .6em; white-space: nowrap; border: 1px solid var(--hair); }
+.bp-demand-did { background: color-mix(in srgb, var(--st-done) 18%, transparent); color: var(--st-done); border-color: color-mix(in srgb, var(--st-done) 40%, transparent); }
+.bp-demand-said { background: color-mix(in srgb, var(--st-building) 16%, transparent); color: #9a7400; border-color: color-mix(in srgb, var(--st-building) 40%, transparent); }
+/* Demand-never-tested = amber actionable warning (NOT the grey input-gated register). */
+.bp-demand-untested { background: color-mix(in srgb, var(--st-building) 20%, transparent); color: #9a7400; border-color: color-mix(in srgb, var(--st-building) 55%, transparent); font-weight: 600; }
+/* The single bets-posture primitive — taller + solid; the weightiest thing on the page. */
+.bets-bar { display: flex; height: 14px; border-radius: 4px; overflow: hidden; margin: 0 0 .4em;
+  background: color-mix(in srgb, var(--hair) 50%, transparent); box-shadow: inset 0 0 0 1px var(--hair); }
+.bp-seg { display: block; min-width: 0; }
+.bp-confirmed { background: var(--ev-confirmed); }
+.bp-tested { background: var(--ev-tested); }
+.bp-assumed { background: var(--ev-assumed); }
+.bp-killed { background: var(--ev-killed); }
+.bp-superseded { background: var(--ev-superseded); }
+.bets-axes { margin-bottom: .9em; }
+.bets-axis-note { font-size: .72rem; color: var(--mute); }
+.four-risks-wrap { margin: .6em 0; }
+.four-risks-strip { margin-top: .35em; }
+.bets-note { font-size: .82rem; color: var(--fg-soft); margin: .6em 0 .4em; }
+.riskiest-list { margin-top: .4em; }
+.riskiest-row { display: flex; align-items: center; gap: .55em; text-decoration: none;
+  padding: .35em .2em; border-bottom: 1px solid var(--hair); color: var(--fg); }
+.riskiest-row:last-child { border-bottom: none; }
+.riskiest-row:hover .riskiest-text { color: var(--accent); }
+.riskiest-imp { font-family: var(--mono); font-size: .6rem; text-transform: uppercase; letter-spacing: .04em;
+  border-radius: 3px; padding: .05em .4em; white-space: nowrap; }
+.imp-critical { background: color-mix(in srgb, var(--st-blocked) 18%, transparent); color: var(--st-blocked); }
+.imp-high { background: color-mix(in srgb, var(--st-building) 18%, transparent); color: #9a7400; }
+.imp-medium, .imp-low { background: var(--code-bg); color: var(--mute); border: 1px solid var(--hair); }
+.riskiest-text { flex: 1 1 auto; font-size: .85rem; min-width: 0; }
+.riskiest-id { font-family: var(--mono); font-size: .68rem; color: var(--mute); }
+.bets-explore { font-size: .82rem; margin: .7em 0 0; }
+.bets-explore a { color: var(--accent); text-decoration: none; }
+/* Strength pill — values kept IDENTICAL to build-canvas.ts's .str-* (both render in the
+   same browser session; divergence would read as a bug). Keep the two in sync. */
+.str { font-family: var(--mono); font-size: .6rem; border-radius: 999px; padding: .05em .45em; white-space: nowrap; border: 1px solid var(--hair); }
+.str-strong { background: color-mix(in srgb, var(--fg) 60%, transparent); color: var(--bg); border-color: transparent; }
+.str-moderate { background: color-mix(in srgb, var(--fg) 24%, transparent); color: var(--fg); }
+.str-weak { background: transparent; color: var(--mute); border-style: dashed; }
+
+/* ══ Direction overview — two labelled zones (discovery co-equal with delivery) ══ */
+.zone { margin: 0 0 2em; }
+.zone-label { font-family: var(--display); font-weight: 700; font-size: 1.05rem; color: var(--fg);
+  padding-bottom: .35em; border-bottom: 2px solid var(--hair); margin-bottom: 1em; }
+.zone-direction .zone-label { border-bottom-color: color-mix(in srgb, var(--accent) 45%, var(--hair)); }
+.zone-more { font-family: var(--mono); font-size: .7rem; font-weight: 400; text-transform: none; letter-spacing: 0;
+  color: var(--accent); text-decoration: none; margin-left: .5em; }
+.dir-objectives, .dir-band { margin-top: 1.1em; }
+/* Objective rows (condensed) */
+.odr { padding: .5em 0; border-bottom: 1px solid var(--hair); }
+.odr:last-child { border-bottom: none; }
+.odr-statement { font-weight: 600; font-size: .92rem; color: var(--fg); text-decoration: none; }
+.odr-statement:hover { color: var(--accent); }
+.odr-meta { display: flex; flex-wrap: wrap; gap: .3em .9em; margin-top: .2em; font-size: .76rem; color: var(--mute); }
+.odr-bet { text-decoration: none; }
+.odr-bet code { font-family: var(--mono); font-size: .92em; background: var(--code-bg); border: 1px solid var(--hair); border-radius: 3px; padding: 0 .3em; color: var(--accent); }
+.odr-contrib { color: var(--fg-soft); }
+/* Recently-shipped rows */
+.rr { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3em .7em; padding: .45em .6em;
+  border: 1px solid var(--hair); border-left: 3px solid var(--st-done); border-radius: 0 5px 5px 0;
+  background: var(--code-bg); margin-bottom: .5em; }
+.lifecycle-killed.rr, .lifecycle-parked.rr { border-left-color: var(--st-blocked); }
+.rr-title { font-weight: 600; font-size: .88rem; color: var(--fg); text-decoration: none; }
+.rr-title:hover { color: var(--accent); }
+.rr-state { font-family: var(--mono); font-size: .64rem; text-transform: uppercase; letter-spacing: .04em; color: var(--mute); }
+.rr-outcome { font-size: .76rem; color: var(--accent); text-decoration: none; }
+.rr-debrief { font-size: .72rem; color: var(--st-done); }
+
+/* The condensed direction strip atop the ledger. */
+.direction-strip { display: flex; align-items: center; gap: .7em; text-decoration: none;
+  padding: .55em .8em; margin-bottom: 1.25em; border: 1px solid var(--hair); border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 4%, var(--bg)); }
+.direction-strip:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--hair)); }
+.ds-label { font-family: var(--mono); font-size: .64rem; text-transform: uppercase; letter-spacing: .07em;
+  color: var(--accent); flex: none; }
+.ds-vision { flex: 1 1 auto; min-width: 0; font-size: .82rem; color: var(--fg-soft);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ds-bar { flex: none; width: 110px; }
+.ds-bar .bets-bar { margin: 0; height: 8px; }
+.ds-go { font-family: var(--mono); font-size: .68rem; color: var(--accent); flex: none; }
 </style>
 `;
 
@@ -663,7 +854,11 @@ function renderLedgerPage(
   nav: NavGroup[],
   labelFn: (s: string) => string,
   standaloneIUs: IU[],
+  model: OutcomeModel,
+  canvas: CanvasModel | null,
+  ledgerSlug: string,
 ): string {
+  const L = makeLinks(ledgerSlug);
   const columns: LedgerColumn[] = ["now", "building", "next", "later"];
   const grouped: Record<LedgerColumn, WorkItem[]> = {
     now: [], next: [], later: [], building: [], record: [],
@@ -675,7 +870,7 @@ function renderLedgerPage(
   const columnsHtml = columns.map((col) => {
     const colItems = grouped[col];
     const cardsHtml = colItems.length
-      ? colItems.map((it) => itemCard(it, proj, `item/${it.id}/`)).join("\n")
+      ? colItems.map((it) => itemCard(it, proj, L)).join("\n")
       : `<div class="ledger-column-empty">—</div>`;
     return `<div class="ledger-column">
   <div class="ledger-column-header">${esc(COLUMN_LABELS[col])} <span class="ledger-column-count">${colItems.length}</span></div>
@@ -685,7 +880,7 @@ function renderLedgerPage(
 
   const recordItems = grouped.record;
   const recordCardsHtml = recordItems.length
-    ? `<div class="ledger-record-grid">${recordItems.map((it) => itemCard(it, proj, `item/${it.id}/`)).join("\n")}</div>`
+    ? `<div class="ledger-record-grid">${recordItems.map((it) => itemCard(it, proj, L)).join("\n")}</div>`
     : `<p class="ledger-column-empty">No closed items yet.</p>`;
 
   // Incremental channel — standalone IUs grouped by build status.
@@ -706,7 +901,9 @@ function renderLedgerPage(
 </div>`).join("\n")}</div>`
     : `<p class="ledger-column-empty">No standalone improvements yet. The incremental-improvement workflow files them here.</p>`;
 
-  const bodyHtml = `${banner}
+  const bodyHtml = `${spineBreadcrumb("work", L, ledgerSlug, !!canvas)}
+${directionStrip(model, canvas, L)}
+${banner}
 <p class="dashboard-lede">One ledger across the lifecycle, in two channels: sprint work items (each decomposing into implementation units) and standalone incremental improvements.</p>
 <div class="channels">
   <input type="radio" name="ch" id="ch-sprint" class="ch-radio" checked>
@@ -719,7 +916,7 @@ function renderLedgerPage(
     <div class="ledger-columns">
 ${columnsHtml}
     </div>
-    <div class="ledger-record">
+    <div class="ledger-record" id="record">
       <div class="ledger-record-header">${esc(COLUMN_LABELS.record)}</div>
       ${recordCardsHtml}
     </div>
@@ -731,14 +928,14 @@ ${columnsHtml}
 ${popoutFor(standaloneIUs)}`;
 
   const page: CorePage = {
-    path: "dashboard",
+    path: ledgerSlug,
     fm: { title: "Work ledger", description: "Forward view + durable record of every work item." },
     raw: "",
     kind: "dashboard",
   };
 
   return renderSurfacePage({
-    slug: "",          // the ledger is the surface index (dist/dashboard/index.html)
+    slug: ledgerSlug,   // T2=B: the ledger moved off the surface index to /ledger/
     page,
     nav,
     bodyHtml,
@@ -807,16 +1004,361 @@ function renderRiskDetail(risk?: RiskState): string {
   return `<table class="risk-detail-table"><tbody>${rows}</tbody></table>${noteHtml}`;
 }
 
+// ══ The throughline — vision → bets → objectives → work → record ═══════════════
+// Shared, brand-neutral machinery that renders the authored cross-links + reverse
+// indexes the schemas carry (D38: authored-not-inferred). No product term enters
+// here — every value is read from bound surfaces (objectives.md, work items, the
+// optional canvas.json). The renderer composes the links; it never invents a store.
+
+// ── Depth-aware link helpers ───────────────────────────────────────────────────
+// A dashboard page at `slug` links to (a) other dashboard pages — relative, depth-
+// aware via makePageHref; (b) the deploy root — for cross-surface links; (c) the
+// sibling /canvas/ surface — root-relative + the entry anchor. mountDepth = how many
+// levels the dashboard surface root sits below the deploy root (always 1 here).
+interface Links {
+  /** href to another dashboard page (optionally with a #anchor); same-page → bare #anchor. */
+  page: (targetSlug: string, anchor?: string) => string;
+  /** href to a canvas entry anchor on the sibling /canvas/ surface (no entry → the canvas root). */
+  canvas: (entry?: string) => string;
+}
+function makeLinks(slug: string, mountDepth = 1): Links {
+  const within = makePageHref(slug);
+  const toRoot = assetPrefix(slug) + "../".repeat(mountDepth);
+  return {
+    // esc() the target slug + anchor: both can carry untrusted free-text that lands in an
+    // href attribute — a work-item id, an outcome_link, a canvas entry id read raw from
+    // canvas.json (the untrusted product tier). toRoot/within(t) are "../" + path
+    // separators that esc() leaves intact, so escaping the whole href is safe + total.
+    page: (target, anchor) => {
+      const t = target.replace(/^\//, "");
+      if (anchor && t === slug) return `#${esc(anchor)}`;   // same page → bare fragment
+      const base = esc(within(t));
+      return anchor ? `${base}#${esc(anchor)}` : base;
+    },
+    canvas: (entry) => `${toRoot}canvas/${entry ? `#${esc(entry)}` : ""}`,
+  };
+}
+
+// ── Outcome model: parse objectives.md structurally (eng H2 prerequisite) ───────
+// objectives.md is authored markdown but carries STRUCTURE the renderer must read
+// directly — never via renderMarkdown, whose heading ids are slugged from heading
+// TEXT (so #<objective-id> dangles). We parse the id + statement + key_results and
+// emit headings keyed on the authored id, so every reverse-index/contribution link
+// resolves. Tolerant: a malformed/foreign-format doc degrades to an empty model.
+interface KeyResult { metric: string; target: string; current: string; }
+interface Objective {
+  id: string;
+  statement: string;
+  intro: string;
+  key_results: KeyResult[];
+  north_star_link?: string;
+  maturity_note?: string;
+  strategy_link?: string;   // canvas entry id (T3) — the bet this objective tests
+  vision_link?: string;
+}
+interface OutcomeModel {
+  vision: { statement?: string; horizon?: string };
+  objectives: Objective[];
+  northStar?: string;
+  ok: boolean;              // false ⇒ no parseable structure (renderer falls back to markdown)
+  rawBody?: string;         // the authored objectives.md body — fallback render when unparsed
+}
+const EMPTY_MODEL: OutcomeModel = { vision: {}, objectives: [], ok: false };
+
+// Pull the inline `- **key:** value` / `- *key:* value` bullet (value may continue
+// on indented non-bullet lines). Tolerant of bold/italic markers and an inside-or-
+// outside colon.
+function bulletField(lines: string[], key: string): string | undefined {
+  const re = new RegExp(`^\\s*[-*]\\s+[*_]{1,2}\\s*${key}\\s*:?\\s*[*_]{0,2}\\s*(.*)$`, "i");
+  for (let i = 0; i < lines.length; i++) {
+    const m = re.exec(lines[i]);
+    if (!m) continue;
+    let v = (m[1] || "").replace(/^[*_]{1,2}/, "").trim();
+    for (let j = i + 1; j < lines.length && !/^\s*[-*]\s/.test(lines[j]) && !/^#/.test(lines[j]); j++) {
+      if (lines[j].trim()) v += " " + lines[j].trim();
+    }
+    return v.trim() || undefined;
+  }
+  return undefined;
+}
+
+// Key-result lines are the only ones carrying `metric:`+`target:` — scan the whole
+// objective block (no sub-bullet boundary fiddliness). Values are quoted.
+function parseKeyResults(lines: string[]): KeyResult[] {
+  const krs: KeyResult[] = [];
+  for (const ln of lines) {
+    if (!/metric\s*:/.test(ln) || !/target\s*:/.test(ln)) continue;
+    const grab = (k: string) => new RegExp(`${k}\\s*:\\s*"([^"]*)"`).exec(ln)?.[1]
+      ?? new RegExp(`${k}\\s*:\\s*'([^']*)'`).exec(ln)?.[1] ?? "";
+    const metric = grab("metric");
+    if (metric) krs.push({ metric, target: grab("target"), current: grab("current") });
+  }
+  return krs;
+}
+
+function parseObjectives(body: string): OutcomeModel {
+  const lines = body.split(/\r?\n/);
+  // Split into `## ` sections (lines before the first ## are ignored).
+  const sections: { title: string; body: string[] }[] = [];
+  let cur: { title: string; body: string[] } | null = null;
+  for (const ln of lines) {
+    const m = /^##\s+(.+?)\s*$/.exec(ln);
+    if (m) { cur = { title: m[1].trim(), body: [] }; sections.push(cur); }
+    else if (cur) cur.body.push(ln);
+  }
+  const sec = (re: RegExp) => sections.find((s) => re.test(s.title));
+
+  const visionLines = sec(/^vision\b/i)?.body ?? [];
+  const vision = {
+    statement: bulletField(visionLines, "statement"),
+    horizon: bulletField(visionLines, "horizon"),
+  };
+
+  // Objectives section → split by `### ` headings.
+  const objLines = sec(/^objectives\b/i)?.body ?? [];
+  const objBlocks: { head: string; body: string[] }[] = [];
+  let ob: { head: string; body: string[] } | null = null;
+  for (const ln of objLines) {
+    const m = /^###\s+(.+?)\s*$/.exec(ln);
+    if (m) { ob = { head: m[1].trim(), body: [] }; objBlocks.push(ob); }
+    else if (ob) ob.body.push(ln);
+  }
+  const objectives: Objective[] = objBlocks.map((b) => {
+    // head = "<id> — <statement>"  (spaced em/en/hyphen dash).
+    const hm = /^(.+?)\s+[—–-]\s+(.+)$/.exec(b.head);
+    const id = (hm ? hm[1] : b.head).trim();
+    const statement = (hm ? hm[2] : "").trim();
+    const introLines: string[] = [];
+    for (const ln of b.body) { if (/^\s*[-*]\s/.test(ln)) break; introLines.push(ln); }
+    return {
+      id,
+      statement,
+      intro: introLines.join("\n").trim(),
+      key_results: parseKeyResults(b.body),
+      north_star_link: bulletField(b.body, "north_star_link"),
+      maturity_note: bulletField(b.body, "maturity_note"),
+      strategy_link: bulletField(b.body, "strategy_link"),
+      vision_link: bulletField(b.body, "vision_link"),
+    };
+  }).filter((o) => o.id);
+
+  const northStar = (sec(/^north[- ]?star\b/i)?.body ?? []).join("\n").trim() || undefined;
+  const ok = !!(vision.statement || objectives.length);
+  return { vision, objectives, northStar, ok, rawBody: body };
+}
+
+// ── Single-pass reverse index (eng M4) ──────────────────────────────────────────
+// Bucket work items by outcome_link AND value_prop_link in ONE O(N) pass. These are
+// the derived "objective → work" and "bet → work" indexes the schemas don't store
+// but can compute deterministically from authored forward links.
+interface ReverseIndex {
+  byOutcome: Map<string, WorkItem[]>;
+  byValueProp: Map<string, WorkItem[]>;   // keyed on the canvas entry id (leading token)
+}
+function buildReverseIndex(items: WorkItem[]): ReverseIndex {
+  const byOutcome = new Map<string, WorkItem[]>();
+  const byValueProp = new Map<string, WorkItem[]>();
+  const push = (m: Map<string, WorkItem[]>, k: string, it: WorkItem) => {
+    const a = m.get(k); if (a) a.push(it); else m.set(k, [it]);
+  };
+  for (const it of items) {
+    if (it.fm.outcome_link) push(byOutcome, it.fm.outcome_link, it);
+    const vp = canvasEntryId(it.fm.value_prop_link);
+    if (vp) push(byValueProp, vp, it);
+  }
+  return { byOutcome, byValueProp };
+}
+
+// value_prop_link MAY resolve to a canvas entry id (work-item-schema v0.3.1). It is
+// authored free-text whose LEADING token is the entry id (e.g. "H-CP-03 (cp_pains…)").
+// An id is a code-like token (carries a digit or a hyphen) — a plain word ("vpc…") is
+// returned too (the canvas may carry it); a prose sentence yields null.
+function canvasEntryId(vpl?: string): string | null {
+  if (!vpl) return null;
+  const tok = /^\s*([A-Za-z][\w.-]*)/.exec(vpl)?.[1];
+  if (tok && (/\d/.test(tok) || tok.includes("-"))) return tok;
+  return null;
+}
+
+// ── Evidence-strength rung from a risk_state dimension (generic) ────────────────
+// risk_state dimensions are authored either as a bare enum ("moderate") or as a
+// free-text string whose LEADING token is the rung ("strong — a real dogfood…").
+// Map to the existing risk-pill LED semantics: strong evidence = green/safe, weak =
+// red/at-risk. Honest: a disconfirming signal is a real, weak-for-this-bet result.
+type Rung = "strong" | "moderate" | "weak" | "unknown";
+function riskRung(v?: string): Rung {
+  if (!v) return "unknown";
+  const first = String(v).trim().toLowerCase().split(/[\s—–:,;-]+/)[0] || "";
+  if (/^(strong|did|observed|high|confirmed)$/.test(first)) return "strong";
+  if (/^(moderate|said|stated|medium|tested)$/.test(first)) return "moderate";
+  if (/^(weak|low|synthetic|assumed|hypothetical|hypothesis|disconfirming|disconfirmed|invalidated|stop)$/.test(first)) return "weak";
+  return "unknown";
+}
+const RUNG_CLASS: Record<Rung, string> = {
+  strong: "risk-strong", moderate: "risk-moderate", weak: "risk-low", unknown: "risk-unknown",
+};
+
+// The four-risks coverage strip for ONE item: value/usability/feasibility/viability,
+// each a labelled LED on its evidence rung. Reuses the risk-pill LED treatment.
+function riskGrid(risk?: RiskState): string {
+  const dims: [string, string | undefined][] = [
+    ["value", risk?.value], ["usability", risk?.usability],
+    ["feasibility", risk?.feasibility], ["viability", risk?.viability],
+  ];
+  const cells = dims.map(([label, v]) => {
+    const rung = riskRung(v);
+    const title = v ? esc(String(v)) : "not recorded";
+    return `<div class="risk-cell ${RUNG_CLASS[rung]}" title="${title}">
+  <span class="risk-cell-dot"></span>
+  <span class="risk-cell-label">${esc(label)}</span>
+  <span class="risk-cell-rung">${esc(rung === "unknown" ? "—" : rung)}</span>
+</div>`;
+  }).join("");
+  return `<div class="risk-grid" role="group" aria-label="Four-risks coverage">${cells}</div>`;
+}
+
+// ── Key-result rendering: honest status + (only when numeric) a proportional fill ──
+function krState(current: string): { cls: string; label: string } {
+  const c = (current || "").toLowerCase();
+  if (/\b(done|complete|completed|shipped|live|achieved|met)\b/.test(c)) return { cls: "kr-done", label: "done" };
+  if (/\b(not started|not yet started|none yet|unbuilt|nothing yet)\b/.test(c) || /^0\b/.test(c.trim()))
+    return { cls: "kr-todo", label: "not started" };
+  if (!c.trim()) return { cls: "kr-unknown", label: "—" };
+  return { cls: "kr-progress", label: "in progress" };
+}
+// A proportional fill ONLY when both target + current carry a comparable number
+// (same %-or-bare unit). Qualitative currents get no bar — a fill would imply a
+// measured fraction we don't have (honesty ≥ green).
+function krFill(target: string, current: string): number | null {
+  const num = (s: string) => { const m = /(-?\d+(?:\.\d+)?)\s*(%?)/.exec(s || ""); return m ? { n: parseFloat(m[1]), pct: m[2] === "%" } : null; };
+  const t = num(target), c = num(current);
+  // Only a fill when both are non-negative, same-unit, positive-target — never invent a
+  // 100%-full bar for a wrong-direction (negative) or mismatched-unit metric.
+  if (!t || !c || t.pct !== c.pct || t.n <= 0 || c.n < 0) return null;
+  return Math.max(0, Math.min(1, c.n / t.n));
+}
+function krRows(krs: KeyResult[]): string {
+  if (!krs.length) return "";
+  const rows = krs.map((kr) => {
+    const st = krState(kr.current);
+    const fill = krFill(kr.target, kr.current);
+    const bar = fill === null ? "" :
+      `<div class="kr-bar"><span class="kr-bar-fill" style="width:${Math.round(fill * 100)}%"></span></div>`;
+    return `<div class="kr-row">
+  <div class="kr-main">
+    <div class="kr-metric"><span class="kr-led ${st.cls}"></span>${esc(kr.metric)}</div>
+    ${bar}
+  </div>
+  <div class="kr-rt">
+    <span class="kr-target">target: ${esc(kr.target || "—")}</span>
+    <span class="kr-current ${st.cls}">${esc(kr.current || "—")}</span>
+  </div>
+</div>`;
+  }).join("\n");
+  return `<div class="kr-list">${rows}</div>`;
+}
+
+// ── The spine breadcrumb (design-review #5) ─────────────────────────────────────
+// A persistent thin stepper vision ▸ bets ▸ objectives ▸ work ▸ record atop every
+// strategic surface, current location highlighted — turns the live links into a
+// navigable throughline and teaches the model the shape. Brand-neutral.
+type SpineStep = "vision" | "bets" | "objectives" | "work" | "record" | null;
+function spineBreadcrumb(current: SpineStep, L: Links, ledgerSlug: string, canvasBound: boolean): string {
+  const steps: { key: Exclude<SpineStep, null>; label: string; href: string; inert: boolean }[] = [
+    { key: "vision", label: "vision", href: L.page("strategy"), inert: false },
+    // The canvas is a sibling surface that a harness may not bind — when it is unbound
+    // build.sh skips building /canvas/, so the bets step must NOT link to a 404; render
+    // it inert (the rollup itself already degrades to "canvas not bound").
+    { key: "bets", label: "bets", href: L.canvas(), inert: !canvasBound },
+    { key: "objectives", label: "objectives", href: L.page("progress"), inert: false },
+    { key: "work", label: "work", href: L.page(ledgerSlug), inert: false },
+    { key: "record", label: "record", href: L.page(ledgerSlug, "record"), inert: false },
+  ];
+  const inner = steps.map((s, i) => {
+    const sep = i ? `<span class="spine-sep" aria-hidden="true">▸</span>` : "";
+    const isCur = s.key === current;
+    return sep + ((isCur || s.inert)
+      ? `<span class="spine-step${isCur ? " is-current" : ""}"${isCur ? ' aria-current="step"' : ""}>${esc(s.label)}</span>`
+      : `<a class="spine-step" href="${s.href}">${esc(s.label)}</a>`);
+  }).join("");
+  return `<nav class="spine" aria-label="Product throughline">${inner}</nav>`;
+}
+
+// ── Vision apex (composed once, from objectives.md — the single source) ──────────
+function visionApex(vision: OutcomeModel["vision"]): string {
+  if (!vision.statement) return "";
+  const horizon = vision.horizon ? `<span class="vision-horizon">horizon: ${esc(vision.horizon)}</span>` : "";
+  return `<div class="vision-apex">
+  <div class="vision-label">Vision${horizon ? " · " : ""}${horizon}</div>
+  <p class="vision-statement">${esc(vision.statement)}</p>
+</div>`;
+}
+
+// A compact contributor chip (an item advancing an objective / testing a bet), linking
+// to the item detail. Lifecycle-coloured; shows the projected stage when fresh.
+function contributorChip(it: WorkItem, proj: ProjectionResult, L: Links): string {
+  const stage = stageDisplay(it, proj);
+  const stageTag = (it.fm.lifecycle_state === "in-delivery" && !stage.stale)
+    ? `<span class="contrib-stage">${esc(stage.label)}</span>` : "";
+  return `<a class="contrib lifecycle-${esc(it.fm.lifecycle_state)}" href="${L.page("item/" + it.id)}">
+  <span class="contrib-state">${esc(it.fm.lifecycle_state)}</span>
+  <span class="contrib-title">${esc(it.fm.title)}</span>${stageTag}
+</a>`;
+}
+
 function renderItemDetailPage(
   item: WorkItem,
   proj: ProjectionResult,
   nav: NavGroup[],
   labelFn: (s: string) => string,
   childIUs: IU[],
+  model: OutcomeModel,
+  ledgerSlug: string,
+  canvasIds: Set<string> | null,
 ): string {
   const slug = `item/${item.id}`;
   const stage = stageDisplay(item, proj);
   const banner = provenanceBanner(proj);
+  const L = makeLinks(slug);
+
+  // ── Throughline cross-links (navigable) ──
+  // → its objective → which ladders to the vision (resolved against the model; an
+  //   unresolved link gets a visible affordance, never a broken <a>).
+  const objective = item.fm.outcome_link
+    ? model.objectives.find((o) => o.id === item.fm.outcome_link)
+    : undefined;
+  const outcomeXlink = item.fm.outcome_link
+    ? (objective
+        ? `<div class="xlink"><span class="xlink-label">Objective</span><a href="${L.page("progress", objective.id)}">${esc(objective.statement || objective.id)}</a>${model.vision.statement ? `<a class="xlink-vision" href="${L.page("strategy")}" title="${esc(model.vision.statement)}">→ vision</a>` : ""}</div>`
+        : `<div class="xlink xlink-unresolved"><span class="xlink-label">Objective</span><code>${esc(item.fm.outcome_link)}</code><span class="unresolved-tag">unresolved — no such objective</span></div>`)
+    : "";
+
+  // → the bet/VPC element it tests (value_prop_link may resolve to a canvas entry id).
+  //   Link = NAVIGATE to the canvas entry (design #6: no cross-surface drawer). When
+  //   the canvas is bound and the id is absent → unresolved affordance; when the id is
+  //   prose (not a code) → show it as a plain value-prop note.
+  const vpId = canvasEntryId(item.fm.value_prop_link);
+  const vpNote = vpId && item.fm.value_prop_link
+    ? item.fm.value_prop_link.slice(item.fm.value_prop_link.indexOf(vpId) + vpId.length).replace(/^[\s(]+/, "").replace(/\)\s*$/, "").trim()
+    : "";
+  // Navigable ONLY when the id actually resolves on the bound canvas (or the canvas is
+  // unread ⇒ optimistic). value_prop_link MAY be a non-canvas slug (work-item-schema:
+  // "may resolve to a canvas entry id") — when it is not on the bound canvas, show it as a
+  // plain value-prop note, NOT a false "dangling canvas reference" error (eng review).
+  const vpResolvable = !!vpId && (canvasIds === null || canvasIds.has(vpId));
+  const betXlink = item.fm.value_prop_link
+    ? (vpResolvable
+        ? `<div class="xlink"><span class="xlink-label">Bet tested</span><a href="${L.canvas(vpId!)}"><code>${esc(vpId!)}</code></a>${vpNote ? `<span class="xlink-note">${esc(vpNote)}</span>` : ""}</div>`
+        : `<div class="xlink"><span class="xlink-label">Value prop</span><span class="xlink-note">${esc(item.fm.value_prop_link)}</span></div>`)
+    : "";
+
+  const throughlineHtml = (outcomeXlink || betXlink || item.fm.risk_state)
+    ? `<div class="item-throughline">
+  ${outcomeXlink}
+  ${betXlink}
+  ${item.fm.risk_state ? `<div class="xlink xlink-risk"><span class="xlink-label">Four-risks</span>${riskGrid(item.fm.risk_state)}</div>` : ""}
+</div>`
+    : "";
 
   // Transition summary from projection (for in-delivery items)
   let transitionHtml = "";
@@ -857,17 +1399,17 @@ function renderItemDetailPage(
        </div>`
     : "";
 
-  const bodyHtml = `${banner}
+  const bodyHtml = `${spineBreadcrumb("work", L, ledgerSlug, canvasIds !== null)}
+${banner}
 <div class="item-detail-meta">
   <div class="meta-row">${tierBadge(item.fm.tier)}</div>
   <div class="meta-row"><span class="lifecycle-tag">${esc(item.fm.lifecycle_state)}</span></div>
-  ${item.fm.outcome_link ? `<div class="meta-row"><span class="meta-label">Outcome:</span> <a href="../../progress/#${esc(item.fm.outcome_link)}">${esc(item.fm.outcome_link)}</a></div>` : ""}
-  ${item.fm.value_prop_link ? `<div class="meta-row"><span class="meta-label">Value prop:</span> ${esc(item.fm.value_prop_link)}</div>` : ""}
   ${stageRowHtml}
   ${riskPill(item.fm.risk_state)}
   ${linksHtml}
   ${item.fm.disposition ? `<div class="meta-row"><span class="meta-label">Disposition:</span> ${esc(item.fm.disposition)}</div>` : ""}
 </div>
+${throughlineHtml}
 
 <h2>Body</h2>
 ${bodyRendered || "<p><em>No narrative body.</em></p>"}
@@ -912,53 +1454,103 @@ ${popoutFor(childIUs)}
 // ── Progress page ─────────────────────────────────────────────────────────────
 
 function renderProgressPage(
+  model: OutcomeModel,
   items: WorkItem[],
-  objDoc: { fm: Record<string, unknown>; body: string } | null,
+  rev: ReverseIndex,
+  proj: ProjectionResult,
   nav: NavGroup[],
   labelFn: (s: string) => string,
+  ledgerSlug: string,
+  canvasBound: boolean,
 ): string {
-  let bodyHtml = "";
+  const L = makeLinks("progress");
+  const objIds = new Set(model.objectives.map((o) => o.id));
 
-  // Render objectives markdown
-  if (objDoc) {
-    const result = renderMarkdown(objDoc.body, {
-      page: { path: "progress", fm: objDoc.fm as Record<string, unknown>, raw: objDoc.body },
-    });
-    bodyHtml += result.html;
-  } else {
-    bodyHtml += "<p><em>No objectives.md found.</em></p>";
-  }
+  // Per-objective section: id-keyed heading (eng H2), KR cascade, contribution view.
+  const objSections = model.objectives.map((obj) => {
+    const contributors = rev.byOutcome.get(obj.id) ?? [];
+    const contribHtml = contributors.length
+      ? `<div class="contrib-list">${contributors.map((it) => contributorChip(it, proj, L)).join("\n")}</div>`
+      : `<p class="contrib-empty">No work items advancing this objective yet.</p>`;
+    // strategy_link is authored as "<canvas-id> — <why>" (the be-civic link convention);
+    // extract the leading id for the anchor (symmetric with value_prop_link), keep the why.
+    const betId = canvasEntryId(obj.strategy_link);
+    const betNote = betId && obj.strategy_link
+      ? obj.strategy_link.slice(obj.strategy_link.indexOf(betId) + betId.length).replace(/^[\s—–:(-]+/, "").replace(/\)\s*$/, "").trim()
+      : "";
+    const betLink = obj.strategy_link
+      ? (betId
+          ? `<div class="obj-bet">Tests the bet → <a href="${L.canvas(betId)}"><code>${esc(betId)}</code></a>${betNote ? ` <span class="xlink-note">${esc(betNote)}</span>` : ""}</div>`
+          : `<div class="obj-bet xlink-unresolved">Tests the bet → <code>${esc(obj.strategy_link)}</code> <span class="unresolved-tag">unresolved</span></div>`)
+      : "";
+    const nsLink = obj.north_star_link ? `<div class="obj-ns">North-star: ${esc(obj.north_star_link)}</div>` : "";
+    const maturity = obj.maturity_note ? `<p class="obj-maturity">${esc(obj.maturity_note)}</p>` : "";
+    return `<section class="objective">
+  <h2 id="${esc(obj.id)}" class="obj-head">${esc(obj.statement || obj.id)}</h2>
+  ${betLink}
+  ${obj.intro ? `<p class="obj-intro">${esc(obj.intro)}</p>` : ""}
+  ${krRows(obj.key_results)}
+  ${nsLink}
+  <div class="contrib-block">
+    <div class="contrib-label">Work advancing this objective <span class="contrib-count">${contributors.length}</span></div>
+    ${contribHtml}
+  </div>
+  ${maturity}
+</section>`;
+  }).join("\n");
 
-  // Contribution rollup: items per outcome_link
-  const rollup = new Map<string, WorkItem[]>();
-  for (const item of items) {
-    const key = item.fm.outcome_link ?? "(no outcome link)";
-    const arr = rollup.get(key) ?? [];
-    arr.push(item);
-    rollup.set(key, arr);
-  }
+  const hasObjectives = model.objectives.length > 0;
 
-  bodyHtml += `<h2>Contribution rollup (authored outcome links)</h2>`;
-  for (const [outcomeId, linked] of rollup.entries()) {
-    const pills = linked.map((it) =>
-      `<span class="lifecycle-tag lifecycle-${esc(it.fm.lifecycle_state)}">${esc(it.fm.title)}</span>`
-    ).join(" ");
-    bodyHtml += `<div style="margin-bottom:.75em"><a href="#${esc(outcomeId)}"><strong>${esc(outcomeId)}</strong></a><div style="margin-top:.3em;display:flex;flex-wrap:wrap;gap:.3em">${pills}</div></div>`;
-  }
+  // Fallback: an objectives.md that is NOT in the structured okr-schema format (an old
+  // heading/table shape, or any foreign doc) still renders its authored markdown — never
+  // a blank page (content is never lost; the structural cascade simply does not light up).
+  const fallbackHtml = (!hasObjectives && model.rawBody && model.rawBody.trim())
+    ? `<div class="progress-fallback"><p class="progress-gated">Objectives are not in the structured <code>okr-schema</code> format — showing the authored document. Author per <code>okr-schema</code> to light up the live OKR cascade + contribution view.</p>${renderMarkdown(model.rawBody, { page: { path: "progress", fm: {} as Record<string, unknown>, raw: model.rawBody } }).html}</div>`
+    : "";
 
-  // Input-gated analytics note
-  bodyHtml += `<h2>Strategic analytics</h2>
+  // Dangling / unlinked work — only meaningful when objectives parsed (else everything
+  // would falsely read as dangling). Never a broken anchor; a visible "unresolved" affordance.
+  const dangling = hasObjectives ? items.filter((it) => it.fm.outcome_link && !objIds.has(it.fm.outcome_link)) : [];
+  const unlinked = hasObjectives ? items.filter((it) => !it.fm.outcome_link) : [];
+  const issuesHtml = (dangling.length || unlinked.length)
+    ? `<section class="progress-issues">
+  <h2 id="unresolved">Unresolved links</h2>
+  ${dangling.length ? `<p class="progress-issue">${dangling.length} work item${dangling.length === 1 ? "" : "s"} point at an objective id that is not in objectives.md (the link is shown but does not resolve):</p>
+  <div class="contrib-list">${dangling.map((it) => `<a class="contrib lifecycle-${esc(it.fm.lifecycle_state)}" href="${L.page("item/" + it.id)}"><span class="contrib-state">unresolved</span><span class="contrib-title">${esc(it.fm.title)} → ${esc(it.fm.outcome_link!)}</span></a>`).join("\n")}</div>` : ""}
+  ${unlinked.length ? `<p class="progress-issue">${unlinked.length} work item${unlinked.length === 1 ? "" : "s"} carry no outcome_link — they ladder to nothing yet.</p>` : ""}
+</section>`
+    : "";
+
+  const northStarHtml = model.northStar
+    ? `<section class="northstar"><h2 id="north-star">North-star</h2><p>${esc(model.northStar)}</p></section>`
+    : "";
+
+  // North-star/KPI TREND layer is input-gated (distinct from "demand never tested").
+  const analyticsHtml = `<section class="analytics-gated"><h2 id="analytics">Strategic analytics</h2>
 <div class="progress-gated">
-  <strong>Input-gated</strong> — the strategic product-analytics layer (north-star trend, KPI dashboards)
-  lights up when real user signal exists. Pre-launch, the targets + our own read of them are the honest measure.
-  See objectives above for the current read.
-</div>`;
+  <strong>Input-gated</strong> — the strategic product-analytics layer (north-star trend charts, KPI
+  dashboards from real usage) lights up when real user signal exists. The targets and our own read of
+  them above are the honest pre-signal measure; the trend lights up when data lands.
+</div></section>`;
+
+  const notice = (hasObjectives || fallbackHtml) ? "" : `<p class="progress-gated">No <code>objectives.md</code> bound — author it per <code>okr-schema</code> to light up the cascade.</p>`;
+
+  const bodyHtml = `${spineBreadcrumb("objectives", L, ledgerSlug, canvasBound)}
+${visionApex(model.vision)}
+<p class="dashboard-lede">The outcome layer, live: every objective with its key-results and the work advancing it. Outcomes, not output — each work item ladders here, and these ladder to the vision.</p>
+${notice}
+${objSections}
+${fallbackHtml}
+${issuesHtml}
+${northStarHtml}
+${analyticsHtml}`;
 
   const page: CorePage = {
     path: "progress",
-    fm: { title: "Progress", description: "Objectives, OKRs, north-star, and contribution rollup." },
+    fm: { title: "Progress", description: "Objectives, OKRs, north-star, and the live contribution view." },
     raw: "",
     kind: "progress",
+    toc: extractToc(bodyHtml),
   };
 
   return renderSurfacePage({
@@ -972,32 +1564,306 @@ function renderProgressPage(
   });
 }
 
-// ── Strategy page ─────────────────────────────────────────────────────────────
+// ══ The bets rollup — read the optional canvas, aggregate the two axes ═════════
+// The dashboard reads the canvas via the OPTIONAL renderer.canvas-root binding for
+// a bets-posture rollup; it NEVER re-renders the grid (the canvas owns that) and it
+// degrades gracefully (narrative + objectives only) when the canvas is unbound. The
+// rollup is computed from generic evidence-state/strength enums — no product scheme.
+
+function resolveCanvasRoot(): string | null {
+  const args = process.argv.slice(2);
+  const i = args.indexOf("--canvas-root");
+  if (i !== -1 && args[i + 1]) return path.resolve(args[i + 1]);
+  if (process.env["CANVAS_ROOT"]) return path.resolve(process.env["CANVAS_ROOT"]);
+  return null;   // OPTIONAL binding — absent ⇒ the rollup degrades, never crashes
+}
+
+const EV_STATES = ["confirmed", "tested", "assumed", "killed", "superseded"] as const;
+type EvState = (typeof EV_STATES)[number];
+const EV_RETIRED = new Set<EvState>(["killed", "superseded"]);
+function evStateOf(s?: string): EvState {
+  const e = (s || "assumed").toLowerCase();
+  return (EV_STATES as readonly string[]).includes(e) ? (e as EvState) : "assumed";
+}
+function strengthOf(s?: string): Rung {
+  const r = (s || "").toLowerCase();
+  return (r === "weak" || r === "moderate" || r === "strong") ? r : "unknown";
+}
+
+interface CanvasEntry {
+  id?: string; text: string; evidence: EvState; strength: Rung; importance_rank?: string;
+  region: "bmc" | "vpc" | "supporting"; slot: string;
+}
+interface CanvasModel { entries: CanvasEntry[]; ids: Set<string>; title?: string; }
+
+// Read canvas.json (tolerant of the canvas-chip's {thesis,entries} shape AND legacy
+// Entry[]). Returns null on absent/malformed — the caller degrades. NEVER throws.
+function loadCanvas(root: string | null): CanvasModel | null {
+  if (!root) return null;
+  const p = path.join(root, "canvas.json");
+  if (!existsSync(p)) return null;
+  let data: Record<string, unknown>;
+  try { data = JSON.parse(readFileSync(p, "utf-8")); } catch (e) { warn(`canvas.json malformed at ${p}: ${e}`); return null; }
+  // Valid JSON that is not an object (literal null / array / number) ⇒ degrade, never throw.
+  if (!data || typeof data !== "object" || Array.isArray(data)) { warn(`canvas.json is not an object at ${p}`); return null; }
+  const entries: CanvasEntry[] = [];
+  const ids = new Set<string>();
+  const slotEntries = (v: unknown): Array<Record<string, unknown>> => {
+    if (Array.isArray(v)) return v as Array<Record<string, unknown>>;
+    if (v && typeof v === "object" && Array.isArray((v as { entries?: unknown }).entries)) return (v as { entries: Array<Record<string, unknown>> }).entries;
+    return [];
+  };
+  const take = (region: CanvasEntry["region"], slot: string, raw: Record<string, unknown>) => {
+    if (!raw || typeof raw !== "object" || typeof raw.text !== "string") return;
+    const id = typeof raw.id === "string" ? raw.id : undefined;
+    if (id) ids.add(id);
+    entries.push({
+      id, text: raw.text, evidence: evStateOf(raw.evidence as string), strength: strengthOf(raw.strength as string),
+      importance_rank: typeof raw.importance_rank === "string" ? raw.importance_rank : undefined, region, slot,
+    });
+  };
+  const bmc = (data.bmc ?? {}) as Record<string, unknown>;
+  for (const slot of Object.keys(bmc)) for (const e of slotEntries(bmc[slot])) take("bmc", slot, e);
+  const vpc = (data.vpc ?? {}) as Record<string, unknown>;
+  for (const slot of Object.keys(vpc)) { if (slot === "segment") continue; for (const e of slotEntries(vpc[slot])) take("vpc", slot, e); }
+  const supporting = Array.isArray(data.supporting) ? data.supporting as Array<Record<string, unknown>> : [];
+  for (const g of supporting) for (const e of slotEntries(g)) take("supporting", typeof g.label === "string" ? g.label : "supporting", e);
+  return { entries, ids, title: typeof data.title === "string" ? data.title : undefined };
+}
+
+// Which risk a bet informs (generic BMC/VPC taxonomy, NOT a product scheme): the VPC
+// + the value_propositions cell are the desirability/VALUE bets; the rest of the BMC
+// (+ the supporting landscape) are the business-model/VIABILITY bets. usability +
+// feasibility are NOT on the canvas — they come from work-item risk_state (council #2).
+const isValueBet = (e: CanvasEntry) => e.region === "vpc" || (e.region === "bmc" && e.slot === "value_propositions");
+
+const RANK_ORD: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+const RUNG_ORD: Record<Rung, number> = { strong: 3, moderate: 2, weak: 1, unknown: 0 };
+
+interface BetsRollup {
+  total: number; live: number;
+  state: Record<EvState, number>;
+  strength: { strong: number; moderate: number; weak: number };  // non-retired only
+  value: Rung; viability: Rung;
+  demand: "did" | "said" | "untested";
+  riskiest: CanvasEntry[] | null;   // null ⇒ no importance_rank ⇒ "open by state", no ranking
+}
+// Coverage rung for a set — HONEST, not cherry-picked-best (honesty ≥ green). A risk
+// is "strong" only when discovery is essentially complete: a strong-confirmed bet AND
+// no bet still left an assumption (one confirmed infra bet must NOT green-up a risk
+// whose crux bet is still assumed). "moderate" = some real evidence but gaps remain;
+// "weak" = only assumptions/weak; empty ⇒ unknown.
+function coverageRung(set: CanvasEntry[]): Rung {
+  const live = set.filter((e) => !EV_RETIRED.has(e.evidence));
+  if (!live.length) return "unknown";
+  const hasAssumed = live.some((e) => e.evidence === "assumed");
+  const strongConfirmed = live.some((e) => e.evidence === "confirmed" && e.strength === "strong");
+  const someEvidence = live.some((e) => (e.evidence === "confirmed" || e.evidence === "tested") && e.strength !== "weak");
+  if (strongConfirmed && !hasAssumed) return "strong";
+  if (strongConfirmed || someEvidence) return "moderate";
+  return "weak";
+}
+function rollupBets(canvas: CanvasModel): BetsRollup {
+  const state: Record<EvState, number> = { confirmed: 0, tested: 0, assumed: 0, killed: 0, superseded: 0 };
+  const strength = { strong: 0, moderate: 0, weak: 0 };
+  for (const e of canvas.entries) {
+    state[e.evidence]++;
+    if (!EV_RETIRED.has(e.evidence) && e.strength !== "unknown") strength[e.strength]++;
+  }
+  const valueSet = canvas.entries.filter(isValueBet);
+  const demand: BetsRollup["demand"] = valueSet.some((e) => !EV_RETIRED.has(e.evidence) && e.strength === "strong")
+    ? "did" : valueSet.some((e) => !EV_RETIRED.has(e.evidence) && e.strength === "moderate") ? "said" : "untested";
+  const hasRank = canvas.entries.some((e) => e.importance_rank);
+  const riskiest = hasRank
+    ? canvas.entries
+        .filter((e) => e.evidence === "assumed" || e.evidence === "tested")
+        .sort((a, b) =>
+          (RANK_ORD[a.importance_rank ?? "medium"] - RANK_ORD[b.importance_rank ?? "medium"]) ||
+          (RUNG_ORD[a.strength] - RUNG_ORD[b.strength]) ||
+          (a.id ?? a.text).localeCompare(b.id ?? b.text, "en", { numeric: true }))
+        .slice(0, 6)
+    : null;
+  const total = canvas.entries.length;
+  const live = total - state.killed - state.superseded;
+  return {
+    total, live, state, strength,
+    value: coverageRung(valueSet),
+    viability: coverageRung(canvas.entries.filter((e) => !isValueBet(e))),
+    demand, riskiest,
+  };
+}
+
+// The work items' risk_state aggregate for a dimension (usability / feasibility): the
+// MOST-EXPOSED evaluated item sets the risk (a risk is only as cleared as its weakest
+// item — honesty ≥ green). "unknown"/not-evaluated items are skipped (no evidence yet
+// ≠ weak evidence); if none is evaluated the dimension reads unknown.
+function itemsRiskRung(items: WorkItem[], dim: keyof RiskState): Rung {
+  let worst: Rung | null = null;
+  for (const it of items) {
+    const r = riskRung(it.fm.risk_state?.[dim] as string | undefined);
+    if (r === "unknown") continue;
+    if (worst === null || RUNG_ORD[r] < RUNG_ORD[worst]) worst = r;
+  }
+  return worst ?? "unknown";
+}
+
+// ── Rollup components ───────────────────────────────────────────────────────────
+// The single bets-posture primitive (design-review #1): ONE horizontal stacked bar —
+// segment COLOUR = lifecycle state, segment OPACITY = strength rung. A confirmed bet
+// on weak evidence renders PALE; on strong, SOLID — so a silent upgrade is visually
+// impossible (council #1 met structurally, not in a footnote).
+const RUNG_OPACITY: Record<Rung, number> = { strong: 1, moderate: 0.58, weak: 0.3, unknown: 0.3 };
+function betsPostureBar(canvas: CanvasModel): string {
+  const segs: string[] = [];
+  const labelParts: string[] = [];
+  for (const st of EV_STATES) {
+    const inState = canvas.entries.filter((e) => e.evidence === st);
+    if (!inState.length) continue;
+    if (EV_RETIRED.has(st)) {
+      segs.push(`<span class="bp-seg bp-${st}" style="flex:${inState.length};opacity:.5" title="${inState.length} ${st}"></span>`);
+      labelParts.push(`${inState.length} ${st}`);
+      continue;
+    }
+    for (const rung of ["strong", "moderate", "weak", "unknown"] as Rung[]) {
+      const n = inState.filter((e) => e.strength === rung).length;
+      if (!n) continue;
+      segs.push(`<span class="bp-seg bp-${st}" style="flex:${n};opacity:${RUNG_OPACITY[rung]}" title="${n} ${st}, ${rung === "unknown" ? "unrated" : rung} evidence"></span>`);
+      labelParts.push(`${n} ${st}/${rung === "unknown" ? "unrated" : rung}`);
+    }
+  }
+  if (!segs.length) return "";
+  return `<div class="bets-bar" role="img" aria-label="${esc(`Bets posture: ${labelParts.join(", ")}`)}">${segs.join("")}</div>`;
+}
+function demandBadge(demand: BetsRollup["demand"]): string {
+  const map = {
+    did: ["bp-demand-did", "demand tested — observed (did-yes)"],
+    said: ["bp-demand-said", "demand stated only (said-yes)"],
+    untested: ["bp-demand-untested", "demand never tested"],
+  } as const;
+  const [cls, label] = map[demand];
+  return `<span class="bp-demand ${cls}">${esc(label)}</span>`;
+}
+function fourRisksStrip(canvas: CanvasModel, items: WorkItem[]): string {
+  const r = rollupBets(canvas);
+  const cells: [string, Rung, string][] = [
+    ["value", r.value, "canvas"],
+    ["usability", itemsRiskRung(items, "usability"), "work items"],
+    ["feasibility", itemsRiskRung(items, "feasibility"), "work items"],
+    ["viability", r.viability, "canvas"],
+  ];
+  const html = cells.map(([label, rung, src]) =>
+    `<div class="risk-cell ${RUNG_CLASS[rung]}" title="${esc(`${label} — ${rung === "unknown" ? "no evidence yet" : rung + " evidence"} (from ${src})`)}">
+  <span class="risk-cell-dot"></span><span class="risk-cell-label">${esc(label)}</span><span class="risk-cell-rung">${esc(rung === "unknown" ? "—" : rung)}</span>
+</div>`).join("");
+  return `<div class="risk-grid four-risks-strip" role="group" aria-label="Four-risks coverage">${html}</div>`;
+}
+function riskiestList(riskiest: CanvasEntry[] | null, rollup: BetsRollup, L: Links): string {
+  if (riskiest === null) {
+    // No importance signal in the canvas ⇒ DON'T assert a riskiness order we can't compute.
+    return `<p class="bets-note">Open bets by state: <strong>${rollup.state.assumed}</strong> assumed, <strong>${rollup.state.tested}</strong> tested. (Riskiest-first ranking lights up when the canvas carries an importance signal.)</p>`;
+  }
+  if (!riskiest.length) return `<p class="bets-note">No open bets — every bet is confirmed or retired.</p>`;
+  const rows = riskiest.map((e) => `<a class="riskiest-row" href="${L.canvas(e.id)}">
+  <span class="riskiest-imp imp-${esc(e.importance_rank ?? "medium")}">${esc(e.importance_rank ?? "—")}</span>
+  <span class="str str-${e.strength === "unknown" ? "weak" : e.strength}">${esc(e.strength === "unknown" ? "unrated" : e.strength)}</span>
+  <span class="riskiest-text">${esc(e.text)}</span>
+  ${e.id ? `<code class="riskiest-id">${esc(e.id)}</code>` : ""}
+</a>`).join("\n");
+  return `<div class="riskiest-list"><div class="bets-note">Riskiest open bets — important and least-evidenced first (Strategyzer):</div>${rows}</div>`;
+}
+
+// The shared bets-rollup section (strategy page + direction overview). Degrades to a
+// one-line "canvas not bound" placeholder when the canvas is unbound (design-review #10)
+// — never silently vanishes (which would falsely read as "no bets").
+function betsRollupSection(canvas: CanvasModel | null, items: WorkItem[], L: Links, heading: boolean): string {
+  const head = heading ? `<h2 id="bets">Bets — evidence posture</h2>` : `<div class="contrib-label">Bets posture</div>`;
+  if (!canvas) {
+    return `${head}
+<div class="progress-gated">Bets posture: <strong>canvas not bound</strong> — bind <code>renderer.canvas-root</code> to a <code>canvas.json</code> to light up the evidence rollup. Explore bets directly on the canvas surface.</div>`;
+  }
+  const r = rollupBets(canvas);
+  if (!r.total) {
+    return `${head}<p class="bets-note">The canvas is bound but carries no bets yet.</p>`;
+  }
+  return `${head}
+<div class="bets-rollup">
+  <div class="bets-head">
+    <div class="bets-counts"><strong>${r.total}</strong> bets · <strong>${r.state.confirmed}</strong> confirmed · <strong>${r.state.tested}</strong> tested · <strong>${r.state.assumed}</strong> assumed${r.state.killed + r.state.superseded ? ` · ${r.state.killed + r.state.superseded} retired` : ""}</div>
+    ${demandBadge(r.demand)}
+  </div>
+  ${betsPostureBar(canvas)}
+  <div class="bets-axes"><span class="bets-axis-note">colour = state · fill = evidence strength (pale = weak, solid = observed)</span></div>
+  <div class="four-risks-wrap"><div class="contrib-label">Four-risks coverage</div>${fourRisksStrip(canvas, items)}</div>
+  ${riskiestList(r.riskiest, r, L)}
+  <p class="bets-explore">Explore every bet on the <a href="${L.canvas()}">business-model canvas →</a></p>
+</div>`;
+}
+
+// Condensed direction strip atop the ledger — the throughline at a glance, linking
+// up to the full Direction overview. Vision one-liner + the bets-posture bar.
+function directionStrip(model: OutcomeModel, canvas: CanvasModel | null, L: Links): string {
+  const v = model.vision.statement ? `<span class="ds-vision">${esc(model.vision.statement)}</span>` : "";
+  const bar = canvas ? `<span class="ds-bar">${betsPostureBar(canvas)}</span>` : "";
+  return `<a class="direction-strip" href="${L.page("")}">
+  <span class="ds-label">Direction</span>${v}${bar}<span class="ds-go">overview →</span>
+</a>`;
+}
+
+// One objective, condensed for the Direction overview: statement (→ progress), a KR
+// status summary, the bet it tests, and the count of work advancing it (→ its work).
+function objectiveDirectionRow(obj: Objective, contributors: number, L: Links): string {
+  const krs = obj.key_results;
+  const done = krs.filter((k) => krState(k.current).label === "done").length;
+  const summary = krs.length ? `${done}/${krs.length} key results met` : "no key results";
+  const betId = canvasEntryId(obj.strategy_link);
+  const bet = betId ? `<a class="odr-bet" href="${L.canvas(betId)}"><code>${esc(betId)}</code></a>` : "";
+  return `<div class="odr">
+  <a class="odr-statement" href="${L.page("progress", obj.id)}">${esc(obj.statement || obj.id)}</a>
+  <div class="odr-meta"><span class="odr-krs">${esc(summary)}</span>${bet ? `<span class="odr-tests">tests ${bet}</span>` : ""}<span class="odr-contrib">${contributors} advancing</span></div>
+</div>`;
+}
+
+// ── Strategy page — the Product Strategy thesis (reworked) ──────────────────────
 
 function renderStrategyPage(
   stratDoc: { fm: Record<string, unknown>; body: string } | null,
+  model: OutcomeModel,
+  items: WorkItem[],
+  canvas: CanvasModel | null,
   nav: NavGroup[],
   labelFn: (s: string) => string,
+  ledgerSlug: string,
 ): string {
-  let bodyHtml = "";
+  const L = makeLinks("strategy");
+  let kernelHtml = "";
   let toc: CorePage["toc"] = [];
 
   if (stratDoc) {
-    const page: CorePage = {
-      path: "strategy",
-      fm: stratDoc.fm as Record<string, unknown>,
-      raw: stratDoc.body,
-    };
-    const result = renderMarkdown(stratDoc.body, { page });
-    toc = extractToc(result.html);
-    bodyHtml = result.html;
+    // Strip a leading vision restatement (the vision is owned by objectives.md apex,
+    // composed below) so it is never duplicated, then render the kernel as markdown.
+    const cleaned = stratDoc.body.replace(/^>\s*\*\*Vision:\*\*[^\n]*(\n>[^\n]*)*\n?/im, "");
+    const result = renderMarkdown(cleaned, {
+      page: { path: "strategy", fm: stratDoc.fm as Record<string, unknown>, raw: cleaned },
+    });
+    kernelHtml = result.html;
+    toc = extractToc(result.html);   // TOC over the kernel only (eng L4: not the mixed body)
   } else {
-    bodyHtml = "<p><em>No strategy.md found.</em></p>";
+    kernelHtml = `<p class="progress-gated">No <code>strategy.md</code> bound — author the Product Strategy thesis (per <code>okr-schema</code> / the bindings contract).</p>`;
   }
+
+  // The bets rollup is appended as its own structured section; add its heading to the TOC.
+  const betsSection = betsRollupSection(canvas, items, L, true);
+  if (canvas) toc = [...(toc ?? []), { id: "bets", text: "Bets — evidence posture", level: 2 } as NonNullable<CorePage["toc"]>[number]];
+
+  const bodyHtml = `${spineBreadcrumb("vision", L, ledgerSlug, !!canvas)}
+${visionApex(model.vision)}
+<p class="dashboard-lede">The Product Strategy thesis — the guiding document every objective, bet, and work item is held against. The vision is the apex above; this is the argument for how we get there.</p>
+${kernelHtml}
+${betsSection}`;
 
   const page: CorePage = {
     path: "strategy",
-    fm: stratDoc?.fm as Record<string, unknown> ?? { title: "Vision & strategy" },
+    fm: { title: "Vision & strategy", description: "The Product Strategy thesis + the evidence posture of our bets." },
     raw: "",
     kind: "strategy",
     toc,
@@ -1010,6 +1876,94 @@ function renderStrategyPage(
     bodyHtml,
     pageLabel: labelFn,
     showToc: true,
+    extraHead: () => DASHBOARD_STYLES,
+  });
+}
+
+// ── Direction overview — the throughline at a glance (the home, T2=B) ───────────
+// Answers "does this product have coherent direction?": a live check against the
+// strategy thesis. Two LABELLED zones so the discovery posture is structurally
+// co-equal with delivery (design-review #4): a Direction zone (vision · bets posture ·
+// objectives-as-bets-tested) above a Delivery zone (in-flight · recently shipped).
+// Every band is a rollup of data another surface owns — it introduces no new store.
+
+function recordRow(it: WorkItem, L: Links): string {
+  const outcome = it.fm.outcome_link
+    ? `<a class="rr-outcome" href="${L.page("progress", it.fm.outcome_link)}">${esc(it.fm.outcome_link)}</a>` : "";
+  const debrief = it.fm.links?.debrief ? `<span class="rr-debrief">debrief recorded</span>` : "";
+  return `<div class="rr lifecycle-${esc(it.fm.lifecycle_state)}">
+  <a class="rr-title" href="${L.page("item/" + it.id)}">${esc(it.fm.title)}</a>
+  <span class="rr-state">${esc(it.fm.disposition || it.fm.lifecycle_state)}</span>
+  ${outcome}${debrief}
+</div>`;
+}
+
+function renderDirectionPage(
+  model: OutcomeModel,
+  items: WorkItem[],
+  rev: ReverseIndex,
+  canvas: CanvasModel | null,
+  proj: ProjectionResult,
+  nav: NavGroup[],
+  labelFn: (s: string) => string,
+  ledgerSlug: string,
+): string {
+  const L = makeLinks("");
+  const building = items.filter((it) => lifecycleToColumn(it.fm.lifecycle_state) === "building");
+  const record = items.filter((it) => lifecycleToColumn(it.fm.lifecycle_state) === "record");
+
+  const objRows = model.objectives.length
+    ? model.objectives.map((o) => objectiveDirectionRow(o, rev.byOutcome.get(o.id)?.length ?? 0, L)).join("\n")
+    : `<p class="contrib-empty">No objectives authored yet.</p>`;
+
+  const inFlightHtml = building.length
+    ? `<div class="ledger-record-grid">${building.map((it) => itemCard(it, proj, L)).join("\n")}</div>`
+    : `<p class="contrib-empty">Nothing in delivery right now.</p>`;
+
+  const recordHtml = record.length
+    ? record.slice(-6).reverse().map((it) => recordRow(it, L)).join("\n")
+    : `<p class="contrib-empty">No record entries yet — the loop has not closed an item.</p>`;
+
+  const bodyHtml = `${spineBreadcrumb(null, L, ledgerSlug, !!canvas)}
+${provenanceBanner(proj)}
+<p class="dashboard-lede">Does the product have coherent direction? This is the live check against the <a href="${L.page("strategy")}">Product Strategy thesis</a> — whether vision, bets, objectives, work, and record actually cohere.</p>
+
+<section class="zone zone-direction">
+  <div class="zone-label">Direction — are we de-risking the right bets?</div>
+  ${visionApex(model.vision)}
+  ${betsRollupSection(canvas, items, L, false)}
+  <div class="dir-objectives">
+    <div class="contrib-label">Objectives — each an outcome that advances a bet <a class="zone-more" href="${L.page("progress")}">progress →</a></div>
+    ${objRows}
+  </div>
+</section>
+
+<section class="zone zone-delivery">
+  <div class="zone-label">Delivery — are we shipping against them?</div>
+  <div class="dir-band">
+    <div class="contrib-label">In flight <a class="zone-more" href="${L.page(ledgerSlug)}">ledger →</a></div>
+    ${inFlightHtml}
+  </div>
+  <div class="dir-band">
+    <div class="contrib-label">Recently shipped &amp; learned <a class="zone-more" href="${L.page(ledgerSlug, "record")}">record →</a></div>
+    ${recordHtml}
+  </div>
+</section>`;
+
+  const page: CorePage = {
+    path: "",
+    fm: { title: "Direction", description: "The throughline at a glance — vision, bets, objectives, work, record." },
+    raw: "",
+    kind: "dashboard",
+  };
+
+  return renderSurfacePage({
+    slug: "",
+    page,
+    nav,
+    bodyHtml,
+    pageLabel: labelFn,
+    layoutVariant: "app",
     extraHead: () => DASHBOARD_STYLES,
   });
 }
@@ -1063,32 +2017,56 @@ if (projResult.fresh) {
 const objDoc = loadMarkdownDoc(path.join(dashRoot, "objectives.md"));
 const stratDoc = loadMarkdownDoc(path.join(dashRoot, "strategy.md"));
 
+// Parse the outcome layer ONCE (structurally — eng H2) and build the reverse index
+// (single O(N) pass — eng M4). Shared by progress, strategy, direction, and item detail.
+const outcomeModel = objDoc ? parseObjectives(objDoc.body) : EMPTY_MODEL;
+const reverseIndex = buildReverseIndex(items);
+log(`  parsed ${outcomeModel.objectives.length} objectives (vision ${outcomeModel.vision.statement ? "set" : "absent"})`);
+
+// Throughline routing (T2=B): Direction takes the surface index (""); the ledger moves
+// to "ledger". The spine/cross-links resolve against ledgerSlug — change it here only.
+const ledgerSlug = "ledger";
+// Read the OPTIONAL canvas (renderer.canvas-root). null ⇒ unbound ⇒ the bets rollup
+// degrades to "canvas not bound" + item→bet links resolve against null (optimistic;
+// the /canvas/ surface still exists in the build).
+const canvas = loadCanvas(resolveCanvasRoot());
+const canvasIds: Set<string> | null = canvas ? canvas.ids : null;
+log(canvas ? `  canvas: ${canvas.entries.length} bets bound (${canvas.ids.size} addressable ids)` : "  canvas: not bound — bets rollup degrades");
+
 const nav = buildNav(items);
 const labelFn = pageLabel(items);
 
-// ── Render: work-ledger index ─────────────────────────────────────────────────
-const ledgerHtml = renderLedgerPage(items, projResult, nav, labelFn, standaloneIUs);
-writeHtml(path.join(surfaceDir, "index.html"), ledgerHtml);
-log("  [page] dashboard (work ledger index)");
+// ── Render: Direction overview (the home, slug "") ────────────────────────────
+const directionHtml = renderDirectionPage(outcomeModel, items, reverseIndex, canvas, projResult, nav, labelFn, ledgerSlug);
+writeHtml(path.join(surfaceDir, "index.html"), directionHtml);
+log("  [page] direction (overview — the home)");
+
+// ── Render: work-ledger (moved to /ledger) ────────────────────────────────────
+const ledgerHtml = renderLedgerPage(items, projResult, nav, labelFn, standaloneIUs, outcomeModel, canvas, ledgerSlug);
+writeHtml(path.join(surfaceDir, ledgerSlug, "index.html"), ledgerHtml);
+log(`  [page] ${ledgerSlug} (work ledger)`);
 
 // ── Render: per-item pages ────────────────────────────────────────────────────
 for (const item of items) {
-  const html = renderItemDetailPage(item, projResult, nav, labelFn, iusByParent.get(item.id) ?? []);
+  const html = renderItemDetailPage(
+    item, projResult, nav, labelFn, iusByParent.get(item.id) ?? [],
+    outcomeModel, ledgerSlug, canvasIds,
+  );
   writeHtml(path.join(surfaceDir, "item", item.id, "index.html"), html);
   log(`  [page] item/${item.id} — ${item.fm.title}`);
 }
 
 // ── Render: progress page ─────────────────────────────────────────────────────
-const progressHtml = renderProgressPage(items, objDoc, nav, labelFn);
+const progressHtml = renderProgressPage(outcomeModel, items, reverseIndex, projResult, nav, labelFn, ledgerSlug, canvas !== null);
 writeHtml(path.join(surfaceDir, "progress", "index.html"), progressHtml);
 log("  [page] progress");
 
 // ── Render: strategy page ─────────────────────────────────────────────────────
-const strategyHtml = renderStrategyPage(stratDoc, nav, labelFn);
+const strategyHtml = renderStrategyPage(stratDoc, outcomeModel, items, canvas, nav, labelFn, ledgerSlug);
 writeHtml(path.join(surfaceDir, "strategy", "index.html"), strategyHtml);
 log("  [page] strategy");
 
-log(`\ndashboard: built ${3 + items.length} pages → ${surfaceDir}`);
+log(`\ndashboard: built ${4 + items.length} pages → ${surfaceDir}`);
 if (!projResult.fresh) {
   log(`WARNING: snapshot stale — ${projResult.staleReason}`);
 }

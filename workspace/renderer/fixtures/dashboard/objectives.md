@@ -1,51 +1,48 @@
----
-title: "Objectives & OKRs"
-description: "Outcome layer — the yardstick the product-dashboard measures against."
-status: "active — 2026-Q2"
----
+# Objectives (OKRs)
 
-# Objectives & OKRs
+<!-- Authored per okr-schema (v0.2.0). Outcomes, never features. Every work-item -->
+<!-- outcome_link ladders to an objective -> the vision apex. Maturity: pre-launch. -->
 
-The product-dashboard is organised around **outcomes, not output**. Every work item's `outcome_link` points to an objective here. Progress measures how far toward the vision each objective has moved.
+## Vision
 
-> **North-star:** A practitioner can install the stack-graph plugin into any Claude workspace, run the full dev-sprint loop against a real work item, and observe a correctly closed record entry — *without* reading the source code.
+- **statement:** Every agent operating environment can be modelled, comprehended, and
+  improved through its `.claude` primitives and the workflows that traverse them — by the
+  operators who run it, not the engineers who built it.
+- **horizon:** 2–3 years
 
----
+## Objectives
 
-## O1 — Activate the factory loop end-to-end {#obj-activate-factory}
+### obj-activate-factory — Activate the factory loop end-to-end
 
-**Statement:** An operator can exercise the complete plan → build → reconcile → land → debrief cycle using the vendored plugin, with no manual scaffolding.
+Pre-launch maturity. The bottleneck is factory activation, not optimisation — nothing else
+delivers value until the loop runs. The objective is the *outcome* (an operator can exercise
+the whole cycle), not any single feature that enables it.
 
-**Why this, now:** Pre-launch maturity. The bottleneck is factory activation, not optimisation. Nothing else delivers value until the loop runs.
+- **key_results:**
+  - `{ metric: "graph nodes authored, validated, and indexed", target: "100% of backbone wave 1", current: "done — 28 nodes (D50)" }`
+  - `{ metric: "loop traverses end-to-end (smoke test)", target: "all 5 backbone stages reachable", current: "done — D50" }`
+  - `{ metric: "plugin vendor pipeline ships nodes into skills/", target: "skills/ populated from graph/", current: "in progress — vendor.ts builds the plugin tree" }`
+  - `{ metric: "harness build (a consuming overlay exercises the loop)", target: "a harness wired + loop run", current: "not started" }`
+- **north_star_link:** directly moves the north-star — a correctly closed record entry is the proof the loop ran.
+- **maturity_note:** pre-launch — measured by operator assertion + smoke test; no user signal yet (that is the input gate for the progress-analytics layer).
 
-| Key result | Target | Current |
-|---|---|---|
-| KR1.1 — Graph nodes authored and indexed | 100% of backbone wave 1 nodes authored, validated | **done** — 28 nodes |
-| KR1.2 — Loop traverses end-to-end (smoke test) | All 5 backbone stages reachable | **done** — D50 |
-| KR1.3 — Plugin vendor pipeline ships nodes | `skills/` populated from `graph/` | **not started** |
-| KR1.4 — Harness build (be-civic overlay) | BC harness wired + exercises loop | **not started** |
+### obj-harness-ready — A consuming workspace can install and customise the factory
 
-**Maturity note (pre-launch):** Measured by operator assertion + smoke test. No user signal yet — that's the input gate for the progress analytics layer.
+A second workspace can install the plugin, apply an additive overlay with its own bindings +
+surfaces, and run the loop against real work items without modifying the factory. The objective
+is the business outcome — the factory/product split holds at the seam — not the install feature.
 
----
+- **key_results:**
+  - `{ metric: "plugin build ships clean", target: "vendor build exits 0 with all nodes vendored", current: "in progress" }`
+  - `{ metric: "harness bindings + surfaces wired", target: "all required binding keys populated", current: "not started" }`
+  - `{ metric: "OKR + strategy gap filled for the harness surface", target: "objectives.md + strategy.md authored", current: "in progress" }`
+  - `{ metric: "experience thread designed", target: "persona-JTBD-scenario layer spec'd + nodes authored", current: "in discovery" }`
+- **north_star_link:** lags the north-star — a real consuming harness is what proves the loop value generalises beyond the factory.
+- **maturity_note:** pre-launch — measured by a successful harness install + loop run; no external users yet.
 
-## O2 — Harness-ready: a consuming workspace can install and customise {#obj-harness-ready}
+## North-star
 
-**Statement:** A second workspace (be-civic) can install the stack-graph plugin, apply an additive overlay with its own bindings + surfaces, and run the loop against real work items without modifying the factory.
-
-**Why this, now:** Validates the factory/product split (the locked design decision). Without a real consuming harness, the factory is untestable at the seam.
-
-| Key result | Target | Current |
-|---|---|---|
-| KR2.1 — Plugin build ships clean | `bun run build-plugin.ts` exits 0 with all nodes vendored | **not started** |
-| KR2.2 — BC bindings + surfaces wired | All required bindings keys populated | **not started** |
-| KR2.3 — OKR gap filled | `objectives.md` + `strategy.md` authored for be-civic surface | **not started** |
-| KR2.4 — Experience thread designed | Persona-JTBD-scenario layer spec'd and nodes authored | **in discovery** |
-
-**Maturity note (pre-launch):** Measured by successful harness install + loop run. No external users yet.
-
----
-
-## What's input-gated (not deferred, waiting on data)
-
-The **strategic product-analytics layer** — north-star trend charts, KPI dashboards from real usage — is *not deferred*. It lights up when real user signal exists. Pre-launch, the targets + our own read of them are the honest measure.
+A practitioner can install the stack-graph plugin into any Claude workspace, run the full
+dev-sprint loop against a real work item, and observe a correctly closed record entry —
+*without* reading the source code. It is the single metric that best proxies delivered value:
+it captures the whole loop working, and it is the apex both objectives ladder to.
