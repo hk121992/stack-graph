@@ -222,7 +222,7 @@ function block(cls: string, label: string, region: string, slot: string, bd: Blo
     : "";
 
   // Per-entry landing anchors: a cross-surface deep-link (e.g. a work-item → bet
-  // /canvas/#H-CP-03) lands on the block CELL that holds the bet (the bet list lives
+  // /canvas/#<bet-id>) lands on the block CELL that holds the bet (the bet list lives
   // in the drawer sidecar, not the static DOM). popout.js then opens this block's
   // drawer for the hash. Invisible, zero-height; one per entry that carries an id.
   const anchors = entries.filter((e) => e.id)
