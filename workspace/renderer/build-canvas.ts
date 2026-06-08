@@ -50,9 +50,19 @@ function esc(s: unknown): string {
 
 interface Entry {
   id?: string; text: string; evidence?: string; detail?: string;
-  importance?: string;   // VPC profile items (jobs/pains/gains) — vpc-schema
-  addresses?: string[];  // value-map items → the profile items they address
-  refs?: string[];       // links to supporting hypotheses / findings — bmc-schema
+  importance?: string;      // VPC profile items (jobs/pains/gains) — vpc-schema
+  importance_rank?: string; // generic ranked importance (critical|high|medium|low) — Phase 0.5
+  strength?: string;        // evidence-strength rung (weak|moderate|strong) — four-risks / Phase 0.5
+  addresses?: string[];     // value-map items → the profile items they address
+  refs?: string[];          // links to supporting hypotheses / findings — bmc-schema
+}
+// Evidence-strength rung pill (four-risks): a SECOND axis beside the lifecycle state,
+// so a "confirmed-on-weak" bet never reads the same as one confirmed on observed
+// behaviour. Rendered only when the entry carries a strength.
+function strengthPill(s?: string): string {
+  const r = (s || "").toLowerCase();
+  if (r !== "weak" && r !== "moderate" && r !== "strong") return "";
+  return `<span class="str str-${r}" title="evidence strength: ${r}">${esc(r)}</span>`;
 }
 // A block is an optional authored thesis + its entries. `thesis` is optional so
 // the schema is additive and migration-safe; a consumer may still hand us a bare
@@ -164,8 +174,8 @@ function betDetails(e: Entry): string {
     addresses ? `<div class="po-sub"><div class="po-label">Addresses</div><ul>${addresses}</ul></div>` : "",
     refs ? `<div class="po-sub"><div class="po-label">Supporting evidence</div><p>${refs}</p></div>` : "",
   ].filter(Boolean).join("\n");
-  return `<details class="po-bet" data-ev="${evState(e.evidence)}">
-  <summary>${code}<span class="po-bet-title">${esc(e.text)}</span> ${evPill(e.evidence)}</summary>
+  return `<details class="po-bet" data-ev="${evState(e.evidence)}"${e.id ? ` data-bet="${esc(e.id)}"` : ""}>
+  <summary>${code}<span class="po-bet-title">${esc(e.text)}</span> ${evPill(e.evidence)}${strengthPill(e.strength)}</summary>
   <div class="po-bet-body">${body}</div>
 </details>`;
 }
@@ -211,10 +221,18 @@ function block(cls: string, label: string, region: string, slot: string, bd: Blo
     ? `<ul class="cv-preview">${preview.map((e) => `<li>${esc(e.text)} ${evPill(e.evidence)}</li>`).join("")}</ul>`
     : "";
 
+  // Per-entry landing anchors: a cross-surface deep-link (e.g. a work-item → bet
+  // /canvas/#H-CP-03) lands on the block CELL that holds the bet (the bet list lives
+  // in the drawer sidecar, not the static DOM). popout.js then opens this block's
+  // drawer for the hash. Invisible, zero-height; one per entry that carries an id.
+  const anchors = entries.filter((e) => e.id)
+    .map((e) => `<span class="cv-anchor" id="${esc(e.id!)}"></span>`).join("");
+
   // The WHOLE cell is the single drill target (role=button); popout.js handles
   // click + Enter/Space via delegation on [data-popout]. Preview bets are plain
   // text, NOT separate click targets (no nested interactive elements).
   return `<div class="cv-cell ${cls}" data-popout="${esc(id)}" role="button" tabindex="0" aria-label="${esc(`${label} — ${total} bets, open detail`)}">
+  ${anchors}
   <div class="cv-cell-label">${esc(label)}</div>
   ${headline}
   ${evBar(entries)}
@@ -445,6 +463,16 @@ const CSS = `<style>
 .po-bet-title { font-weight:500; color: var(--fg); }
 .po-bet-body { font-size:.82rem; color: var(--fg-soft); padding:0 .6em .55em; }
 .po-bet-meta { font-family: var(--mono); font-size:.66rem; color: var(--mute); margin:.2em 0 .3em; }
+
+/* Per-entry landing anchor — invisible; offsets scroll so the block isn't flush to top. */
+.cv-anchor { display:block; height:0; scroll-margin-top: 5em; }
+/* Evidence-strength rung pill — a second axis beside the .ev state pill. The rung
+   reads as fill: strong solid, moderate medium, weak faint (so confirmed-on-weak
+   can never look as solid as confirmed-on-strong). */
+.str { font-family: var(--mono); font-size:.6rem; border-radius:999px; padding:.05em .45em; white-space:nowrap; border:1px solid var(--hair); }
+.str-strong { background: color-mix(in srgb, var(--fg) 60%, transparent); color: var(--bg); border-color: transparent; }
+.str-moderate { background: color-mix(in srgb, var(--fg) 24%, transparent); color: var(--fg); }
+.str-weak { background: transparent; color: var(--mute); border-style:dashed; }
 .po-bet-body p { margin:.2em 0; }
 .po-muted { color: var(--mute); font-style:italic; }
 .po-sub { margin-top:.45em; }

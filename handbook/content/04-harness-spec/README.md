@@ -244,6 +244,18 @@ the thesis **rides the existing `canvas-root` binding** — no new binding key. 
 renderer is read-only like every vendored artefact; a harness re-skins by shipping its own
 `BRAND_ROOT` overlay, never by editing the vendored tree.
 
+The **dashboard** renders the full throughline (vision → bets → objectives → work → record) as a
+composed, navigable space. When the canvas is bound (`renderer.canvas-root`), the Direction overview
+and Vision & strategy page include a **two-axis bets rollup** — lifecycle state *and* evidence-strength
+rung — computed from `canvas.json` and linked to the canvas surface. The same `canvas.json` shape
+serves both the canvas surface and the dashboard rollup: the harness-local adapter (`refresh-canvas.ts`)
+carries `strength` and `importance_rank` into `canvas.json` per entry; the dashboard rollup degrades
+gracefully to state-axis only when those fields are absent, and to narrative + objectives only when
+`canvas.json` is unbound. No new first-class required binding key is introduced. The `strategy-doc`
+binding must point to the **authored Product Strategy thesis** (vision narrative); a harness must
+**not** bind it to a canvas or bmd inventory — the canvas owns the bets, the strategy surface owns
+the narrative and linkage.
+
 ## Vendoring posture
 
 A harness lives in its own consuming workspace, never in this repo. The current posture is

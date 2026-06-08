@@ -22,6 +22,10 @@ cd "$(dirname "$0")/.."   # repo root
 
 DIST="workspace/dist"
 PROJECTION="$DIST/portal-projection.json"
+# Canvas root — bound (CANVAS_ROOT) or the factory fixture. The canvas surface AND the
+# dashboard bets-rollup read the same canvas.json, so the portal dogfoods its own bets.
+# A harness that does not bind canvas-root simply omits both (the rollup degrades).
+CANVAS_ROOT_RESOLVED="${CANVAS_ROOT:-workspace/renderer/fixtures/canvas}"
 
 echo "==> clean $DIST"
 rm -rf "$DIST"
@@ -36,14 +40,14 @@ bun run workspace/renderer/build-handbook.ts
 echo "==> graph browser surface"
 bun run workspace/renderer/build-graph.ts
 
-echo "==> product-dashboard surface (ledger: ${DASHBOARD_ROOT:-fixture})"
-bun run workspace/renderer/build-dashboard.ts ${DASHBOARD_ROOT:+--root "$DASHBOARD_ROOT"} --projection "$PROJECTION"
+echo "==> product-dashboard surface (ledger: ${DASHBOARD_ROOT:-fixture}; canvas: $CANVAS_ROOT_RESOLVED)"
+bun run workspace/renderer/build-dashboard.ts ${DASHBOARD_ROOT:+--root "$DASHBOARD_ROOT"} --canvas-root "$CANVAS_ROOT_RESOLVED" --projection "$PROJECTION"
 
 echo "==> analytics surface"
 bun run workspace/renderer/build-analytics.ts --projection "$PROJECTION"
 
 echo "==> canvas surface (BMC + VPC)"
-bun run workspace/renderer/build-canvas.ts ${CANVAS_ROOT:+--root "$CANVAS_ROOT"}
+bun run workspace/renderer/build-canvas.ts --root "$CANVAS_ROOT_RESOLVED"
 
 echo "==> portal hub + shared root assets + fonts"
 bun run workspace/renderer/build-portal.ts

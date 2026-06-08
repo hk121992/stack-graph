@@ -97,6 +97,20 @@ computes the rollup itself from `entries[].evidence` and treats `thesis` as the 
 thesis with no bar or drill. No consumer block codes or terms enter the renderer — a harness supplies
 the thesis string and the entries, and the derived rollup is the honesty anchor a claim can't game.
 
+The **dashboard** renders a navigable throughline — **vision → bets → objectives → work → record** —
+as five pages: Direction (the overview), Work ledger, Progress (live OKR cascade), Vision & strategy
+(the Product Strategy thesis), and work-item detail with cross-links. The Direction and Vision &
+strategy pages include a **two-axis bets rollup** read from `canvas.json` — lifecycle state *and*
+evidence-strength rung (`weak | moderate | strong`) shown together so a `confirmed` bet on weak
+evidence never silently renders the same as one confirmed on observed behaviour. The rollup reads
+`canvas.json` via the **optional `renderer.canvas-root` sub-key** and **degrades gracefully** (narrative
++ objectives only, no bets rollup) when the canvas is not bound — it never becomes a required
+dependency. The `canvas.json` per-entry shape is a shared contract between the canvas surface and the
+dashboard rollup: each entry carries `evidence` (lifecycle state, exists today), and the canvas adapter
+(`refresh-canvas.ts`) additionally carries `strength` (the rung above) and `importance_rank`
+(`critical | high | medium | low`) into `canvas.json` — absent ⇒ the rollup degrades to state-axis
+only with no ranking. Coordinate these field names with the canvas-redesign chip.
+
 ## The build pipeline
 
 Each node file `graph/<id>/<id>.md` projects through four deterministic stages:
