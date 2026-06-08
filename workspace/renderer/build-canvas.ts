@@ -399,7 +399,7 @@ const CSS = `<style>
 
 /* Thesis = the only authored text, rendered as a claim. Subtle left-rule cue —
    deliberately NOT a heavy coloured-border card. */
-.cv-thesis { font-size:.82rem; color: var(--fg); line-height:1.42; margin:0 0 .5em; padding-left:.6em; border-left:2px solid color-mix(in srgb, var(--accent) 40%, var(--hair)); }
+.cv-thesis { font-size:.82rem; color: var(--fg); line-height:1.42; margin:0 0 .5em; padding-left:.6em; border-left:2px solid color-mix(in srgb, var(--accent) 40%, var(--hair)); display:-webkit-box; -webkit-line-clamp:5; -webkit-box-orient:vertical; overflow:hidden; }
 .cv-thesis.is-fallback { color: var(--fg-soft); font-style:italic; border-left-color: var(--hair); }
 
 /* Strict-proportional rollup bar — segments touch (no gap, no min-width). */

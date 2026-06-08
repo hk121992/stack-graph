@@ -251,6 +251,11 @@ function loadProjection(): ProjectionResult {
     };
   }
 
+  // Valid JSON that is not an object (literal null / array) ⇒ degrade like a stale snapshot.
+  if (!projection || typeof projection !== "object") {
+    return { projection: null, fresh: false, staleReason: "portal-projection.json is not an object (degraded).", gitHead };
+  }
+
   const snapshotCommit = projection.provenance?.commit ?? null;
   if (!gitHead || !snapshotCommit || snapshotCommit !== gitHead) {
     const reason = !gitHead
@@ -313,7 +318,13 @@ function loadItems(): WorkItem[] {
     const sourcePath = path.join(itemsDir, f);
     const raw = readFileSync(sourcePath, "utf-8");
     const { fm, body } = parseFrontmatter(raw);
-    return { id: (fm as WorkItemFm).id ?? f.replace(/\.md$/, ""), fm: fm as WorkItemFm, body, sourcePath };
+    // The id becomes a filesystem path segment (item/<id>/index.html) and a URL slug.
+    // Constrain it so a hostile/typo'd frontmatter id can't traverse out of the surface
+    // dir at build time or break out of an href — fall back to the (on-disk) filename.
+    const rawId = String((fm as WorkItemFm).id ?? f.replace(/\.md$/, ""));
+    const id = /^[A-Za-z0-9._-]+$/.test(rawId) ? rawId : f.replace(/\.md$/, "").replace(/[^A-Za-z0-9._-]/g, "-");
+    if (id !== rawId) warn(`work-item id "${rawId}" is not path-safe — using "${id}"`);
+    return { id, fm: fm as WorkItemFm, body, sourcePath };
   });
 }
 
@@ -785,10 +796,11 @@ a.spine-step:hover { color: var(--fg); }
 .riskiest-id { font-family: var(--mono); font-size: .68rem; color: var(--mute); }
 .bets-explore { font-size: .82rem; margin: .7em 0 0; }
 .bets-explore a { color: var(--accent); text-decoration: none; }
-/* Strength pill (dashboard copy — the canvas page has its own) */
+/* Strength pill — values kept IDENTICAL to build-canvas.ts's .str-* (both render in the
+   same browser session; divergence would read as a bug). Keep the two in sync. */
 .str { font-family: var(--mono); font-size: .6rem; border-radius: 999px; padding: .05em .45em; white-space: nowrap; border: 1px solid var(--hair); }
-.str-strong { background: color-mix(in srgb, var(--fg) 58%, transparent); color: var(--bg); border-color: transparent; }
-.str-moderate { background: color-mix(in srgb, var(--fg) 22%, transparent); color: var(--fg); }
+.str-strong { background: color-mix(in srgb, var(--fg) 60%, transparent); color: var(--bg); border-color: transparent; }
+.str-moderate { background: color-mix(in srgb, var(--fg) 24%, transparent); color: var(--fg); }
 .str-weak { background: transparent; color: var(--mute); border-style: dashed; }
 
 /* ══ Direction overview — two labelled zones (discovery co-equal with delivery) ══ */
@@ -889,7 +901,7 @@ function renderLedgerPage(
 </div>`).join("\n")}</div>`
     : `<p class="ledger-column-empty">No standalone improvements yet. The incremental-improvement workflow files them here.</p>`;
 
-  const bodyHtml = `${spineBreadcrumb("work", L, ledgerSlug)}
+  const bodyHtml = `${spineBreadcrumb("work", L, ledgerSlug, !!canvas)}
 ${directionStrip(model, canvas, L)}
 ${banner}
 <p class="dashboard-lede">One ledger across the lifecycle, in two channels: sprint work items (each decomposing into implementation units) and standalone incremental improvements.</p>
@@ -1013,13 +1025,17 @@ function makeLinks(slug: string, mountDepth = 1): Links {
   const within = makePageHref(slug);
   const toRoot = assetPrefix(slug) + "../".repeat(mountDepth);
   return {
+    // esc() the target slug + anchor: both can carry untrusted free-text that lands in an
+    // href attribute — a work-item id, an outcome_link, a canvas entry id read raw from
+    // canvas.json (the untrusted product tier). toRoot/within(t) are "../" + path
+    // separators that esc() leaves intact, so escaping the whole href is safe + total.
     page: (target, anchor) => {
       const t = target.replace(/^\//, "");
-      if (anchor && t === slug) return `#${anchor}`;        // same page → bare fragment
-      const base = within(t);
-      return anchor ? `${base}#${anchor}` : base;
+      if (anchor && t === slug) return `#${esc(anchor)}`;   // same page → bare fragment
+      const base = esc(within(t));
+      return anchor ? `${base}#${esc(anchor)}` : base;
     },
-    canvas: (entry) => `${toRoot}canvas/${entry ? `#${entry}` : ""}`,
+    canvas: (entry) => `${toRoot}canvas/${entry ? `#${esc(entry)}` : ""}`,
   };
 }
 
@@ -1216,7 +1232,9 @@ function krState(current: string): { cls: string; label: string } {
 function krFill(target: string, current: string): number | null {
   const num = (s: string) => { const m = /(-?\d+(?:\.\d+)?)\s*(%?)/.exec(s || ""); return m ? { n: parseFloat(m[1]), pct: m[2] === "%" } : null; };
   const t = num(target), c = num(current);
-  if (!t || !c || t.pct !== c.pct || t.n === 0) return null;
+  // Only a fill when both are non-negative, same-unit, positive-target — never invent a
+  // 100%-full bar for a wrong-direction (negative) or mismatched-unit metric.
+  if (!t || !c || t.pct !== c.pct || t.n <= 0 || c.n < 0) return null;
   return Math.max(0, Math.min(1, c.n / t.n));
 }
 function krRows(krs: KeyResult[]): string {
@@ -1245,19 +1263,22 @@ function krRows(krs: KeyResult[]): string {
 // strategic surface, current location highlighted — turns the live links into a
 // navigable throughline and teaches the model the shape. Brand-neutral.
 type SpineStep = "vision" | "bets" | "objectives" | "work" | "record" | null;
-function spineBreadcrumb(current: SpineStep, L: Links, ledgerSlug: string): string {
-  const steps: { key: Exclude<SpineStep, null>; label: string; href: string }[] = [
-    { key: "vision", label: "vision", href: L.page("strategy") },
-    { key: "bets", label: "bets", href: L.canvas() },
-    { key: "objectives", label: "objectives", href: L.page("progress") },
-    { key: "work", label: "work", href: L.page(ledgerSlug) },
-    { key: "record", label: "record", href: L.page(ledgerSlug, "record") },
+function spineBreadcrumb(current: SpineStep, L: Links, ledgerSlug: string, canvasBound: boolean): string {
+  const steps: { key: Exclude<SpineStep, null>; label: string; href: string; inert: boolean }[] = [
+    { key: "vision", label: "vision", href: L.page("strategy"), inert: false },
+    // The canvas is a sibling surface that a harness may not bind — when it is unbound
+    // build.sh skips building /canvas/, so the bets step must NOT link to a 404; render
+    // it inert (the rollup itself already degrades to "canvas not bound").
+    { key: "bets", label: "bets", href: L.canvas(), inert: !canvasBound },
+    { key: "objectives", label: "objectives", href: L.page("progress"), inert: false },
+    { key: "work", label: "work", href: L.page(ledgerSlug), inert: false },
+    { key: "record", label: "record", href: L.page(ledgerSlug, "record"), inert: false },
   ];
   const inner = steps.map((s, i) => {
     const sep = i ? `<span class="spine-sep" aria-hidden="true">▸</span>` : "";
     const isCur = s.key === current;
-    return sep + (isCur
-      ? `<span class="spine-step is-current" aria-current="step">${esc(s.label)}</span>`
+    return sep + ((isCur || s.inert)
+      ? `<span class="spine-step${isCur ? " is-current" : ""}"${isCur ? ' aria-current="step"' : ""}>${esc(s.label)}</span>`
       : `<a class="spine-step" href="${s.href}">${esc(s.label)}</a>`);
   }).join("");
   return `<nav class="spine" aria-label="Product throughline">${inner}</nav>`;
@@ -1378,7 +1399,7 @@ function renderItemDetailPage(
        </div>`
     : "";
 
-  const bodyHtml = `${spineBreadcrumb("work", L, ledgerSlug)}
+  const bodyHtml = `${spineBreadcrumb("work", L, ledgerSlug, canvasIds !== null)}
 ${banner}
 <div class="item-detail-meta">
   <div class="meta-row">${tierBadge(item.fm.tier)}</div>
@@ -1440,6 +1461,7 @@ function renderProgressPage(
   nav: NavGroup[],
   labelFn: (s: string) => string,
   ledgerSlug: string,
+  canvasBound: boolean,
 ): string {
   const L = makeLinks("progress");
   const objIds = new Set(model.objectives.map((o) => o.id));
@@ -1513,7 +1535,7 @@ function renderProgressPage(
 
   const notice = (hasObjectives || fallbackHtml) ? "" : `<p class="progress-gated">No <code>objectives.md</code> bound — author it per <code>okr-schema</code> to light up the cascade.</p>`;
 
-  const bodyHtml = `${spineBreadcrumb("objectives", L, ledgerSlug)}
+  const bodyHtml = `${spineBreadcrumb("objectives", L, ledgerSlug, canvasBound)}
 ${visionApex(model.vision)}
 <p class="dashboard-lede">The outcome layer, live: every objective with its key-results and the work advancing it. Outcomes, not output — each work item ladders here, and these ladder to the vision.</p>
 ${notice}
@@ -1582,6 +1604,8 @@ function loadCanvas(root: string | null): CanvasModel | null {
   if (!existsSync(p)) return null;
   let data: Record<string, unknown>;
   try { data = JSON.parse(readFileSync(p, "utf-8")); } catch (e) { warn(`canvas.json malformed at ${p}: ${e}`); return null; }
+  // Valid JSON that is not an object (literal null / array / number) ⇒ degrade, never throw.
+  if (!data || typeof data !== "object" || Array.isArray(data)) { warn(`canvas.json is not an object at ${p}`); return null; }
   const entries: CanvasEntry[] = [];
   const ids = new Set<string>();
   const slotEntries = (v: unknown): Array<Record<string, unknown>> => {
@@ -1831,7 +1855,7 @@ function renderStrategyPage(
   const betsSection = betsRollupSection(canvas, items, L, true);
   if (canvas) toc = [...(toc ?? []), { id: "bets", text: "Bets — evidence posture", level: 2 } as NonNullable<CorePage["toc"]>[number]];
 
-  const bodyHtml = `${spineBreadcrumb("vision", L, ledgerSlug)}
+  const bodyHtml = `${spineBreadcrumb("vision", L, ledgerSlug, !!canvas)}
 ${visionApex(model.vision)}
 <p class="dashboard-lede">The Product Strategy thesis — the guiding document every objective, bet, and work item is held against. The vision is the apex above; this is the argument for how we get there.</p>
 ${kernelHtml}
@@ -1900,7 +1924,7 @@ function renderDirectionPage(
     ? record.slice(-6).reverse().map((it) => recordRow(it, L)).join("\n")
     : `<p class="contrib-empty">No record entries yet — the loop has not closed an item.</p>`;
 
-  const bodyHtml = `${spineBreadcrumb(null, L, ledgerSlug)}
+  const bodyHtml = `${spineBreadcrumb(null, L, ledgerSlug, !!canvas)}
 ${provenanceBanner(proj)}
 <p class="dashboard-lede">Does the product have coherent direction? This is the live check against the <a href="${L.page("strategy")}">Product Strategy thesis</a> — whether vision, bets, objectives, work, and record actually cohere.</p>
 
@@ -2033,7 +2057,7 @@ for (const item of items) {
 }
 
 // ── Render: progress page ─────────────────────────────────────────────────────
-const progressHtml = renderProgressPage(outcomeModel, items, reverseIndex, projResult, nav, labelFn, ledgerSlug);
+const progressHtml = renderProgressPage(outcomeModel, items, reverseIndex, projResult, nav, labelFn, ledgerSlug, canvas !== null);
 writeHtml(path.join(surfaceDir, "progress", "index.html"), progressHtml);
 log("  [page] progress");
 
