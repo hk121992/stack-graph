@@ -1044,7 +1044,8 @@ interface OutcomeModel {
   vision: { statement?: string; horizon?: string };
   objectives: Objective[];
   northStar?: string;
-  ok: boolean;              // false ⇒ no parseable structure (renderer shows a notice)
+  ok: boolean;              // false ⇒ no parseable structure (renderer falls back to markdown)
+  rawBody?: string;         // the authored objectives.md body — fallback render when unparsed
 }
 const EMPTY_MODEL: OutcomeModel = { vision: {}, objectives: [], ok: false };
 
@@ -1127,7 +1128,7 @@ function parseObjectives(body: string): OutcomeModel {
 
   const northStar = (sec(/^north[- ]?star\b/i)?.body ?? []).join("\n").trim() || undefined;
   const ok = !!(vision.statement || objectives.length);
-  return { vision, objectives, northStar, ok };
+  return { vision, objectives, northStar, ok, rawBody: body };
 }
 
 // ── Single-pass reverse index (eng M4) ──────────────────────────────────────────
@@ -1319,12 +1320,14 @@ function renderItemDetailPage(
   const vpNote = vpId && item.fm.value_prop_link
     ? item.fm.value_prop_link.slice(item.fm.value_prop_link.indexOf(vpId) + vpId.length).replace(/^[\s(]+/, "").replace(/\)\s*$/, "").trim()
     : "";
-  const vpResolvable = vpId && (canvasIds === null || canvasIds.has(vpId));
+  // Navigable ONLY when the id actually resolves on the bound canvas (or the canvas is
+  // unread ⇒ optimistic). value_prop_link MAY be a non-canvas slug (work-item-schema:
+  // "may resolve to a canvas entry id") — when it is not on the bound canvas, show it as a
+  // plain value-prop note, NOT a false "dangling canvas reference" error (eng review).
+  const vpResolvable = !!vpId && (canvasIds === null || canvasIds.has(vpId));
   const betXlink = item.fm.value_prop_link
-    ? (vpId
-        ? (vpResolvable
-            ? `<div class="xlink"><span class="xlink-label">Bet tested</span><a href="${L.canvas(vpId)}"><code>${esc(vpId)}</code></a>${vpNote ? `<span class="xlink-note">${esc(vpNote)}</span>` : ""}</div>`
-            : `<div class="xlink xlink-unresolved"><span class="xlink-label">Bet tested</span><code>${esc(vpId)}</code><span class="unresolved-tag">not on the bound canvas</span></div>`)
+    ? (vpResolvable
+        ? `<div class="xlink"><span class="xlink-label">Bet tested</span><a href="${L.canvas(vpId!)}"><code>${esc(vpId!)}</code></a>${vpNote ? `<span class="xlink-note">${esc(vpNote)}</span>` : ""}</div>`
         : `<div class="xlink"><span class="xlink-label">Value prop</span><span class="xlink-note">${esc(item.fm.value_prop_link)}</span></div>`)
     : "";
 
@@ -1474,9 +1477,19 @@ function renderProgressPage(
 </section>`;
   }).join("\n");
 
-  // Dangling / unlinked work — never a broken anchor; a visible "unresolved" affordance.
-  const dangling = items.filter((it) => it.fm.outcome_link && !objIds.has(it.fm.outcome_link));
-  const unlinked = items.filter((it) => !it.fm.outcome_link);
+  const hasObjectives = model.objectives.length > 0;
+
+  // Fallback: an objectives.md that is NOT in the structured okr-schema format (an old
+  // heading/table shape, or any foreign doc) still renders its authored markdown — never
+  // a blank page (content is never lost; the structural cascade simply does not light up).
+  const fallbackHtml = (!hasObjectives && model.rawBody && model.rawBody.trim())
+    ? `<div class="progress-fallback"><p class="progress-gated">Objectives are not in the structured <code>okr-schema</code> format — showing the authored document. Author per <code>okr-schema</code> to light up the live OKR cascade + contribution view.</p>${renderMarkdown(model.rawBody, { page: { path: "progress", fm: {} as Record<string, unknown>, raw: model.rawBody } }).html}</div>`
+    : "";
+
+  // Dangling / unlinked work — only meaningful when objectives parsed (else everything
+  // would falsely read as dangling). Never a broken anchor; a visible "unresolved" affordance.
+  const dangling = hasObjectives ? items.filter((it) => it.fm.outcome_link && !objIds.has(it.fm.outcome_link)) : [];
+  const unlinked = hasObjectives ? items.filter((it) => !it.fm.outcome_link) : [];
   const issuesHtml = (dangling.length || unlinked.length)
     ? `<section class="progress-issues">
   <h2 id="unresolved">Unresolved links</h2>
@@ -1498,13 +1511,14 @@ function renderProgressPage(
   them above are the honest pre-signal measure; the trend lights up when data lands.
 </div></section>`;
 
-  const notice = model.ok ? "" : `<p class="progress-gated">No structured objectives found at <code>objectives.md</code> — author it per <code>okr-schema</code> to light up the cascade.</p>`;
+  const notice = (hasObjectives || fallbackHtml) ? "" : `<p class="progress-gated">No <code>objectives.md</code> bound — author it per <code>okr-schema</code> to light up the cascade.</p>`;
 
   const bodyHtml = `${spineBreadcrumb("objectives", L, ledgerSlug)}
 ${visionApex(model.vision)}
 <p class="dashboard-lede">The outcome layer, live: every objective with its key-results and the work advancing it. Outcomes, not output — each work item ladders here, and these ladder to the vision.</p>
 ${notice}
 ${objSections}
+${fallbackHtml}
 ${issuesHtml}
 ${northStarHtml}
 ${analyticsHtml}`;

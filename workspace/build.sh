@@ -22,10 +22,21 @@ cd "$(dirname "$0")/.."   # repo root
 
 DIST="workspace/dist"
 PROJECTION="$DIST/portal-projection.json"
-# Canvas root — bound (CANVAS_ROOT) or the factory fixture. The canvas surface AND the
-# dashboard bets-rollup read the same canvas.json, so the portal dogfoods its own bets.
-# A harness that does not bind canvas-root simply omits both (the rollup degrades).
-CANVAS_ROOT_RESOLVED="${CANVAS_ROOT:-workspace/renderer/fixtures/canvas}"
+# Canvas root resolution. The canvas surface AND the dashboard bets-rollup read the
+# same canvas.json, so the factory portal dogfoods its OWN bets. But a harness that
+# binds DASHBOARD_ROOT and omits CANVAS_ROOT must NOT inherit the factory fixture (that
+# would render stack-graph's bets inside the harness dashboard) — it gets no canvas, and
+# the rollup degrades to "canvas not bound" (the documented optional-binding behaviour).
+#   CANVAS_ROOT set      → use it (a real binding, factory or harness)
+#   else no DASHBOARD_ROOT (the factory's own build) → the factory fixture (dogfood)
+#   else (a harness without a canvas binding) → none (degrade)
+if [ -n "${CANVAS_ROOT:-}" ]; then
+  CANVAS_ROOT_RESOLVED="$CANVAS_ROOT"
+elif [ -z "${DASHBOARD_ROOT:-}" ]; then
+  CANVAS_ROOT_RESOLVED="workspace/renderer/fixtures/canvas"
+else
+  CANVAS_ROOT_RESOLVED=""
+fi
 
 echo "==> clean $DIST"
 rm -rf "$DIST"
@@ -40,14 +51,18 @@ bun run workspace/renderer/build-handbook.ts
 echo "==> graph browser surface"
 bun run workspace/renderer/build-graph.ts
 
-echo "==> product-dashboard surface (ledger: ${DASHBOARD_ROOT:-fixture}; canvas: $CANVAS_ROOT_RESOLVED)"
-bun run workspace/renderer/build-dashboard.ts ${DASHBOARD_ROOT:+--root "$DASHBOARD_ROOT"} --canvas-root "$CANVAS_ROOT_RESOLVED" --projection "$PROJECTION"
+echo "==> product-dashboard surface (ledger: ${DASHBOARD_ROOT:-fixture}; canvas: ${CANVAS_ROOT_RESOLVED:-unbound})"
+bun run workspace/renderer/build-dashboard.ts ${DASHBOARD_ROOT:+--root "$DASHBOARD_ROOT"} ${CANVAS_ROOT_RESOLVED:+--canvas-root "$CANVAS_ROOT_RESOLVED"} --projection "$PROJECTION"
 
 echo "==> analytics surface"
 bun run workspace/renderer/build-analytics.ts --projection "$PROJECTION"
 
-echo "==> canvas surface (BMC + VPC)"
-bun run workspace/renderer/build-canvas.ts --root "$CANVAS_ROOT_RESOLVED"
+if [ -n "$CANVAS_ROOT_RESOLVED" ]; then
+  echo "==> canvas surface (BMC + VPC)"
+  bun run workspace/renderer/build-canvas.ts --root "$CANVAS_ROOT_RESOLVED"
+else
+  echo "==> canvas surface skipped (no canvas-root bound — the dashboard rollup degrades)"
+fi
 
 echo "==> portal hub + shared root assets + fonts"
 bun run workspace/renderer/build-portal.ts
