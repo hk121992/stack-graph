@@ -14,12 +14,15 @@ the plugin is **built from them**, not authored separately.
 The vendored plugin carries not only the loop nodes and schemas but the **means to instantiate a
 harness**: the `bindings-contract` reference (the binding key set + the surface-structure template)
 and the `harness-init` skill that writes the bindings and scaffolds the surface in the consuming
-workspace ([`harness-spec`](../04-harness-spec/README.md)). A workspace stands up its harness from
-the plugin — the plugin ships the contract and the capability, never the product's data.
+workspace ([`harness-spec`](../04-harness-spec/README.md)). From **0.5.0** it also carries the
+**workspace render** — the portal renderer plus the dev-loop graph data — so a harness builds its
+unified workspace (handbook, dashboard, business-model canvas, graph, analytics) from the plugin
+alone, pointed at its own bound surfaces. A workspace stands up its harness from the plugin — the
+plugin ships the contract, the render, and the capability, never the product's data.
 
 ## What the build must do
 
-The build does three things node files cannot do for themselves:
+The build does four things node files cannot do for themselves:
 
 - **Bake disk-loadable primitives.** Claude Code loads skills and agents from disk; the
   files must be present in the packaged plugin.
@@ -29,6 +32,9 @@ The build does three things node files cannot do for themselves:
 - **Render the handbook.** The build renders the composed union of handbook-references into
   the operator-facing handbook artefact and emits the agent-facing `index.json` page-graph.
   Detail in [Handbook rendering](#handbook-rendering) below.
+- **Vendor the workspace render.** The build copies the workspace portal renderer + the build
+  orchestration + the dev-loop graph data into the plugin (`workspace/`), so a harness builds
+  the unified portal from the plugin alone. Detail in [Vendoring the workspace render](#vendoring-the-workspace-render) below.
 
 The graph frontmatter keys need no handling at load time — Claude ignores them — so the
 build strips them for cleanliness rather than necessity (see the pipeline below).
@@ -45,10 +51,65 @@ The plugin has the standard Claude Code plugin shape:
 | `commands/<name>.md` | built command nodes (legacy — prefer skills) |
 | `hooks/` | hook configs (the `triggers` bindings) |
 | `lib/` | scripts reached by `invokes` |
+| `workspace/` | the vendored workspace render (0.5.0+) — `renderer/`, the build orchestration (`build.sh` / `_headers` / `wrangler.jsonc`), and `graph/` (the dev-loop graph data the graph surface renders) |
 
 Vendored nodes are namespaced by the plugin name — a built skill invokes as
 `stack-graph:<name>`. A consuming harness's local nodes are unprefixed or harness-prefixed
 (see [`harness-spec`](../04-harness-spec/README.md)).
+
+## Vendoring the workspace render
+
+From **0.5.0** the build also vendors the **workspace render** so a consuming harness builds the
+unified portal from the plugin alone, never maintaining its own renderer. This stage runs **outside**
+the per-node text pipeline below — the renderer ships binary assets (woff2 fonts, png/ico favicons),
+so it is a binary-safe recursive copy with its own clean and byte-compare freshness check, not the
+`@-import`/strip-and-fold projection. It copies, verbatim into `workspace/`:
+
+- `renderer/` — the portal renderer (the surface builds, `lib/`, the vendored renderer-core, the
+  default `brand/` and `assets/`);
+- the build orchestration — `build.sh`, `_headers`, `wrangler.jsonc`;
+- `graph/` — the **vendored (sg) graph data** (`graph-record.json` + each node's canonical
+  `<id>/<id>.md`), which the graph surface renders.
+
+The graph surface renders the **whole graph as a composed union by owner** — the vendored (sg) graph
+plus the harness's **local graph overlay** — exactly as the handbook composes vendored + local
+entries with ownership badges ([Composed union](#composed-union)). The overlay is a self-describing
+manifest (`{ nodes: { <id>: { primitive, title, description } }, edges: [ {from,to,type} ] }`) of the
+harness's own entry nodes and the edges that connect them to the vendored graph; everything in it is
+tagged `owner: local` and renders distinctly (dashed, double-bordered) beside the solid vendored
+nodes. It is **input-gated** — a harness with no local nodes yet renders just the vendored graph —
+and bound through the renderer's optional `graph-local` key.
+
+A harness drives the vendored renderer through env/flag roots — `HANDBOOK_ROOT`, `DASHBOARD_ROOT`,
+`CANVAS_ROOT`, `BRAND_ROOT`, `GRAPH_ROOT` (pointed at the co-located `workspace/graph/`), and the
+optional `GRAPH_LOCAL` (the local overlay manifest) — bound through the harness's `renderer` /
+`deploy-config` keys ([`harness-spec`](../04-harness-spec/README.md)). The vendored renderer is
+**read-only** like every vendored artefact: a harness re-skins and re-points by **overlay** (its own
+`BRAND_ROOT` + bound surfaces), never by editing the vendored tree.
+
+The canvas surface renders each business-model block as a **summary cell**: an optional authored
+`thesis` over a **derived** evidence-state rollup (a strict-proportional stacked bar + an exact counts
+line), a 1–2 bet preview, and a whole-cell drill into the right-hand drawer (the block's thesis + bar
++ full bet list, each bet a native `<details>`). The `canvas.json` block contract is general and
+additive — each block is either a bare `Entry[]` (legacy) or `{ thesis?, entries }`. The renderer
+computes the rollup itself from `entries[].evidence` and treats `thesis` as the only authored text
+(escaped, rendered as a claim, with an auto top-bets fallback when absent); an empty block shows its
+thesis with no bar or drill. No consumer block codes or terms enter the renderer — a harness supplies
+the thesis string and the entries, and the derived rollup is the honesty anchor a claim can't game.
+
+The **dashboard** renders a navigable throughline — **vision → bets → objectives → work → record** —
+as five pages: Direction (the overview), Work ledger, Progress (live OKR cascade), Vision & strategy
+(the Product Strategy thesis), and work-item detail with cross-links. The Direction and Vision &
+strategy pages include a **two-axis bets rollup** read from `canvas.json` — lifecycle state *and*
+evidence-strength rung (`weak | moderate | strong`) shown together so a `confirmed` bet on weak
+evidence never silently renders the same as one confirmed on observed behaviour. The rollup reads
+`canvas.json` via the **optional `renderer.canvas-root` sub-key** and **degrades gracefully** (narrative
++ objectives only, no bets rollup) when the canvas is not bound — it never becomes a required
+dependency. The `canvas.json` per-entry shape is a shared contract between the canvas surface and the
+dashboard rollup: each entry carries `evidence` (lifecycle state, exists today), and the canvas adapter
+(`refresh-canvas.ts`) additionally carries `strength` (the rung above) and `importance_rank`
+(`critical | high | medium | low`) into `canvas.json` — absent ⇒ the rollup degrades to state-axis
+only with no ranking. Coordinate these field names with the canvas-redesign chip.
 
 ## The build pipeline
 

@@ -550,6 +550,15 @@
 
     if (closeBtn) closeBtn.addEventListener('click', close);
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !sidebar.hidden) close(); });
+    // Click-away: dismiss the open drawer when clicking outside it. A click on a
+    // node opens/switches detail (handled below), so it is excluded here; anything
+    // else — the canvas background, the page body — closes the drawer.
+    document.addEventListener('click', function (e) {
+      if (sidebar.hidden) return;
+      if (sidebar.contains(e.target)) return;
+      if (e.target.closest && e.target.closest('g.node[data-node-id]')) return;
+      close();
+    });
 
     // Delegate clicks on node groups. Ignore clicks that were the tail of a
     // pan-drag (the pan handler sets a movement flag on the svg element).

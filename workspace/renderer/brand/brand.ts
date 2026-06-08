@@ -14,18 +14,38 @@
 
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 export interface BrandConfig {
   wordmark: { text: string; svg?: string };
   favicon?: string;
   palette: Record<string, string>;
   theme_key: string;
+  // Optional portal-hub copy. A harness sets these to brand the unified hub
+  // (title, lede, footer, and optional per-card blurb overrides keyed by surface
+  // href). All optional — the portal falls back to its own neutral defaults.
+  hub?: {
+    title?: string;
+    lede?: string;
+    footer?: string;
+    // Per-card overrides keyed by the card's DEFAULT href. `href` re-targets the
+    // card (e.g. mounting the graph surface at /graph/dev-loop/ when /graph/* is
+    // taken); title/blurb re-word it. All optional.
+    cards?: Record<string, { href?: string; title?: string; blurb?: string }>;
+  };
 }
 
 const __dir = dirname(fileURLToPath(import.meta.url));
+
+// Brand root — the directory holding brand.config.json + brand-overrides.css +
+// favicon.svg + favicons/ + fonts/. Default = this vendored brand/ dir (the
+// factory's own identity). A harness re-skins by pointing BRAND_ROOT at its own
+// brand directory — an additive overlay, so the vendored renderer is never
+// mutated. The surface builds read their brand assets from here too.
+export const brandRoot: string =
+  process.env["BRAND_ROOT"] ? resolve(process.env["BRAND_ROOT"]) : __dir;
 export const brand: BrandConfig = JSON.parse(
-  readFileSync(join(__dir, "brand.config.json"), "utf8"),
+  readFileSync(join(brandRoot, "brand.config.json"), "utf8"),
 ) as BrandConfig;
 
 function esc(s: string): string {
@@ -36,12 +56,13 @@ function esc(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-/** Top-left brand link. An svg wordmark wins over the text form when present. */
-export function wordmarkSlot(home: string, markUrl?: string): string {
-  const mark = markUrl ? `<img class="wordmark-img" src="${esc(markUrl)}" alt="">` : "";
+/** Top-left brand link. The canonical wordmark is the text form (e.g. "Be Civic",
+ *  "stack-graph"); a brand may supply an inline `svg` wordmark to override it. No
+ *  favicon image is rendered in the header — the text wordmark is the brand. */
+export function wordmarkSlot(home: string): string {
   const inner = brand.wordmark.svg
     ? brand.wordmark.svg
-    : `${mark}<span class="wordmark-text">${esc(brand.wordmark.text)}</span>`;
+    : `<span class="wordmark-text">${esc(brand.wordmark.text)}</span>`;
   return `<a class="wordmark" href="${esc(home)}" aria-label="${esc(brand.wordmark.text)} — home">${inner}</a>`;
 }
 
