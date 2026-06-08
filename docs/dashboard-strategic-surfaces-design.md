@@ -6,6 +6,13 @@ supersedes: none — extends docs/product-dashboard-design.md (D49)
 
 # Dashboard strategic surfaces — design
 
+> **Superseded in part by D65** (`docs/product-dashboard-two-surface-design.md`, 2026-06-08). The **page IA**
+> below — Direction-as-home (T2=B), the separate Progress page, and the spine-as-cross-page-stepper — is replaced
+> by a **two-surface** model (Work ledger [home] + Strategy) with everything else reached **in place** (drawers /
+> pop-outs / expand). The **components and rules** in §2–§6 (the two-axis bets posture bar, split four-risks
+> coverage, honesty ≥ green, dangling-link degradation, `esc()`-only canvas free-text, id-keyed objective anchors,
+> the `canvas.json` evidence contract) are **preserved** — they render within the two surfaces. See D65 §11.
+
 The product-dashboard's strategic surfaces — **Vision & strategy** and **Progress** — currently render as
 thin static-doc pages that do not cohere into a product *direction*. This design reworks them, plus the
 **live links** that thread the whole surface into one coherent throughline, while keeping the factory

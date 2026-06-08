@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Canvas · Business model (mockup)</title>
+<link rel="stylesheet" href="mock.css">
+</head>
+<body>
+
+<header class="site-header">
+  <a class="wordmark" href="index.html">
+    <span class="wordmark-mark"></span>
+    <span class="wordmark-text">Business-model canvas</span>
+    <span class="wordmark-sub">separate surface</span>
+  </a>
+  <div class="nav-right">
+    <span class="sample-tag">sample data</span>
+    <button class="theme-toggle" type="button" aria-label="Toggle theme">◐</button>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="sidebar">
+    <div class="nav-group-label">Surfaces</div>
+    <a href="index.html">← Work ledger</a>
+    <a href="strategy.html">← Strategy</a>
+    <hr class="nav-sep">
+    <p class="nav-aside">The canvas is its <strong>own</strong> surface for focused BMC/VPC work. The dashboard peeks at a bet in a drawer; "open in canvas →" lands you here, on the right block.</p>
+  </nav>
+
+  <main class="content">
+    <h1 class="page-title">Business-model canvas</h1>
+    <p class="dashboard-lede"><em>Stub</em> — this mockup includes just enough of the separate canvas surface to show the cross-surface seam: arriving at <code>canvas.html#B-PAIN-01</code> opens that block's drawer. Click any block.</p>
+
+    <h2 style="border:0;margin-top:1em">Value proposition</h2>
+    <div class="canvas-grid">
+      <div class="cv-cell" data-popout="CV-VPC-JOBS" role="button" tabindex="0">
+        <span class="cv-anchor" id="B-JOB-01"></span>
+        <div class="cv-cell-label">Jobs</div>
+        <div class="cv-thesis">Why a team switches: a fast shared win that justifies the change.</div>
+        <div class="cvbar"><span class="bp-seg bp-tested" style="flex:1;opacity:.58"></span></div>
+      </div>
+      <div class="cv-cell" data-popout="CV-VPC-PAINS" role="button" tabindex="0">
+        <span class="cv-anchor" id="B-PAIN-01"></span>
+        <div class="cv-cell-label">Pains</div>
+        <div class="cv-thesis">Setup and configuration block first value.</div>
+        <div class="cvbar"><span class="bp-seg bp-confirmed" style="flex:1;opacity:1"></span></div>
+      </div>
+      <div class="cv-cell" data-popout="CV-VPC-GAINS" role="button" tabindex="0">
+        <span class="cv-anchor" id="B-GAIN-02"></span>
+        <div class="cv-cell-label">Gains</div>
+        <div class="cv-thesis">A real artefact in the first session builds trust.</div>
+        <div class="cvbar"><span class="bp-seg bp-assumed" style="flex:1;opacity:.3"></span></div>
+      </div>
+    </div>
+
+    <h2 style="border:0">Business model</h2>
+    <div class="canvas-grid">
+      <div class="cv-cell" data-popout="CV-BMC-CHANNELS" role="button" tabindex="0">
+        <span class="cv-anchor" id="B-CH-01"></span>
+        <span class="cv-anchor" id="B-OLD-01"></span>
+        <div class="cv-cell-label">Channels</div>
+        <div class="cv-thesis">Product-led self-serve (sales-led demos killed).</div>
+        <div class="cvbar"><span class="bp-seg bp-tested" style="flex:1;opacity:.58"></span><span class="bp-seg bp-killed" style="flex:1;opacity:.5"></span></div>
+      </div>
+      <div class="cv-cell" data-popout="CV-BMC-REVENUE" role="button" tabindex="0">
+        <span class="cv-anchor" id="B-REV-01"></span>
+        <div class="cv-cell-label">Revenue streams</div>
+        <div class="cv-thesis">Per-seat once a team is active.</div>
+        <div class="cvbar"><span class="bp-seg bp-assumed" style="flex:1;opacity:.3"></span></div>
+      </div>
+      <div class="cv-cell" style="opacity:.55;cursor:default">
+        <div class="cv-cell-label">Cost · partners · activities</div>
+        <div class="cv-thesis">…the rest of the canvas (out of scope for this stub).</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<aside class="popout" data-open="false" aria-hidden="true">
+  <div class="popout-backdrop" data-close></div>
+  <div class="popout-panel" role="dialog" aria-modal="true" aria-label="Detail">
+    <div class="popout-head"><span class="popout-code">—</span><button class="popout-close" type="button" data-close aria-label="Close detail">×</button></div>
+    <div class="popout-body"></div>
+  </div>
+</aside>
+
+<script src="mock.js" defer></script>
+</body>
+</html>

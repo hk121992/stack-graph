@@ -256,8 +256,11 @@ Open (for the build / for review):
 - **`children` decomposition** — edges vs embedded list.
 - **The product-vs-factory analytics seam** — shared machinery, kept distinct.
 - **Rendering** — how the four surfaces (and the contribution view) render for the operator.
-  *Resolved — see `docs/dashboard-strategic-surfaces-design.md`.* The dashboard renders five
-  pages threaded as a throughline (vision → bets → objectives → work → record):
+  *Re-resolved by D65 (`docs/product-dashboard-two-surface-design.md`, 2026-06-08): the dashboard is **two
+  surfaces** — Work ledger (home) + Strategy — with objectives, bets, IUs, and item detail reached **in place**
+  (drawers / pop-outs / expand), the UI links mirroring the authored artefact links. This supersedes the
+  five-page IA below (from `docs/dashboard-strategic-surfaces-design.md`, D64), whose components are preserved.*
+  The (superseded) D64 model rendered five pages threaded as a throughline (vision → bets → objectives → work → record):
   - **Direction** (`""`) — the overview: vision apex, bets posture (two-axis rollup from
     `canvas.json` — lifecycle state *and* evidence-strength rung), per-objective key-result
     progress, in-flight strip, and recently shipped/learned. The answer to "does this product

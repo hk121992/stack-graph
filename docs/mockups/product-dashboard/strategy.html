@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strategy · Product dashboard (mockup)</title>
+<link rel="stylesheet" href="mock.css">
+</head>
+<body>
+
+<header class="site-header">
+  <a class="wordmark" href="index.html">
+    <span class="wordmark-mark"></span>
+    <span class="wordmark-text">Product dashboard</span>
+    <span class="wordmark-sub">two-surface mockup</span>
+  </a>
+  <div class="nav-right">
+    <span class="sample-tag">sample data</span>
+    <button class="theme-toggle" type="button" aria-label="Toggle theme">◐</button>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="sidebar">
+    <div class="nav-group-label">Product dashboard</div>
+    <a href="index.html">Work ledger</a>
+    <a class="is-current" href="strategy.html">Strategy</a>
+    <hr class="nav-sep">
+    <p class="nav-aside">Objectives expand <strong>in place</strong>; bets open as drawers. The full BMC/VPC grid lives on the separate <a href="canvas.html">canvas</a>.</p>
+  </nav>
+
+  <main class="content">
+    <h1 class="page-title">Strategy</h1>
+
+    <!-- Spine repurposed as a within-surface section rail; work/record link to the ledger -->
+    <nav class="spine" aria-label="Product throughline">
+      <a class="spine-step" href="#vision">vision</a>
+      <span class="spine-sep" aria-hidden="true">▸</span>
+      <a class="spine-step" href="#bets">bets</a>
+      <span class="spine-sep" aria-hidden="true">▸</span>
+      <a class="spine-step" href="#objectives">objectives</a>
+      <span class="spine-sep" aria-hidden="true">▸</span>
+      <a class="spine-step" href="index.html">work</a>
+      <span class="spine-sep" aria-hidden="true">▸</span>
+      <a class="spine-step" href="index.html#record">record</a>
+    </nav>
+
+    <div class="vision-apex" id="vision">
+      <div class="vision-label">Vision · <span class="vision-horizon">horizon: 2–3 years</span></div>
+      <p class="vision-statement">Every team reaches its first shared outcome within a day of signing up.</p>
+    </div>
+
+    <p class="dashboard-lede">The Product Strategy thesis — the guiding argument every objective, bet, and work item is held against. The vision is the apex above; this is the argument for how we get there.</p>
+
+    <div class="kernel">
+      <div class="kernel-block"><div class="po-label">Diagnosis</div><p>New teams stall before their first shared outcome. Value is gated behind configuration they don't yet understand, so they churn before they ever experience the product working.</p></div>
+      <div class="kernel-block"><div class="po-label">Guiding policy</div><p>Collapse time-to-first-outcome. Opinionated defaults over configurability until the team has a real win — trade flexibility for momentum at exactly the moment momentum decides retention.</p></div>
+      <div class="kernel-block"><div class="po-label">Coherent action</div><p>A guided first-run that produces a real shared artefact in under ten minutes; defer all admin and configuration until after the first win.</p></div>
+      <div class="kernel-block"><div class="po-label">Who &amp; the job</div><p>"When my team adopts a new tool, help us produce something real together fast, so we trust it's worth switching." — the design-partner segment first.</p></div>
+      <div class="kernel-block"><div class="po-label">Open questions</div><p>Does the guided first-run generalise beyond design partners? Will opinionated defaults frustrate power users enough to matter?</p></div>
+      <div class="kernel-block"><div class="po-label">Decided · not-doing</div><p>Not building deep admin controls pre-activation. Not chasing enterprise SSO this cycle. Not sales-led onboarding (premise killed — see the record).</p></div>
+    </div>
+
+    <!-- Bets posture — the two-axis evidence rollup (read from the canvas) -->
+    <h2 id="bets">Bets — evidence posture</h2>
+    <div class="bets-rollup">
+      <div class="bets-head">
+        <div class="bets-counts"><strong>6</strong> bets · <strong>1</strong> confirmed · <strong>2</strong> tested · <strong>2</strong> assumed · 1 retired</div>
+        <span class="bp-demand bp-demand-said">demand stated only (said-yes)</span>
+      </div>
+      <div class="bets-bar" role="img" aria-label="Bets posture: 1 confirmed/strong, 2 tested/moderate, 2 assumed/weak, 1 killed">
+        <span class="bp-seg bp-confirmed" style="flex:1;opacity:1" title="1 confirmed, strong"></span>
+        <span class="bp-seg bp-tested" style="flex:2;opacity:.58" title="2 tested, moderate"></span>
+        <span class="bp-seg bp-assumed" style="flex:2;opacity:.3" title="2 assumed, weak"></span>
+        <span class="bp-seg bp-killed" style="flex:1;opacity:.5" title="1 killed"></span>
+      </div>
+      <div class="bets-axes"><span class="bets-axis-note">colour = state · fill = evidence strength (pale = weak, solid = observed)</span></div>
+
+      <div class="four-risks-wrap">
+        <div class="contrib-label">Four-risks coverage</div>
+        <div class="risk-grid four-risks-strip" role="group" aria-label="Four-risks coverage">
+          <div class="risk-cell risk-moderate" title="value — moderate evidence (from canvas)"><span class="risk-cell-dot"></span><span class="risk-cell-label">value</span><span class="risk-cell-rung">moderate</span></div>
+          <div class="risk-cell risk-moderate" title="usability — moderate evidence (from work items)"><span class="risk-cell-dot"></span><span class="risk-cell-label">usability</span><span class="risk-cell-rung">moderate</span></div>
+          <div class="risk-cell risk-strong" title="feasibility — strong evidence (from work items)"><span class="risk-cell-dot"></span><span class="risk-cell-label">feasibility</span><span class="risk-cell-rung">strong</span></div>
+          <div class="risk-cell risk-weak" title="viability — weak evidence (from canvas)"><span class="risk-cell-dot"></span><span class="risk-cell-label">viability</span><span class="risk-cell-rung">weak</span></div>
+        </div>
+      </div>
+
+      <div class="riskiest-list">
+        <div class="bets-note">Riskiest open bets — important and least-evidenced first (Strategyzer):</div>
+        <a class="riskiest-row" data-popout="B-JOB-01"><span class="riskiest-imp imp-critical">critical</span><span class="str str-moderate">moderate</span><span class="riskiest-text">Teams want a fast shared win to justify switching</span><code class="riskiest-id">B-JOB-01</code></a>
+        <a class="riskiest-row" data-popout="B-GAIN-02"><span class="riskiest-imp imp-high">high</span><span class="str str-weak">weak</span><span class="riskiest-text">A real artefact in the first session builds trust</span><code class="riskiest-id">B-GAIN-02</code></a>
+        <a class="riskiest-row" data-popout="B-REV-01"><span class="riskiest-imp imp-high">high</span><span class="str str-weak">weak</span><span class="riskiest-text">Per-seat pricing once a team is active</span><code class="riskiest-id">B-REV-01</code></a>
+        <a class="riskiest-row" data-popout="B-CH-01"><span class="riskiest-imp imp-medium">medium</span><span class="str str-moderate">moderate</span><span class="riskiest-text">Product-led self-serve acquisition</span><code class="riskiest-id">B-CH-01</code></a>
+      </div>
+      <p class="bets-explore">Explore every bet on the <a href="canvas.html">business-model canvas →</a></p>
+    </div>
+
+    <!-- Objectives cascade — the dissolved Progress page, now expand-in-place -->
+    <h2 id="objectives">Objectives — the outcome cascade</h2>
+    <p class="dashboard-lede">Every objective with its key-results and the work advancing it. Expand one to see the cascade; each ladders to the vision and tests a bet.</p>
+
+    <details class="obj-acc" id="OBJ-ACTIVATE">
+      <summary class="obj-sum">
+        <span class="obj-statement">Lift new-team activation</span>
+        <span class="obj-krsummary">0/2 key results met</span>
+        <span class="obj-contribcount">3 advancing</span>
+      </summary>
+      <div class="obj-body">
+        <div class="alink-row"><span class="alink-label">Tests the bet</span><a class="alink" data-popout="B-JOB-01"><span class="alink-glyph">→</span><code>B-JOB-01</code></a> <span class="alink-note">teams want a fast shared win</span></div>
+        <p class="obj-intro">Activation is the wedge — a team that reaches a shared outcome fast is a team that stays.</p>
+        <div class="kr-list">
+          <div class="kr-row kr-progress">
+            <div class="kr-main"><div class="kr-metric"><span class="kr-led"></span>% new teams reaching first shared outcome ≤24h</div>
+              <div class="kr-bar"><span class="kr-bar-fill" style="width:63%"></span></div></div>
+            <div class="kr-rt"><span class="kr-target">target: 60%</span><span class="kr-current">38%</span></div>
+          </div>
+          <div class="kr-row kr-progress">
+            <div class="kr-main"><div class="kr-metric"><span class="kr-led"></span>median time-to-first-outcome</div></div>
+            <div class="kr-rt"><span class="kr-target">target: &lt;10 min</span><span class="kr-current">22 min</span></div>
+          </div>
+        </div>
+        <div class="obj-ns">North-star: weekly active teams</div>
+        <div class="contrib-block">
+          <div class="contrib-label">Work advancing this objective <span class="contrib-count">3</span></div>
+          <div class="contrib-list">
+            <a class="contrib lifecycle-committed" data-popout="WI-GUIDEDRUN"><span class="contrib-state">committed</span><span class="contrib-title">Guided first-run flow</span></a>
+            <a class="contrib lifecycle-in-delivery" data-popout="WI-DEFAULTS"><span class="contrib-state">in-delivery</span><span class="contrib-title">Opinionated workspace defaults</span><span class="contrib-stage">build</span></a>
+            <a class="contrib lifecycle-shipped" data-popout="WI-SIGNUP"><span class="contrib-state">shipped</span><span class="contrib-title">Streamlined signup</span></a>
+          </div>
+        </div>
+        <p class="obj-maturity">At first-users maturity, 60% is the bar; the trend lights up when behavioural signal lands.</p>
+      </div>
+    </details>
+
+    <details class="obj-acc" id="OBJ-RETAIN">
+      <summary class="obj-sum">
+        <span class="obj-statement">Make week-2 retention reflect real value</span>
+        <span class="obj-krsummary">0/1 key results met</span>
+        <span class="obj-contribcount">1 advancing</span>
+      </summary>
+      <div class="obj-body">
+        <div class="alink-row"><span class="alink-label">Tests the bet</span><a class="alink" data-popout="B-GAIN-02"><span class="alink-glyph">→</span><code>B-GAIN-02</code></a> <span class="alink-note">a real artefact builds trust</span></div>
+        <p class="obj-intro">Activation without retention is a vanity win. Week-2 is the first honest signal that the value was real.</p>
+        <div class="kr-list">
+          <div class="kr-row kr-todo">
+            <div class="kr-main"><div class="kr-metric"><span class="kr-led"></span>week-2 team retention</div></div>
+            <div class="kr-rt"><span class="kr-target">target: 45%</span><span class="kr-current">not started</span></div>
+          </div>
+        </div>
+        <div class="contrib-block">
+          <div class="contrib-label">Work advancing this objective <span class="contrib-count">1</span></div>
+          <div class="contrib-list">
+            <a class="contrib lifecycle-discovery" data-popout="WI-INVITE"><span class="contrib-state">discovery</span><span class="contrib-title">Frictionless teammate invites</span></a>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- Honesty: unlinked work + the input-gated trend layer, kept distinct -->
+    <section class="progress-issues">
+      <h2 id="unresolved">Unresolved links</h2>
+      <p class="dashboard-lede" style="margin:.4em 0">1 work item carries no <code>outcome_link</code> — it ladders to nothing yet:</p>
+      <div class="contrib-list">
+        <a class="contrib lifecycle-idea" data-popout="WI-METRICS"><span class="contrib-state">unlinked</span><span class="contrib-title">Activation analytics</span></a>
+      </div>
+    </section>
+
+    <div class="progress-gated northstar-gated">
+      <strong>Input-gated</strong> — the strategic product-analytics layer (north-star trend charts, KPI dashboards from real usage) lights up when real user signal exists. The targets and our read of them above are the honest pre-signal measure. (Distinct from a demand-never-tested gap, which would show as an amber warning, not this grey "waiting".)
+    </div>
+  </main>
+</div>
+
+<aside class="popout" data-open="false" aria-hidden="true">
+  <div class="popout-backdrop" data-close></div>
+  <div class="popout-panel" role="dialog" aria-modal="true" aria-label="Detail">
+    <div class="popout-head"><span class="popout-code">—</span><button class="popout-close" type="button" data-close aria-label="Close detail">×</button></div>
+    <div class="popout-body"></div>
+  </div>
+</aside>
+
+<script src="mock.js" defer></script>
+</body>
+</html>

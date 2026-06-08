@@ -245,8 +245,10 @@ renderer is read-only like every vendored artefact; a harness re-skins by shippi
 `BRAND_ROOT` overlay, never by editing the vendored tree.
 
 The **dashboard** renders the full throughline (vision → bets → objectives → work → record) as a
-composed, navigable space. When the canvas is bound (`renderer.canvas-root`), the Direction overview
-and Vision & strategy page include a **two-axis bets rollup** — lifecycle state *and* evidence-strength
+composed, navigable space — **two surfaces** (D65), the Work ledger (home) and Strategy, with bets,
+objectives, IU, and work-item detail reached **in place** (drawers / pop-outs / expand) rather than as
+separate pages. When the canvas is bound (`renderer.canvas-root`), the Strategy surface includes a
+**two-axis bets rollup** — lifecycle state *and* evidence-strength
 rung — computed from `canvas.json` and linked to the canvas surface. The same `canvas.json` shape
 serves both the canvas surface and the dashboard rollup: the harness-local adapter (`refresh-canvas.ts`)
 carries `strength` and `importance_rank` into `canvas.json` per entry; the dashboard rollup degrades

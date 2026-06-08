@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Work ledger · Product dashboard (mockup)</title>
+<link rel="stylesheet" href="mock.css">
+</head>
+<body>
+
+<header class="site-header">
+  <a class="wordmark" href="index.html">
+    <span class="wordmark-mark"></span>
+    <span class="wordmark-text">Product dashboard</span>
+    <span class="wordmark-sub">two-surface mockup</span>
+  </a>
+  <div class="nav-right">
+    <span class="sample-tag">sample data</span>
+    <button class="theme-toggle" type="button" aria-label="Toggle theme">◐</button>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="sidebar">
+    <div class="nav-group-label">Product dashboard</div>
+    <a class="is-current" href="index.html">Work ledger</a>
+    <a href="strategy.html">Strategy</a>
+    <hr class="nav-sep">
+    <p class="nav-aside">Bets, objectives, IUs &amp; item detail open <strong>in place</strong> — drawers, pop-outs, expand. The BMC/VPC <a href="canvas.html">canvas</a> is a separate surface, reached from any bet.</p>
+  </nav>
+
+  <main class="content">
+    <h1 class="page-title">Work ledger</h1>
+
+    <!-- Direction strip: links UP to Strategy (the coherence surface) -->
+    <a class="direction-strip" href="strategy.html">
+      <span class="ds-label">Direction</span>
+      <span class="ds-vision">Every team reaches its first shared outcome within a day of signing up.</span>
+      <span class="ds-bar">
+        <span class="bets-bar" role="img" aria-label="Bets posture">
+          <span class="bp-seg bp-confirmed" style="flex:1;opacity:1"></span>
+          <span class="bp-seg bp-tested" style="flex:2;opacity:.58"></span>
+          <span class="bp-seg bp-assumed" style="flex:2;opacity:.3"></span>
+          <span class="bp-seg bp-killed" style="flex:1;opacity:.5"></span>
+        </span>
+      </span>
+      <span class="ds-go">strategy →</span>
+    </a>
+
+    <div class="provenance-banner provenance-inputgated">
+      <span class="provenance-icon">○</span>
+      <div class="provenance-body">
+        <strong>Projection input-gated</strong> — no dev-sprint events recorded yet; in-flight stages show as illustrative. Expected before the loop is exercised.
+      </div>
+    </div>
+
+    <p class="dashboard-lede">One ledger across the lifecycle, in two channels: sprint work items (each decomposing into implementation units) and standalone incremental improvements.</p>
+
+    <div class="channels">
+      <input type="radio" name="ch" id="ch-sprint" class="ch-radio" checked>
+      <input type="radio" name="ch" id="ch-incr" class="ch-radio">
+      <div class="ch-tabs">
+        <label class="ch-tab" for="ch-sprint">Sprint · 5</label>
+        <label class="ch-tab" for="ch-incr">Incremental improvement · 3</label>
+      </div>
+
+      <section class="ch-panel ch-panel-sprint">
+        <div class="ledger-columns">
+
+          <div class="ledger-column">
+            <div class="ledger-column-header">Now — committed <span class="ledger-column-count">1</span></div>
+            <div class="item-card lifecycle-committed" data-popout="WI-GUIDEDRUN" role="button" tabindex="0" aria-label="Guided first-run flow — open detail">
+              <div class="card-header"><span class="card-title">Guided first-run flow</span><span class="tier-badge">T1</span><span class="risk-pill risk-moderate">risk: moderate</span></div>
+              <div class="card-tags"><span class="lifecycle-tag">committed</span></div>
+              <div class="card-iucount">3 implementation units →</div>
+              <div class="card-meta">→ <span>Lift new-team activation</span></div>
+            </div>
+          </div>
+
+          <div class="ledger-column">
+            <div class="ledger-column-header">Building — in delivery <span class="ledger-column-count">1</span></div>
+            <div class="item-card lifecycle-in-delivery" data-popout="WI-DEFAULTS" role="button" tabindex="0" aria-label="Opinionated workspace defaults — open detail">
+              <div class="card-header"><span class="card-title">Opinionated workspace defaults</span><span class="tier-badge">T1</span><span class="risk-pill risk-strong">risk: strong</span></div>
+              <div class="card-tags"><span class="lifecycle-tag">in-delivery</span></div>
+              <div class="card-stage">stage: <strong>build</strong></div>
+              <div class="card-iucount">2 implementation units →</div>
+              <div class="card-meta">→ <span>Lift new-team activation</span></div>
+            </div>
+          </div>
+
+          <div class="ledger-column">
+            <div class="ledger-column-header">Next — defined <span class="ledger-column-count">1</span></div>
+            <div class="item-card lifecycle-defined" data-popout="WI-TEMPLATES" role="button" tabindex="0" aria-label="Starter templates — open detail">
+              <div class="card-header"><span class="card-title">Starter templates</span><span class="tier-badge">T2</span><span class="risk-pill risk-weak">risk: weak</span></div>
+              <div class="card-tags"><span class="lifecycle-tag">defined</span></div>
+              <div class="card-meta">→ <span>Lift new-team activation</span></div>
+            </div>
+          </div>
+
+          <div class="ledger-column">
+            <div class="ledger-column-header">Later — explore <span class="ledger-column-count">2</span></div>
+            <div class="item-card lifecycle-discovery" data-popout="WI-INVITE" role="button" tabindex="0" aria-label="Frictionless teammate invites — open detail">
+              <div class="card-header"><span class="card-title">Frictionless teammate invites</span><span class="tier-badge">T2</span></div>
+              <div class="card-tags"><span class="lifecycle-tag">discovery</span></div>
+              <div class="card-meta">→ <span>Week-2 retention</span></div>
+            </div>
+            <div class="item-card lifecycle-idea" data-popout="WI-METRICS" role="button" tabindex="0" aria-label="Activation analytics — open detail">
+              <div class="card-header"><span class="card-title">Activation analytics</span><span class="tier-badge">T3</span></div>
+              <div class="card-tags"><span class="lifecycle-tag">idea</span></div>
+              <div class="card-meta">unlinked — ladders to nothing yet</div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="ledger-record" id="record">
+          <div class="ledger-record-header">Record — shipped / live / parked / killed</div>
+          <div class="ledger-record-grid">
+            <div class="item-card lifecycle-shipped" data-popout="WI-SIGNUP" role="button" tabindex="0" aria-label="Streamlined signup — open detail">
+              <div class="card-header"><span class="card-title">Streamlined signup</span><span class="tier-badge">T1</span><span class="risk-pill risk-strong">risk: strong</span></div>
+              <div class="card-tags"><span class="lifecycle-tag">shipped</span></div>
+              <div class="card-meta">→ <span>Lift new-team activation</span> · debrief recorded</div>
+            </div>
+            <div class="item-card lifecycle-killed" data-popout="WI-SALESDEMO" role="button" tabindex="0" aria-label="Sales-led onboarding — open detail">
+              <div class="card-header"><span class="card-title">Sales-led onboarding</span><span class="tier-badge">T2</span></div>
+              <div class="card-tags"><span class="lifecycle-tag">killed</span></div>
+              <div class="card-disposition">demand premise failed — see bet B-OLD-01</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="ch-panel ch-panel-incr">
+        <p class="dashboard-lede">Standalone improvements — carrier-lite slices that improve a node, reference, or behaviour directly, off the work-ledger.</p>
+        <div class="ledger-columns">
+          <div class="ledger-column">
+            <div class="ledger-column-header">Building <span class="ledger-column-count">1</span></div>
+            <div class="iu-card" data-popout="SI-02" role="button" tabindex="0">
+              <div class="iu-head"><span class="iu-id">SI-02</span><span class="iu-status iu-st-building">building</span><span class="iu-size">S</span></div>
+              <div class="iu-title">Fix invite email deep-link</div>
+              <div class="iu-goal">improves node:invite-flow</div>
+            </div>
+          </div>
+          <div class="ledger-column">
+            <div class="ledger-column-header">Planned <span class="ledger-column-count">1</span></div>
+            <div class="iu-card" data-popout="SI-03" role="button" tabindex="0">
+              <div class="iu-head"><span class="iu-id">SI-03</span><span class="iu-status iu-st-planned">planned</span><span class="iu-size">S</span></div>
+              <div class="iu-title">Add keyboard nav to template picker</div>
+              <div class="iu-goal">improves reference:a11y</div>
+            </div>
+          </div>
+          <div class="ledger-column">
+            <div class="ledger-column-header">Done <span class="ledger-column-count">1</span></div>
+            <div class="iu-card" data-popout="SI-01" role="button" tabindex="0">
+              <div class="iu-head"><span class="iu-id">SI-01</span><span class="iu-status iu-st-done">done</span><span class="iu-size">S</span></div>
+              <div class="iu-title">Tighten empty-state copy</div>
+              <div class="iu-goal">improves behaviour:onboarding-empty-state</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<!-- Shared right-hand drawer (work-item / IU / bet detail, in place) -->
+<aside class="popout" data-open="false" aria-hidden="true">
+  <div class="popout-backdrop" data-close></div>
+  <div class="popout-panel" role="dialog" aria-modal="true" aria-label="Detail">
+    <div class="popout-head"><span class="popout-code">—</span><button class="popout-close" type="button" data-close aria-label="Close detail">×</button></div>
+    <div class="popout-body"></div>
+  </div>
+</aside>
+
+<script src="mock.js" defer></script>
+</body>
+</html>

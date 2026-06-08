@@ -98,9 +98,11 @@ thesis with no bar or drill. No consumer block codes or terms enter the renderer
 the thesis string and the entries, and the derived rollup is the honesty anchor a claim can't game.
 
 The **dashboard** renders a navigable throughline — **vision → bets → objectives → work → record** —
-as five pages: Direction (the overview), Work ledger, Progress (live OKR cascade), Vision & strategy
-(the Product Strategy thesis), and work-item detail with cross-links. The Direction and Vision &
-strategy pages include a **two-axis bets rollup** read from `canvas.json` — lifecycle state *and*
+as **two surfaces** (D65): the **Work ledger** (home) and **Strategy**. Everything else arrives **in
+place** — the objectives cascade as expand-in-place accordions on Strategy; work-item, IU, and bet
+detail as drawers; the work-item `item/<id>` page kept only as a shareable / no-JS permalink — so the
+dashboard's links mirror, one-for-one, the artefact links the graph process already defines. The
+Strategy surface includes a **two-axis bets rollup** read from `canvas.json` — lifecycle state *and*
 evidence-strength rung (`weak | moderate | strong`) shown together so a `confirmed` bet on weak
 evidence never silently renders the same as one confirmed on observed behaviour. The rollup reads
 `canvas.json` via the **optional `renderer.canvas-root` sub-key** and **degrades gracefully** (narrative

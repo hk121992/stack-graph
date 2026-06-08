@@ -1057,3 +1057,51 @@ grid/drill, this owns the rollup). *Status:* Decided; **built + rehearsal-verifi
 the be-civic content pack: throughline coheres, deep-links land, rollup matches the canvas, the full
 hostile-fixture battery degrades without crashing); be-civic `strategy.md` reverted to the authored
 thesis + the two objectives author `strategy_link` (Phase 4).
+
+---
+
+**D65 — The product-dashboard is stripped to TWO surfaces (Work ledger [home] + Strategy thesis);
+everything else is reached in place via drawers / pop-outs / expand, mirroring the artefact links the
+graph already defines.** Supersedes D64's five-page throughline IA (Direction-as-home, the separate
+Progress page, the spine-as-cross-page-stepper, the separate work-item detail page, the T2 `/ledger`
+re-path) while **preserving** the two-axis bets posture bar (council #1), split four-risks coverage
+(council #2), honest aggregation, honesty ≥ green weighting, dangling-link degradation, `esc()`-only
+canvas free-text (M6), id-keyed objective anchors (H2), conditional riskiest-first ranking, the demand-
+vs-input-gated colour registers, and the depth-aware link helper — these now render in **two** places,
+not five. **Driving principle:** the dashboard's UI links mirror the authored artefact links —
+`outcome_link`, `value_prop_link`, `strategy_link`, `children`, `improves` — plus the deterministic
+reverse indexes (`byOutcome`, and the **newly-surfaced `byValueProp`**, shown in the bet drawer's
+work-list); D38 authored-not-inferred holds. **One unified component vocabulary** (one renderer per
+artefact with density variants — `workItem` compact/chip/full, `iu` compact/full, `risk` pill/grid, one
+`betsRollup`, one `bet` drawer, one `objectiveAccordion`; one `.alink` affordance) collapses the 4×
+work-item / 3× IU / 4× risk / 2× bets renderings to one each, and **fixes the `riskPill`/`riskGrid`
+semantics divergence** (both now derive the rung from `riskRung()`; classes renamed to their rung
+meaning — `.risk-weak/-moderate/-strong/-unknown`, strong evidence = green). **In-place system:**
+expand (`<details>` accordion, CSP-safe) for same-surface sibling detail; drawer (`popout.js` + a complete
+per-page `#popout-data` sidecar, rendered with the page's depth-aware `L`) for a single focused artefact;
+**one** cross-surface navigate — to `/canvas/#<bet-id>`, which `popout.js` resolves cv-anchor-first to the
+right block. **No schema or binding change** — a render change, not a storage change. **Canvas stays a
+separate linked surface** (T1 split-roles holds); its content also appears in-place via bet drawers, with
+one "open in canvas →" jump; the bet drawer reads the optional `renderer.canvas-root` `canvas.json` (incl.
+the per-entry `detail` free-text, `esc()`-only). **Invariants held:** D49 record-primary + one-carrier/
+three-projections + the three-analytics-namespace rule (the input-gated north-star trend stays distinct
+from carrier projection + factory conformance); the factory/product split (`build-dashboard.ts` stays
+product-agnostic — bound surfaces + generic evidence/strength enums, no consumer term / H-code / block
+code); additive overlay; `current_stage` projected-only. *Why:* the operator's "many different types of
+UI; doesn't feel like one coherent surface" — collapsing the throughline into in-place disclosure within
+two surfaces makes D49's single-navigable-space promise literal. *Process:* eng-review-only per operator
+(council + design review skipped; the flat HTML mockup at `docs/mockups/product-dashboard/` was the
+dogfooded visual contract); phased build per design §15 (vocabulary + riskPill fix → drawers + in-place →
+two routes → verify). *Spec:* `product-dashboard-design` §7 (re-resolved to two-surface + in-place),
+`dashboard-strategic-surfaces-design` (D64, superseded-in-part banner), `03-plugin-spec` + `04-harness-spec`
+(five-page → two-surface + in-place); `06-analytics` no-drift check (namespacing holds); no schema/binding
+edit. *Artifacts:* `docs/product-dashboard-two-surface-design.md` + the flat mockup + the eng plan
+(`docs/product-dashboard-two-surface-eng-plan.md`). *Status:* Decided; **built + verified in the factory
+renderer** — `build-dashboard.ts` (5 routes → 2 + `item/<id>` permalink), `popout.js` (`data-kind` width
++ cv-anchor-first resolution + `<details>`-from-hash shim), `workspace.css` (wider work-item drawer); a new
+`build-dashboard.test.ts` (32 checks, incl. the riskPill≡riskGrid regression); browse-verified (two
+surfaces, work-item/IU-nest/bet drawers, accordions, canvas seam — no console errors); the full hostile-
+fixture battery (dangling `outcome_link`/`value_prop_link`/`strategy_link`, unbound/empty/malformed/non-
+object `canvas.json`, stale/absent/non-object projection, `<script>` in canvas text + detail) degrades
+without crashing and `esc()`s all untrusted canvas free-text. Next: vendor → plugin (version bump) → the
+be-civic rehearsal refresh.
