@@ -1,6 +1,6 @@
 ---
 name: sg-handbook-curator
-description: "Maintains the stack-graph handbook at handbook/content/. Modes — sweep (scan for drift: contradictions, stale terminology, broken cross-references, missing canonical pages, index out of sync), raise (author a labelled PR for an amendment, with duplicate-PR detection), queue (list open handbook PRs + cross-PR collisions), refresh-index (regenerate index.json from page frontmatter). Use when surfacing handbook drift, raising labelled PRs, inspecting the open-PR queue, or refreshing the page-graph index. Do NOT use for context-loading — agents navigate the handbook directly via index.json."
+description: "Maintains the stack-graph handbook at handbook/content/. Modes — sweep (scan for drift: contradictions, stale terminology, broken cross-references, missing canonical pages, index out of sync), raise (author a labelled PR for an amendment, with duplicate-PR detection), queue (list open handbook PRs + cross-PR collisions), integrate (operator-cadence batch merge of the PR queue with cross-PR consistency + link checks), refresh-index (regenerate index.json from page frontmatter). Use when surfacing handbook drift, raising labelled PRs, inspecting the open-PR queue, merging the queue, or refreshing the page-graph index. Do NOT use for context-loading — agents navigate the handbook directly via index.json."
 ---
 
 # sg-handbook-curator
@@ -26,6 +26,8 @@ Authoritative procedures that this skill operationalises:
 /sg-handbook-curator                          # bare; orient and ask which mode
 /sg-handbook-curator sweep
 /sg-handbook-curator raise <topic>
+/sg-handbook-curator queue
+/sg-handbook-curator integrate
 /sg-handbook-curator refresh-index
 ```
 
@@ -39,12 +41,12 @@ Source lives at `tooling/sg-handbook-curator/`.
 | `raise` | Available (with duplicate-PR detection) |
 | `queue` | Available |
 | `refresh-index` | Available |
-| `integrate` | Contract recorded (below); **implementation deferred** |
+| `integrate` | Available |
 | `comment` | Deferred — later |
 | `decision-doc` | Deferred — later (product-specific) |
 | `spec-amend` | Deferred — folds into `raise` for now (D40) |
 
-When a deferred mode is invoked, print a one-line "deferred — not available in this version" message and stop. `integrate` is a special case: its **contract** is recorded below (D40) so the design is not lost, but invoking it prints "integrate: contract recorded, implementation deferred" and stops.
+When a deferred mode is invoked, print a one-line "deferred — not available in this version" message and stop.
 
 ## Bare-invocation behaviour (no mode argument)
 
@@ -54,18 +56,19 @@ Print the orientation block, then ask via AskUserQuestion which mode to run.
 
 > sg-handbook-curator maintains the handbook at `handbook/content/`. It does NOT load context — agents read the handbook directly via `handbook/content/index.json`. This skill is for drift detection, amendments, and index maintenance.
 >
-> Four modes available:
+> Five modes available:
 >
 > - **sweep** — scan the handbook for drift: contradictions, stale terminology, broken cross-references, missing canonical pages, index out of sync with page frontmatter. Report only; no mutations.
 > - **raise** — author a labelled PR for a specific amendment. Checks the open-PR queue for duplicates first, then branches, writes the change, opens the PR.
 > - **queue** — read-only print of the open `handbook`-labelled PR queue plus cross-PR file collisions. No mutations.
+> - **integrate** — operator-cadence batch merge of the open PR queue: cross-PR consistency + link checks, contested items resolved in chat, merges walked per the integrator checklist, index refreshed after.
 > - **refresh-index** — regenerate `handbook/content/index.json` from the pages' frontmatter. Idempotent.
 >
-> `integrate` (batch-merge cadence) has a recorded contract but is not yet implemented. `comment`, `decision-doc`, `spec-amend` are deferred.
+> `comment`, `decision-doc`, `spec-amend` are deferred.
 
 ### AskUserQuestion gate
 
-Header: "Which mode?". Options: "sweep", "raise", "queue", "refresh-index", "abort".
+Header: "Which mode?". Options: "sweep", "raise", "queue", "integrate", "refresh-index", "abort".
 
 ## Modes
 
@@ -191,26 +194,55 @@ Header: "Which mode?". Options: "sweep", "raise", "queue", "refresh-index", "abo
 1. **Dispatch `agents/queue-checker.md`** (model: haiku) in `mode: list`.
 2. **Compute collisions.** Group the returned PRs by overlapping `files[]`; two PRs touching the same page are a collision the operator should know about before merging either.
 3. **Report to operator** in chat: queue size; one row per PR (number, title, author, age, files, URL); a collisions block listing any page touched by more than one open PR.
-4. **No mutations.** If the operator wants to act, they invoke `raise` (new change) or — once implemented — `integrate` (merge the batch).
+4. **No mutations.** If the operator wants to act, they invoke `raise` (new change) or `integrate` (merge the batch).
 
 **Output.** Chat report only. No files written.
 
-### Mode: integrate — contract recorded, implementation deferred (D40)
+### Mode: integrate
 
-`integrate` is the batch-merge cadence — the canon analogue of `land` (the gate that closes the loop `raise` opens). Its **contract is recorded here** so the design is not lost; **invoking it prints "integrate: contract recorded, implementation deferred" and stops** until the integrate fleet is built.
+**One-line.** Batch-merge the open `handbook` PR queue — the canon analogue of `land` (the gate that closes the loop `raise` opens). Cross-PR consistency + link checks first, contested items resolved with the operator in chat, then merges walked per the integrator checklist.
 
-**Caller / cadence.** Operator, on a periodic cadence (e.g. weekly) — a **separate session** from the per-change `raise`.
+**When to use.** Operator-cadence (e.g. weekly), in a **separate session** from the per-change `raise`. Run `queue` first if you only want to gauge depth.
 
-**Intended sequence (when built).**
+**Required args.** None.
 
-1. **List the queue.** Dispatch `queue-checker` (`mode: list`) — the open `handbook` PRs are the queue; there is no separate store.
-2. **Cross-PR consistency.** Dispatch `consistency-checker` (model: opus) — vocabulary, frontmatter, voice (`read-when`), and cross-PR collisions across the batch. Scope is **not** deep semantic ("does spec X still support claim Y") in V1.
-3. **Link validation.** Dispatch `link-validator` (model: sonnet) — cross-references and `related[]` resolve across the post-merge page set.
-4. **Surface decisions synchronously.** Any operator decision goes **in the PR description**, never via `AskUserQuestion` mid-mode. Integration stays synchronous.
-5. **Walk the merges** in batch, guided by an `integrator-checklist.md` reference (to be authored with the mode).
-6. **Refresh the index** after merges (`refresh-index`).
+**Sequence.**
 
-**Fleet to build:** `agents/consistency-checker.md` (opus), `agents/link-validator.md` (sonnet); reference `references/integrator-checklist.md`. (Modelled on `bc-handbook-curator`'s deferred integrate design.)
+1. **List the queue.** Dispatch `agents/queue-checker.md` (model: haiku, `mode: list`) — the open `handbook` PRs ARE the queue; there is no separate store. Empty queue → report "queue empty — nothing to integrate" and stop.
+
+2. **Build the merged preview.** In the stack-graph checkout:
+
+   ```bash
+   git fetch origin
+   git worktree add /tmp/sg-integrate-preview -b integrate/preview origin/main
+   cd /tmp/sg-integrate-preview
+   # oldest PR first:
+   git fetch origin pull/<n>/head:integrate/pr-<n> && git merge --no-edit integrate/pr-<n>
+   ```
+
+   A conflict **only in `handbook/content/index.json`** is not a real conflict — two `raise` PRs each refreshed the generated index; resolve by taking either side and continue (the post-walk refresh regenerates it). A PR whose merge conflicts in authored content is **excluded** (abort that merge, continue with the rest) and pre-flagged as deferred. Record which earlier preview merge it conflicted against: a preview conflict is conditional on the preview's contents, not a verdict — if that earlier PR is later held or deferred, the conflicted PR rejoins the candidate set at the step-5 rebuild instead of starving run after run. The preview is a scratch tree for validation only; it is never pushed. Record the `origin/main` base SHA and each `integrate/pr-<n>` head SHA — the merge walk pins to both.
+
+3. **Cross-PR checks — dispatch both agents in parallel:**
+   - `agents/consistency-checker.md` (model: opus) with the **post-preview candidate set** (the PRs that merged into the preview, not the raw queue — a preview-excluded PR's collisions won't land this batch and must not hold a mergeable one) — vocabulary, frontmatter shape, `read-when` voice, file collisions, stale-against-batch, plus extraction of operator-decision items from PR descriptions. Scope is **not** deep semantic ("does spec X still support claim Y") in V1.
+   - `agents/link-validator.md` (model: sonnet) with the preview worktree path **and the queue list** (numbers + files, for `introduced_by` attribution) — cross-references and `related[]` must resolve across the **post-merge** page set.
+
+4. **Print the triage view** to chat: queue depth + oldest item; conflicting-in-preview PRs; consistency findings grouped by severity; broken links; decision items quoted from PR descriptions. Decisions live **in the PR description**, never via `AskUserQuestion` mid-mode — surface each contested item in the triage view and wait for the operator's answer in chat before walking any merge. If the operator declines to decide, exit with a report of what is still pending.
+
+5. **Re-validate if the merge set — or its order — changed.** If triage held or deferred any previewed PR, or the operator confirmed a different merge order than the oldest-first one the preview was built in (order changes the intermediate trees when PRs touch the same pages), the step-3 results no longer describe what will merge — a link or a `stale_against_batch` finding can appear or vanish with the set. Rebuild the preview from the confirmed merge set, in the confirmed order (re-admitting any preview-conflicted PR whose blocker was deferred), and re-dispatch **both** agents against it; discard findings that name a PR no longer in the set. A `broken[]` entry holds the PR(s) its `introduced_by` names, same as a high-severity consistency finding — **except `index_missing` / `index_orphan`**, which are expected generated-index drift in any batch and are resolved by the post-walk refresh, never a hold (`unindexable` — incomplete frontmatter that `refresh-index` would skip — DOES hold).
+
+6. **Walk the merges** per `references/integrator-checklist.md`: oldest-first within topical clusters (operator may reorder); post each operator resolution as a PR comment before its merge; pre-merge `mergeable` gate (skip-and-defer on `CONFLICTING`); squash by default; a high-severity finding or broken link holds its PR back unless the operator overrides.
+
+7. **Refresh the index** after the walk (`refresh-index` mode), back in the primary checkout — never the preview worktree. If it changed, commit and push straight to `main` as `chore(handbook): refresh index post-integrate` — the generated-artifact exception in the hard constraints.
+
+8. **Clean up** the preview worktree and its branches, then print the final report per the checklist's report shape (merged / deferred / decisions recorded / index / next steps).
+
+**Refusal cases.**
+
+- Operator declines all decisions → exit with a pending-items report; merge nothing.
+- A PR fails the `mergeable` gate → skip, defer with the state value, continue the walk (never force).
+- `gh` auth or network failure → surface stderr and abort before any merge.
+
+**Output.** Squash merges landed on `main`; decision comments on merged PRs; refreshed `handbook/content/index.json` (committed if changed); chat report. The preview worktree is removed; no audit files.
 
 ## Shared infrastructure
 
@@ -219,6 +251,7 @@ Header: "Which mode?". Options: "sweep", "raise", "queue", "refresh-index", "abo
 1. Confirm `handbook/content/` is reachable from the working directory.
 2. Confirm `gh auth status` succeeds. If not, surface the auth error and abort — do not proceed with mutations.
 3. For `raise` mode: confirm the working tree is clean before branching (`git status --short`). If dirty, surface and abort.
+4. For `integrate` mode: confirm the working tree is clean AND no stale preview state survives a prior aborted run — check both `git worktree list` (the preview worktree) and `git branch --list 'integrate/preview' 'integrate/pr-*'` (loose per-PR refs make the next `git fetch ...:integrate/pr-<n>` fail non-fast-forward). Remove leftovers before starting.
 
 ### Agent dispatch
 
@@ -231,8 +264,8 @@ Each file in `agents/` is a stateless task-instruction subagent. Dispatch via th
 | `pr-author` | opus | Judgment: composes PR descriptions, applies strict principles |
 | `drift-detector` | sonnet | Mechanical: scans pages for known drift patterns |
 | `queue-checker` | haiku | Mechanical: one `gh` call, JSON munging, no judgment |
-| `consistency-checker` | opus | (integrate — deferred) cross-PR consistency judgment |
-| `link-validator` | sonnet | (integrate — deferred) mechanical cross-reference resolution |
+| `consistency-checker` | opus | Judgment: cross-PR vocabulary/frontmatter/voice consistency across the batch |
+| `link-validator` | sonnet | Mechanical: cross-reference + `related[]` resolution over the merged preview |
 
 Dispatch shape for each:
 
@@ -248,13 +281,14 @@ Dispatch shape for each:
 - **`gh` command fails.** Surface stderr to the caller; do not silently retry. Authentication issues are operator-side fixes.
 - **refresh-index script fails.** Surface the error. Common causes: malformed frontmatter on a new page (the error message names the file).
 - **Branch already exists.** Append `-2`, `-3` to the slug until a free name is found.
+- **`integrate` aborts mid-run.** Already-landed merges stand (each is atomic); remove the preview worktree and `integrate/*` branches before exiting, and report exactly which PRs merged vs remain queued. Re-running `integrate` picks up the remaining queue.
 - **`handbook` label does not exist on the repo.** Surface a reminder to create the label on `hk121992/stack-graph` before the `gh pr create` call.
 
 ## Hard constraints
 
 **MUST:**
 
-- Handbook changes land via a labelled PR, never direct push — except during bootstrap: until `handbook/content/08-devops/README.md` finalises the branch/label model, default to a single labelled PR targeting `main`. Revisit once that page is authored.
+- Handbook changes land via a labelled PR, never direct push — with two exceptions: (a) during bootstrap, until `handbook/content/08-devops/README.md` finalises the branch/label model, default to a single labelled PR targeting `main`; (b) the regenerated `index.json` that `integrate` commits to `main` after a batch merge — a generated artifact, not authored canon.
 - The PR description IS the amendment proposal. No separate proposal file.
 - Keep all handbook pages h2-only in their table of contents. If a section exceeds what an h2-only ToC can navigate, promote it to its own first-class page — never deepen to h3+ navigation.
 - Every `raise` PR carries `--label handbook` on creation. Without it the PR drops out of the operator's triage queue.
@@ -278,8 +312,11 @@ Dispatch shape for each:
 | What belongs in the handbook | `references/what-belongs.md` |
 | PR description shape | `references/pr-description-shape.md` |
 | Bundling rules | `references/bundling-rules.md` |
+| Integrator checklist | `references/integrator-checklist.md` |
 | Drift-detector agent | `agents/drift-detector.md` |
 | PR-author agent | `agents/pr-author.md` |
 | Queue-checker agent | `agents/queue-checker.md` |
+| Consistency-checker agent | `agents/consistency-checker.md` |
+| Link-validator agent | `agents/link-validator.md` |
 | Index refresh script | `scripts/refresh-index.ts` |
 | Curator decomposition (graph model) | `docs/decisions.md` (D40), `docs/graph-map.md` (curator cell) |

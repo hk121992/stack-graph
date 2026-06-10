@@ -1195,3 +1195,28 @@ admits `dispatch-complete`/`tokens_per_session` under closed allowlists, exclude
 kind/arc-less events from stage projection (degrade, never guess); 32/32 publisher checks pass.
 *Record:* 44 nodes / 25 refs / 220 edges. *Status:* Decided; built + validated; PR open; plugin
 vendor bump is the standard post-merge `chore(vendor)`; first live batch run is harness-side.
+
+---
+
+**D68 — The curator's `integrate` mode is built per the D40 contract; the batch is validated
+against a merged preview, and the index refresh after a batch is the one sanctioned direct
+commit.** Implements (does not reopen) D40's recorded contract: `queue-checker` lists the queue;
+new agents `consistency-checker` (opus — cross-PR vocabulary / frontmatter-shape / `read-when`
+voice / file collisions / stale-against-batch, plus extracting operator-decision items from PR
+descriptions; explicitly **not** deep-semantic in V1) and `link-validator` (sonnet — mechanical
+resolution of `related[]`, file links, and anchors) run in parallel; merges walk per the new
+`references/integrator-checklist.md`. Implementation decisions made here: (a) **merged-preview
+worktree** — link validation runs against the *post-merge* page set, materialised by sequentially
+merging PR heads into a scratch `integrate/preview` worktree (conflicting PRs are excluded and
+pre-flagged deferred; the preview is never pushed); (b) **mergeable gate, skip-and-defer** — a
+non-`MERGEABLE` PR is skipped with its state value recorded, never forced (bc-curator precedent);
+(c) **squash by default**, one canon change per PR → one commit on `main`; (d) contested items
+surface in the triage view and resolve **in chat** (D40 bans `AskUserQuestion` mid-mode), with
+each resolution **posted as a PR comment before its merge** so the durable record stays in
+PRs/git, not chat; (e) **post-batch `index.json` refresh commits directly to `main`** — each
+`raise` PR refreshed the index against pre-merge `main`, so a batch can leave it stale; the
+regenerated index is a generated artifact, not authored canon, and is carved out of the
+PR-only hard constraint accordingly. `08-devops` "not yet shipped" line amended. Deliberate
+divergence from `bc-handbook-curator`'s live integrate: single repo / single label (no claude-md
+surfaces — factory has none), the two checker agents bc lacks, and chat-resolution instead of
+bc's per-item `AskUserQuestion`. *Status:* Decided; built.
