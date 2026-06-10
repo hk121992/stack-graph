@@ -51,7 +51,7 @@ edges:
 # analytics — the loop
 goals:
   - outcome: A batch of standalone IUs is delivered with each IU's build + review running in a fresh context, so the late-batch quality degradation of a sequential single-session run does not recur.
-    metric: tokens_per_session per dispatched IU (specify span + build span + review span + session overhead) vs the sequential single-session baseline (~35–80k output tokens/IU, rising with session length); review findings traced to context degradation rather than a real defect.
+    metric: hook-captured per-session cost (dispatch-usage, a 6-component token_usage covering the specify + build + review spans + session overhead) per dispatched IU vs the sequential single-session baseline (rising with session length); review findings traced to context degradation rather than a real defect.
     earns-keep: per-IU dispatched cost holds roughly flat across a batch where the sequential baseline rose with batch position; degradation-attributable review findings trend to zero. A dispatcher whose per-IU cost still climbs with batch size is not earning its isolation.
   - outcome: Concurrent dispatch is race-free — no commit lands on the wrong branch, no two in-flight sessions write the same files, and interleaved sessions never bleed stage projections.
     metric: wrong-branch commits / shared-checkout incidents per batch; shared-files collisions caught and serialised at intake vs discovered in flight; projection mis-attributions across interleaved carriers.
@@ -62,7 +62,7 @@ goals:
   - outcome: Each built IU lands only after an integration dry-run proves its acceptance_check on the merged tree, so cross-slice and mid-batch-drift conflicts surface before prod, not in it.
     metric: merge conflicts / acceptance failures surfaced in the dry-run vs discovered post-merge in the target branch; double-merges (dispatcher + land both merging).
     earns-keep: cross-slice/drift conflicts are caught in the dry-run; post-merge surprises and double-merges trend to zero. If the dry-run never catches a conflict a real batch would have hit, the step is not earning its cost.
-status: v0.2.0 — 2026-06-10
+status: v0.3.0 — 2026-06-10
 ---
 
 # Loop runner
@@ -228,14 +228,15 @@ Per scheduled IU:
    Route-outs **write no lifecycle**: the IU stays open and re-lists in a future batch. Only the
    operator parks it durably (the land gate's `parked` decision), or the coordinator's enacted promotion
    drops it.
-4. **Emit the carrier-keyed `dispatch-complete` event** — the same hook-captured subagent-completion
-   event class as build's `unit-complete` (the D57 mechanism) — carrying the triple `(carrier_id,
-   carrier_kind, arc)`, the outcome, and **`tokens_per_session`**: the whole-session cost of that IU's
-   traversal (the specify, build, and review spans + session overhead). `tokens_per_session` is a defined
-   **superset of** build's `tokens_per_iu`, which stays canonical for the IU-sizing dial — do **not**
-   re-emit build's metric; this is the distinct **dispatch-efficiency** measure (the sequential-baseline
-   comparison this node exists to win). `dispatch-complete` is **not a stage event**: the projection
-   never reads it for `current_stage`.
+4. **Emit the carrier-keyed STRUCTURAL `dispatch-complete` event** — carrying the triple `(carrier_id,
+   carrier_kind, arc)` and the outcome. **Emit NO token numbers** (D69 amends D57): the whole-session
+   cost is captured by the plugin's `Stop` hook as a carrier-keyed **`dispatch-usage`** event (a
+   6-component `token_usage`), joined to this carrier by scope id — a body cannot see the session's
+   cache reads, so a body-emitted `tokens_per_session` is fabrication (the preamble's do-NOT-emit list;
+   the publisher rejects it). The `dispatch-usage` cost is the **dispatch-efficiency** measure (the
+   sequential-baseline comparison this node exists to win); it is a defined **superset of** build's
+   per-IU `unit-usage`. `dispatch-complete` is **not a stage event**: the projection never reads it for
+   `current_stage`.
 
 ## Phase 2 — Integration dry-run + land queue (collaborative)
 
@@ -267,10 +268,13 @@ Per scheduled IU:
 
 - **Dispatcher enter/exit** (imported preamble) carry the batch id and are **non-carrier events** —
   routed to the **factory-conformance stream**, never the carrier projection.
-- **Per-IU `dispatch-complete`** (product-outcomes): the carrier triple + outcome +
-  `tokens_per_session` (Phase 1.4). A measure event, never a stage event.
-- **All stage-level events** (enter/exit, `unit-complete` with `tokens_per_iu`, gates) are emitted by
-  the stage nodes **inside** the dispatched sessions, unchanged. Concurrent sessions append to the same
+- **Per-IU structural `dispatch-complete`** (product-outcomes): the carrier triple + outcome
+  (Phase 1.4), **no token numbers**. The whole-session cost rides the plugin's `Stop` hook as a
+  carrier-keyed **`dispatch-usage`** event (6-component `token_usage`), joined by scope id. Both are
+  measure events, never stage events.
+- **All stage-level events** (enter/exit, the structural `unit-complete`, gates) are emitted by the
+  stage nodes **inside** the dispatched sessions; their per-IU cost rides the hook's `unit-usage`
+  events. Concurrent sessions append to the same
   `event-log` under the **append contract** above (one event = one whole line in a single `O_APPEND`
   write). The projection's `(carrier_id, carrier_kind, arc)` key separates interleaved carriers — with
   concurrent dispatch this key is mandatory, not cosmetic.
@@ -287,9 +291,9 @@ Per scheduled IU:
   merged tree; conflicts surfaced before land. No real merge performed here.
 - **Land-queue outcomes** — per `built` IU, the operator's land decision and, on go, `land` invoked
   (land fires its gate and owns the merge).
-- **Per-IU `dispatch-complete` events** carrying `tokens_per_session`, plus the dispatcher's own
-  non-carrier enter/exit on the factory-conformance stream. No shared committed surface or carrier
-  lifecycle written during the span.
+- **Per-IU structural `dispatch-complete` events** (carrier triple + outcome, **no token numbers** —
+  cost rides the hook's `dispatch-usage`), plus the dispatcher's own non-carrier enter/exit on the
+  factory-conformance stream. No shared committed surface or carrier lifecycle written during the span.
 
 If any IU's dependency, environment, or merge step fails, park it with the reason and surface the
 options — never re-dispatch in-batch, never merge an IU on your own.

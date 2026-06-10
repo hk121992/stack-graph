@@ -49,7 +49,7 @@ The plugin has the standard Claude Code plugin shape:
 | `skills/<name>/SKILL.md` | built skill nodes |
 | `agents/<name>.md` | built agent nodes |
 | `commands/<name>.md` | built command nodes (legacy — prefer skills) |
-| `hooks/` | hook configs (the `triggers` bindings) |
+| `hooks/` | hook configs + handlers — `hooks.json` (the `triggers` bindings) + the POSIX guard + the node handler. Populated + vendored from **0.10.0** (D69 token instrumentation); `plugin.json` declares `hooks: ./hooks/hooks.json` |
 | `lib/` | scripts reached by `invokes` |
 | `workspace/` | the vendored workspace render (0.5.0+) — `renderer/`, the build orchestration (`build.sh` / `_headers` / `wrangler.jsonc`), and `graph/` (the dev-loop graph data the graph surface renders) |
 
@@ -70,6 +70,13 @@ so it is a binary-safe recursive copy with its own clean and byte-compare freshn
 - the build orchestration — `build.sh`, `_headers`, `wrangler.jsonc`;
 - `graph/` — the **vendored (sg) graph data** (`graph-record.json` + each node's canonical
   `<id>/<id>.md`), which the graph surface renders.
+
+From **0.10.0** a sibling **hooks stage** (D69) vendors the factory `hooks/` tree the same binary-safe
+way — `hooks.json` + the POSIX guard (`sg-token-hook.sh`, its `+x` bit restored after copy and
+verified) + the node handler (`lib/emit-usage.mjs`, which reuses the vendored
+`workspace/renderer/lib/transcript-usage.ts` summer via a stable relative import). `plugin.json` gains
+`hooks: ./hooks/hooks.json` so a consuming harness wires the token-instrumentation hooks on install;
+both the workspace render and the hooks tree are inside the build's `--check` freshness parity.
 
 The graph surface renders the **whole graph as a composed union by owner** — the vendored (sg) graph
 plus the harness's **local graph overlay** — exactly as the handbook composes vendored + local

@@ -20,8 +20,10 @@ reserved for interpreting that timeline, never for producing it.
 | **Transcript baseline** | host-level, any session | no | cost, tokens, tool calls, model usage, per-session timeline |
 | **Graph layer** | stack-graph nodes/edges | yes | node-enter / node-exit / gate / traversal events bound to ids |
 
-The baseline already exists and runs on any session unchanged. The graph layer is the
-net-new instrumentation this spec defines: purpose-built events bound to the graph.
+The baseline runs on any session unchanged; its **reader is real** (D69) — the deterministic
+transcript summer (`workspace/renderer/lib/transcript-usage.ts`), exposed as the `sg-token-usage`
+CLI and reused by the token-instrumentation hooks. The graph layer is the net-new instrumentation
+this spec defines: purpose-built events bound to the graph.
 
 ## How a node emits events
 
@@ -65,7 +67,27 @@ A `node-exit` event may carry two **optional** numeric aggregates alongside the 
 
 Both are read by a **closed numeric allowlist** at projection time, never spread verbatim —
 a non-allowlisted or non-numeric key is dropped (the sanitisation boundary, below). The
-instrumentation preamble (v0.3.0) documents both slots.
+instrumentation preamble (v0.4.0) documents both slots.
+
+### Hook-captured token-usage events (D69)
+
+Token cost rides **three hook-appended event kinds**, distinct from the body's structural events
+(the body emits no token numbers — see *Per-IU cost*):
+
+| kind | hook | scope | carries |
+|---|---|---|---|
+| `unit-usage` | `PostToolUse` (sync subagent, primary) / `SubagentStop` (background) | an IU | `token_usage` (6 components), `scope_id`, `model`, `cumulative:false` |
+| `session-usage` | `Stop` | a session | `token_usage`, `scope_id` (anonymised session), `cumulative:true` |
+| `dispatch-usage` | `Stop` (when the session is an arc-dispatch) | a carrier | `token_usage`, carrier triple, `cumulative:true` |
+
+Each carries a per-event `v` (a version gate; an out-of-band event is dropped + flagged for the
+renderer banner) and a `model` (for pricing). `token_usage` is read by a **closed 6-component
+allowlist** — `input`, `output`, `cache_creation_5m`, `cache_creation_1h`, `cache_read`, `total` —
+the cache split preserved so cost is priced at real cache multipliers; `by_model` is excluded from
+the line to keep it < 4KB. A failed hook appends a visible **`instrumentation-error`** event (loud,
+never a silent drop). The publisher **rejects** any model-authored `tokens_per_*` / `token_usage`
+key on a structural event (the fabrication guard). The transcript baseline these read from is also
+exposed as the **`sg-token-usage`** CLI (the deterministic summer over a transcript path).
 
 ## Binding events to the graph
 
@@ -134,6 +156,13 @@ surface renders along **three axes**:
   *Experience-thread measurement*) — a **count only**, never the gate strings or any contract
   body. This is the experience-contract UX-conformance sense above, surfaced as a running
   tally; graph-path conformance is the separate traversal check.
+- **Cost** (D69) — the `session_costs` points from the hook usage events: per-scope 6-component
+  `token_usage`, **cache-efficiency** (`cache_read / total`), and an **estimated `$`** priced from
+  the operator-maintained `pricing.json` (cache multipliers load-bearing; an unknown model renders
+  `unknown`, never `$0`). A **reconciliation** block surfaces instrumentation health — the
+  Σ(child) ≤ session/dispatch **inequality**, coverage gaps, and the instrumentation-error /
+  version-incompatible / fabrication-rejection counts — the tripwire that catches a cache-blind
+  cost. Degraded states each name a one-step remedy and a prescriptive version banner.
 
 The sanitisation boundary holds across all three: the publisher reads numbers and gate-token
 counts against closed allowlists, never narrative, contract text, or arbitrary keys (the
@@ -225,47 +254,59 @@ The event log carries three distinguishable streams sharing the same append-log 
 
 | Stream | Subject | Consumers |
 |---|---|---|
-| **Product outcomes** | Carrier-tagged stage events; outcome metrics per node; per-IU cost (`tokens_per_iu`) | Dashboard render; improvement loop |
+| **Product outcomes** | Carrier-tagged stage events; outcome metrics per node; hook-captured per-IU / per-session cost (`unit-usage` / `session-usage` / `dispatch-usage`) | Dashboard render; improvement loop |
 | **Factory / graph conformance** | Traversal conformance against arc-declared edges; gate events | Factory loop; devops review |
 | **Carrier projection** | Stage position + traversal sequence per carrier id | Surface render; recorder; degraded-mode fallback |
 
 They share machinery but are different subjects with different consumers; keep them
 namespaced so a consumer of one stream does not need to filter noise from another.
 
-### Per-IU cost — `tokens_per_iu`
+### Per-IU cost — hook-captured `unit-usage` (D69)
 
 Under the one-IU-one-fresh-context build model ([decomposition](../07-decomposition/README.md);
-D57), each implementation unit is built in its own fresh agent context. `build` emits a
-**`tokens_per_iu`** measure on each per-IU **unit-complete** event — the token cost of building
-that IU (the subagent's accountable usage, a **hook-captured** subagent-completion event bound to
-the IU id). It is a **Product-outcomes** measure, the "cost per traversal" pattern at IU
-granularity.
+D57), each implementation unit is built in its own fresh agent context. The cost of building an IU
+is captured **deterministically by the plugin's hooks**, never emitted by the model: the `build`
+body emits the **structural** `unit-complete` (the IU id + the acceptance evidence only the body
+knows, **no token fields**), and the hook appends a **separate** `unit-usage` event carrying a
+**6-component `token_usage`** block (`input`, `output`, `cache_creation_5m`, `cache_creation_1h`,
+**`cache_read`**, `total`), joined to the IU by scope id. The primary capture is `PostToolUse`
+native usage on a synchronous subagent dispatch; a background dispatch falls back to
+`SubagentStop` + the agent transcript summed by the deterministic summer. **This is a D57/D59
+amendment: structural facts stay body-owned; cost is hook-owned** — a node body cannot observe its
+own cache reads (the dominant cost), so a body-emitted figure is fabrication. The historic ~25×
+cost error came from exactly that; the preamble's do-NOT-emit list and the publisher's token-key
+rejection close the channel.
 
-`measure-outcomes` derives the per-sprint distribution and the **over-budget share** against the
-harness **context-budget dial** — a tunable value (~100k tokens documented default; the best-work
-window is model-dependent, so the number is verified, not baked in). The over-budget share does two
-jobs: it calibrates the dial per model, and it is a **decomposition-quality** signal back to
-`plan` — a persistently high share means IUs are drawn too coarse (the same shape as "weak
-acceptance is a *plan* gap, not a *build* gap").
+`measure-outcomes` derives the per-sprint **cost distribution** and the **over-budget share** —
+computed on **context-pressure** (the max per-turn `input + cache_read + cache_creation`, the
+working-window size), **not** cumulative tokens, against the harness **context-budget dial** (~100k
+documented default; model-dependent, so verified, not baked in). It is reported with a **coverage
+denominator** (`measured` of `total` IUs, `unmeasured` named) so a high share is never read as
+whole-population. The share does two jobs: it calibrates the dial per model, and it is a
+**decomposition-quality** signal back to `plan` — a persistently high share means IUs are drawn too
+coarse (the same shape as "weak acceptance is a *plan* gap, not a *build* gap").
 
-### Per-session cost — `dispatch-complete` and `tokens_per_session`
+### Per-session cost — `dispatch-complete` (structural) + hook `dispatch-usage` (D69)
 
 When an **arc-level dispatcher** ([decomposition](../07-decomposition/README.md)) runs a span of an
-arc's stages as one fresh session per carrier, it emits a per-IU **`dispatch-complete`** event — the
-**same hook-captured subagent-completion event class as `unit-complete`** (the D57 mechanism). It is
-**carrier-keyed** (`carrier_id`, `carrier_kind`, `arc`), carries the dispatch outcome, and carries
-**`tokens_per_session`**. Like `unit-complete`, it is a **measure event the projection never reads for
-`current_stage`** — the carrier's stage projection comes only from the stage nodes' enter/exit events
-inside the dispatched session.
+arc's stages as one fresh session per carrier, it emits a per-IU **structural `dispatch-complete`**
+event — **carrier-keyed** (`carrier_id`, `carrier_kind`, `arc`), carrying the dispatch outcome and
+**no token numbers**. The session's whole cost is captured by the **`Stop` hook** as a separate
+carrier-keyed **`dispatch-usage`** event (a 6-component `token_usage`), joined by scope id. Both are
+**measure events the projection never reads for `current_stage`** — the carrier's stage projection
+comes only from the stage nodes' enter/exit events inside the dispatched session.
 
-**`tokens_per_session`** is the dispatched session's **whole cost** — the specify, build, and review
-spans + session overhead — a **superset of** `tokens_per_iu`. `tokens_per_iu` remains canonical for the IU-sizing dial
-above; `tokens_per_session` is the **dispatch-efficiency** measure (the dispatched-vs-sequential
-comparison).
+The `dispatch-usage` cost is the dispatched session's **whole cost** — the specify, build, and review
+spans + session overhead — a **superset of** the per-IU `unit-usage`. `unit-usage` is canonical for
+the IU-sizing dial above; `dispatch-usage` is the **dispatch-efficiency** measure (the
+dispatched-vs-sequential comparison). The `Stop` hook fires **per turn**, so a `session-usage` /
+`dispatch-usage` event is **cumulative-marked** and the publisher keeps the **latest per scope**
+(never double-counting a growing per-turn total).
 
-**Append contract for concurrent sessions.** When sessions dispatched concurrently append to the same
-event log, **one event = one whole line written in a single `O_APPEND` write** — never a buffered
-multi-write — so concurrent appends cannot interleave partial records.
+**Append contract for concurrent sessions.** Every usage event — body- or hook-appended — is **one
+whole line written in a single `O_APPEND` write** (never a buffered multi-write), and token events
+are kept **< 4KB** so the append stays atomic under POSIX even with concurrent sessions; raw evidence
+and `by_model` are excluded from the line for this reason.
 
 An arc-level dispatcher's **own** node-enter/-exit events are **non-carrier events**: they are routed to
 the **factory-conformance stream**, not product-outcomes, so they never touch the carrier projection.

@@ -104,7 +104,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Build",
-      "status": "v0.4.0 — 2026-06-05",
+      "status": "v0.5.0 — 2026-06-10",
       "edges": {
         "invokes": [
           {
@@ -742,7 +742,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Loop runner",
-      "status": "v0.2.0 — 2026-06-10",
+      "status": "v0.3.0 — 2026-06-10",
       "edges": {
         "invokes": [
           {
@@ -1565,7 +1565,7 @@
     "instrumentation-preamble": {
       "kind": "reference",
       "title": "Instrumentation preamble — node enter/exit emit contract",
-      "status": "v0.3.0 — 2026-06-05",
+      "status": "v0.4.0 — 2026-06-10",
       "consumed_by": [
         "align-context",
         "architecture-review",

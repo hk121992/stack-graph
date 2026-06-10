@@ -2,8 +2,8 @@
 kind: reference
 id: instrumentation-preamble
 title: Instrumentation preamble — node enter/exit emit contract
-description: "The deterministic enter/exit emit contract every backbone node depends on. On entry, record a node-enter event; on exit, a node-exit event carrying the outcome, any gates touched, and optional ax / trend-metrics aggregates. Carrier-tagged when a carrier is in context. Events append as JSONL to the .stack-graph/ event log in the workspace. Single-sourced into every consumer at build via @-import (load: import)."
-status: v0.3.0 — 2026-06-05
+description: "The deterministic enter/exit emit contract every backbone node depends on. On entry, record a node-enter event; on exit, a node-exit event carrying the outcome, any gates touched, and optional ax / trend-metrics aggregates. Carrier-tagged when a carrier is in context. Events append as JSONL to the .stack-graph/ event log in the workspace. Single-sourced into every consumer at build via @-import (load: import). Token aggregates are HOOK-appended (D69), never body-emitted — the body owns structural facts, the hooks own cost; an explicit do-NOT-emit list bars tokens_per_iu / tokens_per_session / token_usage. note and review-fix are recognised structural kinds."
+status: v0.4.0 — 2026-06-10
 ---
 
 # Instrumentation preamble
@@ -78,6 +78,42 @@ Note on `ax`: an experience-verification node (`simulate-users`) also attaches a
 allowlist, never spread verbatim. `metrics` carries **trend measurements**; `ax` carries the
 **per-run agent-experience profile**. Both are optional and only the nodes whose goals name
 them emit them.
+
+## Token usage is HOOK-appended — never emit token numbers from a node body (D69)
+
+Token cost is captured **deterministically by the plugin's hooks** (`PostToolUse` native usage /
+`SubagentStop` + `Stop` transcript sums — see `06-analytics`), which append their **own** usage
+events (`unit-usage` / `session-usage` / `dispatch-usage`, each carrying a 6-component
+`token_usage` block). A node body **cannot** observe its own token cost accurately — it cannot see
+cache reads, which dominate spend — so a body-emitted figure is fabrication. **The historic ~25×
+cost error came from exactly this.**
+
+**Do NOT emit, from any node body, any of:**
+
+- `tokens_per_iu`
+- `tokens_per_session`
+- `token_usage` (or any `tokens_*` aggregate) on a `metrics` object
+
+The projection publisher **rejects** these keys if they appear on a model-authored event (a
+fabrication guard), so emitting them is wasted and flagged. **Structural facts stay body-owned;
+cost is hook-owned.** Your body emits the structural `unit-complete` / `dispatch-complete` (the IU
+id, the carrier, the **acceptance evidence** — which only the body knows) **without token fields**;
+the hook joins its usage event by scope id.
+
+## Recognised event kinds — `note` and `review-fix`
+
+Two further structural kinds are **recognised** (a consumer may emit them; the projection ignores
+unknown kinds, so they are recorded but **not projected** into a surface today — no fictitious
+routing):
+
+- **`review-fix`** — emit on a **review-gate-fail re-entry**: when a `review` finding sends work
+  back to `build`/`reconcile`, emit a `review-fix` event tagged with the source node and the IU it
+  re-enters, so the loop re-entry is on the record. Shape: a structural event (`kind: "review-fix"`,
+  the node, carrier triple, the IU) — no token fields.
+- **`note`** — **operator-discretion**: a free structural marker a node may append to record a
+  decision point or context worth keeping in the timeline. Emit it only when it earns its place;
+  it is recognised-but-not-projected (the publisher ignores it), so it never invents a surface — it
+  is a durable breadcrumb in the log, nothing more.
 
 Emit this event after all phase work is done and any final operator output has been
 delivered. Never emit a node-exit before the work is complete.

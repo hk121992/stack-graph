@@ -1225,3 +1225,44 @@ as generalised agent nodes (overlay-supplied repo/label; the canon's own index c
 spawn bundle) and `integrator-checklist` as a `_refs` reference. Record 46 nodes / 26 refs /
 224 edges; touched nodes validate PASS. *Status:* Decided; built (tooling + graph cell); plugin
 vendor bump post-merge.
+
+---
+
+**D69 — Token instrumentation is deterministic and hook-captured; the model never emits token
+numbers.** Closes #21: `06-analytics` promised hook-captured token measures and a transcript
+baseline that did not exist — `build`/`loop-runner` instructed the *model* to emit
+`tokens_per_iu`/`tokens_per_session` inline while calling them "hook-captured", cache-read (the
+dominant cost) was invisible, and the publisher's `session_costs` were never rendered. A loop ran
+~99.8M tokens / ~96% cache reads while summed per-IU estimates were ~260k — **any metric ignoring
+cache misstates cost ~25×.** Built per the rev2 design (`docs/token-instrumentation-design.md`,
+autoplan dual-voice reviewed). **The split:** the model body emits only **structural** events
+(`unit-complete`/`dispatch-complete` — id + acceptance evidence, no tokens); the plugin's **hooks**
+capture cost deterministically and append separate **`unit-usage`/`session-usage`/`dispatch-usage`**
+events, each a 6-component `token_usage` (cache TTL split preserved). This is a named **D57/D59
+amendment** — structural facts body-owned, cost hook-owned. **Mechanism (verified vs Claude Code
+docs + live transcripts):** `PostToolUse` native `tool_response.usage` is the primary per-IU
+capture; background → `SubagentStop` + `agent_transcript_path` summed; main/headless → `Stop` +
+`transcript_path` (Stop is **per-turn**, so usage is cumulative-marked and the publisher keeps
+latest-per-scope). The non-deterministic time-window join was **dropped** — binding is exact via
+env (`SG_IU_ID` / carrier triple) the dispatcher controls. **Built (9 IUs, one commit each):**
+(1) `lib/transcript-usage.ts` deterministic summer + real sanitized transcript fixture; (2)
+`sg-token-usage` CLI (strict, exit codes 0–5); (3) the three hooks + `hooks.json` (node runtime,
+scope-gated no-op, **fail-loud** POSIX guard → `instrumentation-error` never silent, single
+`O_APPEND`+one-write, events < 4KB); (4) publisher reads the usage events → `session_costs` +
+coverage+inequality **reconciliation**, **rejects** model-authored token keys (fabrication guard),
+per-event version gate, `repoRoot()` worktree fix; (5) renderer **Cost block** (4 components +
+cache-efficiency + estimated-$ via `pricing.json`, cache multipliers load-bearing, unknown-model =
+`unknown` not $0) + split prescriptive degraded states + re-vendor version banner; (6)
+`measure-outcomes` `over_budget_share` on **context-pressure** (not total) with a coverage
+denominator + deterministic **reuse proxies** (reference/script-creation, review-re-entry decline),
+generative fraction a named deferred seam; (7) `vendor.ts` Stage 6 vendors the `hooks/` tree (+x
+preserved, inside `--check` parity), `plugin.json hooks → ./hooks/hooks.json`, plugin → **0.10.0**;
+(8) `harness-init` binds absolute `SG_EVENT_LOG` + host `pricing`, `validate` gains a **live-hook
+probe** + plugin-active check; (9) spec amendments (06/02/03/04/07 + `instrumentation-preamble`
+v0.4.0 with the explicit **do-NOT-emit** list + recognised `note`/`review-fix` kinds) and the
+model-token instructions stripped from `build`/`loop-runner`. *Three distinct numbers* pinned:
+volume / estimated-$ (labeled, `verified_on`) / context-pressure. Renderer suite green (6 test
+files); the hooks fail-loud path is fixture-verified. **D68 was taken (curator integrate).**
+*Status:* Decided; built on `graph/token-instrumentation` (per-IU commits); the plugin submodule
+re-vendor (0.10.0) + gitlink bump is the **post-merge `chore(vendor)`**; companion bc-workspace#136
+is a re-vendor handoff after merge.

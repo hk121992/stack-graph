@@ -119,6 +119,16 @@ nodes; if a mode earns its own measurable goal, split it into its own primitive 
 rather than modelling it as a node that collapses at render. Cut by the rule above — the file
 shape *is* the node, not a downstream rendering choice.
 
+**The IU-sizing dial is read on real context-pressure (D69).** Under the one-IU-one-fresh-context
+build model, each implementation unit runs in its own window, and the **context-budget dial** (~100k
+documented default, model-dependent) sizes that window. The dial is now empirical, not assumed:
+`measure-outcomes` derives an **`over_budget_share`** computed on **context-pressure** — the max
+per-turn `input + cache_read + cache_creation` (the working-window size), **not** cumulative tokens,
+which diverge by orders of magnitude when cache is re-read across turns. It is reported with a
+**coverage denominator** (`measured` of `total` IUs, `unmeasured` named), so a high share is a
+trustworthy back-signal to `plan` (IUs drawn too coarse) rather than a survivorship-biased artefact.
+The cost itself is hook-captured ([analytics](../06-analytics/)), never body-emitted.
+
 ## Let goals draw the boundary
 
 A node must have a **stated outcome and a way to measure it** (the loop, see
