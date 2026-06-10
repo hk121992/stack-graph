@@ -16,6 +16,9 @@ import {
   renderMarkdown, assetBasenames, type CorePage,
 } from "./vendor/bc-renderer-core/src/index.js";
 import { renderSurfacePage } from "./shell-host.js";
+import {
+  loadPricing, priceUsage, cacheEfficiency, type Pricing, type UsageComponents,
+} from "./lib/pricing.ts";
 
 const rendererDir = path.dirname(fileURLToPath(import.meta.url));
 const distRoot = path.join(rendererDir, "..", "dist");
@@ -42,12 +45,33 @@ function esc(s: unknown): string {
 }
 
 interface TrendPoint { at?: string; value?: number }
+interface SessionCostPoint {
+  at?: string;
+  kind?: "unit-usage" | "session-usage" | "dispatch-usage";
+  scope_id?: string;
+  carrier_id?: string | null;
+  arc?: string | null;
+  model?: string;
+  cumulative?: boolean;
+  usage?: Partial<UsageComponents>;
+}
+interface Reconciliation {
+  unit_usage?: number; session_usage?: number; dispatch_usage?: number;
+  measured_iu_total?: number; session_total?: number;
+  inequality_ok?: boolean | null; instrumentation_errors?: number;
+  rejected_model_token_keys?: number; version_incompatible_events?: number; notes?: string[];
+}
 interface Projection {
-  provenance?: { commit?: string; generated_at?: string; generator_version?: string };
+  provenance?: {
+    commit?: string; generated_at?: string; generator_version?: string;
+    event_schema_version?: string; compatible_event_range?: string; observed_event_versions?: string[];
+  };
   nodes?: Record<string, { last_used?: string | null; traversals_30d?: number }>;
   ax?: Record<string, Record<string, unknown>>;
   trends?: Record<string, TrendPoint[]>;
   conformance?: { experience_contract?: { pass?: number; fail?: number } };
+  session_costs?: SessionCostPoint[];
+  reconciliation?: Reconciliation;
 }
 
 if (existsSync(surfaceDir)) rmSync(surfaceDir, { recursive: true, force: true });
@@ -91,7 +115,13 @@ interface View extends Projection {
 }
 let view: View | null = proj as View | null;
 let sampleMode = false;
-const realHasData = !!(proj?.nodes && Object.keys(proj.nodes).length > 0);
+// realHasData must include COST fields (design §6) so a cost-only projection (hooks fired, no node
+// activity yet) is NOT discarded for the sample view.
+const realHasData = !!(
+  (proj?.nodes && Object.keys(proj.nodes).length > 0) ||
+  (proj?.session_costs && proj.session_costs.length > 0) ||
+  (proj?.reconciliation && ((proj.reconciliation.instrumentation_errors ?? 0) > 0 || (proj.reconciliation.version_incompatible_events ?? 0) > 0))
+);
 if (!realHasData) {
   const samplePath = path.join(rendererDir, "fixtures", "analytics", "sample-projection.json");
   if (existsSync(samplePath)) {
@@ -130,6 +160,123 @@ function fmtMs(n?: number): string {
 function bar(n: number, max: number): string {
   const pct = max > 0 ? Math.max(3, Math.round((n / max) * 100)) : 0;
   return `<span class="ax-bar"><span class="ax-bar-fill" style="width:${pct}%"></span></span>`;
+}
+
+// ── Cost block (design §5/§6/§8) ──────────────────────────────────────────────
+// A harness binds host `pricing` (SG_PRICING / PRICING env); else the co-located pricing.json.
+function resolvePricingPath(): string {
+  if (process.env["SG_PRICING"]) return path.resolve(process.env["SG_PRICING"]);
+  if (process.env["PRICING"]) return path.resolve(process.env["PRICING"]);
+  return path.join(rendererDir, "pricing.json");
+}
+const pricingPath = resolvePricingPath();
+const { pricing, error: pricingError } = existsSync(pricingPath)
+  ? loadPricing(pricingPath)
+  : { pricing: null as Pricing | null, error: `pricing.json not found at ${pricingPath}` };
+
+function usageOf(p: SessionCostPoint): UsageComponents {
+  const u = p.usage ?? {};
+  const n = (v: unknown) => (typeof v === "number" && isFinite(v) && v >= 0 ? v : 0);
+  return {
+    input: n(u.input), output: n(u.output),
+    cache_creation_5m: n(u.cache_creation_5m), cache_creation_1h: n(u.cache_creation_1h),
+    cache_read: n(u.cache_read), total: n(u.total),
+  };
+}
+function fmtPct(r: number | null): string { return r === null ? "—" : `${Math.round(r * 100)}%`; }
+function fmtUsd(d: number | null): string {
+  if (d === null) return `<span class="cost-unknown" title="model not in pricing.json">unknown</span>`;
+  if (d === 0) return "$0.00";
+  return d < 0.01 ? `$${d.toFixed(4)}` : `$${d.toFixed(2)}`;
+}
+const KIND_LABEL: Record<string, string> = { "unit-usage": "IU", "session-usage": "session", "dispatch-usage": "dispatch" };
+
+// The prescriptive version banner (design §8/§9): names plugin/event/publisher versions + the fix.
+function versionBanner(v: View): string {
+  const r = v.reconciliation;
+  const prov = v.provenance;
+  const incompatible = (r?.version_incompatible_events ?? 0) > 0;
+  if (!incompatible) return "";
+  const observed = (prov?.observed_event_versions ?? []).join(", ") || "—";
+  return `<div class="callout callout-warning"><p><strong>⚠ Instrumentation version mismatch.</strong>
+${esc(r?.version_incompatible_events ?? 0)} usage event(s) were dropped — their schema version is outside this publisher's compatible band.
+Publisher <code>${esc(prov?.generator_version ?? "—")}</code> · event schema <code>${esc(prov?.event_schema_version ?? "—")}</code>
+(compatible <code>${esc(prov?.compatible_event_range ?? "—")}</code>) · observed event versions <code>${esc(observed)}</code>.
+<strong>Fix:</strong> re-vendor the plugin → rerun <code>harness-init validate</code> → relaunch the session → rebuild the portal.</p></div>`;
+}
+
+// The Cost block + instrumentation-health, with prescriptive degraded states.
+function costSection(v: View | null): string {
+  const costs = v?.session_costs ?? [];
+  const rec = v?.reconciliation;
+  const errs = rec?.instrumentation_errors ?? 0;
+  const versionBad = (rec?.version_incompatible_events ?? 0) > 0;
+
+  // Degraded states (design §8) — each names its one-step remedy.
+  if (costs.length === 0) {
+    let remedy: string;
+    if (errs > 0) {
+      remedy = `A hook fired but <strong>failed loud</strong> — ${esc(errs)} <code>instrumentation-error</code> event(s) are in the log. Check that <code>node</code> resolves in the session environment and the transcript path is readable, then relaunch.`;
+    } else if (versionBad) {
+      remedy = `Usage events were dropped for version incompatibility. Re-vendor the plugin and rerun <code>harness-init validate</code>.`;
+    } else if (hasData) {
+      // node activity exists but no usage events → the hooks aren't installed/active.
+      remedy = `Node activity is present but <strong>no token-usage events</strong> were captured — the plugin hooks are not installed or not active. Re-vendor the plugin, confirm it is enabled, and run <code>harness-init validate</code> (its live-hook probe confirms capture).`;
+    } else {
+      remedy = `No loop run has emitted usage events yet. Cost appears once the dev-sprint / incremental loop runs with the plugin hooks active.`;
+    }
+    return `<h2>Cost</h2>\n<div class="callout callout-info"><p><strong>No cost data.</strong> ${remedy}</p></div>${versionBanner(v as View)}`;
+  }
+
+  const priceNote = pricingError
+    ? `<div class="callout callout-warning"><p><strong>Pricing unavailable.</strong> ${esc(pricingError)} Token components below are exact; the <em>estimated $</em> column is suppressed until <code>pricing.json</code> is bound.</p></div>`
+    : `<p class="ax-note">Estimated cost at current API rates (prices as of <strong>${esc(pricing?.verified_on ?? "—")}</strong>). On a subscription the real bill is usage-limit-based — the token components are primary; $ is the derived secondary. The cache split is priced at its real multipliers (read 0.1×, 5m-write 1.25×, 1h-write 2×).</p>`;
+
+  const rows = costs.map((p) => {
+    const u = usageOf(p);
+    const ce = cacheEfficiency(u);
+    const usd = pricingError ? null : priceUsage(u, p.model ?? "unknown", pricing);
+    const cc = u.cache_creation_5m + u.cache_creation_1h;
+    return `<tr>
+<td>${esc(KIND_LABEL[p.kind ?? ""] ?? p.kind ?? "—")}</td>
+<td><code>${esc(p.scope_id ?? "—")}</code></td>
+<td><code>${esc(p.model ?? "unknown")}</code></td>
+<td class="ax-num">${fmtK(u.input)}</td>
+<td class="ax-num">${fmtK(u.output)}</td>
+<td class="ax-num">${fmtK(cc)}</td>
+<td class="ax-num">${fmtK(u.cache_read)}</td>
+<td class="ax-num">${fmtK(u.total)}</td>
+<td class="ax-num">${fmtPct(ce)}</td>
+<td class="ax-num">${pricingError ? "—" : fmtUsd(usd)}</td>
+</tr>`;
+  }).join("\n");
+
+  // Reconciliation (instrumentation health) summary.
+  const ineq = rec?.inequality_ok;
+  const ineqLabel = ineq === true ? "✓ Σ child ≤ session" : ineq === false ? "⚠ Σ child &gt; session (breach)" : "— not checkable";
+  const healthRows: string[] = [];
+  if (rec) {
+    healthRows.push(`<div class="ax-stat"><div class="ax-stat-n">${esc(rec.unit_usage ?? 0)}</div><div class="ax-stat-l">IU measures</div></div>`);
+    healthRows.push(`<div class="ax-stat"><div class="ax-stat-n">${esc(rec.session_usage ?? 0)}</div><div class="ax-stat-l">session measures</div></div>`);
+    healthRows.push(`<div class="ax-stat"><div class="ax-stat-n">${esc(rec.dispatch_usage ?? 0)}</div><div class="ax-stat-l">dispatch measures</div></div>`);
+    healthRows.push(`<div class="ax-stat"><div class="ax-stat-n">${esc(errs)}</div><div class="ax-stat-l">instrumentation errors</div></div>`);
+  }
+  const noteList = (rec?.notes ?? []).length
+    ? `<ul class="cost-notes">${(rec!.notes!).map((nt) => `<li>${esc(nt)}</li>`).join("")}</ul>`
+    : "";
+  const healthHtml = rec
+    ? `<h3>Instrumentation health</h3>
+<p class="ax-note">Reconciliation: <strong>${ineqLabel}</strong>. ${rec.rejected_model_token_keys ? `${esc(rec.rejected_model_token_keys)} model-authored token key(s) rejected (fabrication guard). ` : ""}This is the tripwire that catches a cache-blind cost (the historic ~25× gap).</p>
+<div class="ax-stats">${healthRows.join("")}</div>
+${noteList}`
+    : "";
+
+  return `<h2>Cost</h2>
+${priceNote}
+<table class="analytics-table"><thead><tr><th>scope</th><th>id</th><th>model</th><th class="ax-num">input</th><th class="ax-num">output</th><th class="ax-num">cache-write</th><th class="ax-num">cache-read</th><th class="ax-num">total</th><th class="ax-num">cache-eff</th><th class="ax-num">est&nbsp;$</th></tr></thead>
+<tbody>${rows}</tbody></table>
+${healthHtml}
+${versionBanner(v as View)}`;
 }
 
 let dataHtml: string;
@@ -226,7 +373,7 @@ const out = renderSurfacePage({
   slug: "",
   page,
   nav: [{ group: "Workspace", pages: [""] }],
-  bodyHtml: banner + introHtml + dataHtml,
+  bodyHtml: banner + introHtml + dataHtml + costSection(view),
   pageLabel: () => "Analytics",
   showToc: false,
   layoutVariant: "app",
@@ -249,6 +396,9 @@ const out = renderSurfacePage({
 .ax-stage { font-family: var(--mono); font-size:.74rem; background: var(--code-bg); border:1px solid var(--hair); border-radius:999px; padding:.1em .6em; color: var(--fg-soft); }
 .ax-arrow { color: var(--mute); }
 .ax-note { font-size:.82rem; color: var(--mute); }
+.cost-unknown { color: #d9a514; font-style: italic; }
+.cost-notes { font-size:.8rem; color: var(--mute); margin:.4em 0 1em 1.1em; }
+.cost-notes li { margin:.15em 0; }
 </style>`,
 });
 
