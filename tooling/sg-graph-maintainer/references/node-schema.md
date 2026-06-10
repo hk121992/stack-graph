@@ -55,6 +55,11 @@ This constraint is enforced by validate mode. Violations are hard failures.
 | `command` | `collaborative` or `autonomous` | depends on whether it engages the operator |
 | `script` | `autonomous` | scripts run unattended to a result |
 
+`mode` classifies the **default, hand-run** posture. A skill may render an **unattended body
+mode** (the `review`-headless / `specify-slice`-unattended pattern) without violating
+`collaborative`, provided that branch **routes out rather than proceeds** on any decision it
+would otherwise put to the operator. Validate checks the frontmatter `mode`, not body branches.
+
 ## Edge taxonomy
 
 All edges are directed (`from → to`). Structural and composition edges are acyclic.

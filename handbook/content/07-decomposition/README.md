@@ -163,7 +163,7 @@ Recurring shapes a pack composes from:
   declares **`invokes`** to the stages it reaches into, **no `composes-into`**, and **no process
   edges** — the dispatched sessions traverse the arc, the dispatcher never does; the stage nodes
   inside each session emit the carrier-keyed events the projection reads. `loop-runner` over the
-  incremental arc's `build → review` span is the worked case. **Distinguish from `verify`:** verify
+  incremental arc's `specify-slice → review` span is the worked case. **Distinguish from `verify`:** verify
   **is** a stage dispatching non-stage *modalities*; the dispatcher is **not** a stage and dispatches
   the arc's **own stages**.
 - **A zone matrix.** A function that must *examine a product across two responsibilities at once*

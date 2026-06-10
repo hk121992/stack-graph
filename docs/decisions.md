@@ -1145,18 +1145,30 @@ harness-side (needs a bound `architecture-reviews-root`), per the Phase-C rehear
 ---
 
 **D67 — The incremental loop gains an arc-level dispatcher: `loop-runner`, one fresh agent session
-per standalone IU (orchestrator-over-traversals), with specify-slice pulled back to attended
-intake.** Source: issue #19, filed from the first production batch run of the incremental loop
+per standalone IU (orchestrator-over-traversals), and the arc front is re-split human-facing vs
+mechanical: `triage` reinforced to raise-time capture-and-decide (all operator questions on the
+spot), `specify-slice` lightened to formalise-and-enforce, unattended in the dispatched session.**
+Source: issue #19, filed from the first production batch run of the incremental loop
 (be-civic, 2026-06-10, 6 IUs) — sequential-single-session worked but degraded by IU 4 (build's own
 fresh-window doctrine, lifted to the arc level), and one IU accidentally ran cold off the carrier
-file alone, proving carrier-lite self-sufficiency for one-IU-per-session dispatch. The node (skill,
+file alone, proving carrier-lite self-sufficiency for one-IU-per-session dispatch. *The front
+(operator redesign, design §10):* "raise an IU" triggers `triage`, which routes (technical/
+bug-shaped tie-breaker — specification derivable from carrier + codebase, no product judgment ⇒
+incremental), **harvests the raising conversation** into the carrier body (`## Context` verbatim
+evidence + `## Decisions` incl. the AFK/HITL call), gap-checks against the **cold-handoff test**
+(a fresh agent with only the carrier + repo could implement and prove it — the IU-schema
+loop-eligibility invariant) and asks the remaining 0–2 questions **now** — it may not hand off a
+carrier that fails the test. `specify-slice` keeps its arc seat but gains an **unattended mode**
+(the review-headless pattern): it renders the captured definition into the content fields and
+enforces the invariants, routing out on gaps (never asking). The dispatcher (skill,
 collaborative, generative; **no `composes-into`, no process edges** — the dispatched sessions
-traverse the arc, the dispatcher never does) owns intake (operator approves the batch subset;
-`specify-slice` runs **attended at intake**, honouring its collaborative contract — a deliberate
-deviation from the issue's sketch, forced by review round 1), the autonomous dispatch span (frozen
-per-repo base-ref; mandatory worktree isolation per IU per repo, branch `iu/<id>`; stacked branches
-for dependents; no-shared-`files` serialisation; concurrency dial default 3; five-bucket return
-envelope `built | review-flagged | escalated | hitl-parked | blocked` — route-outs park, never
+traverse the arc, the dispatcher never does) owns intake (operator approves the batch subset; a
+**decision-completeness gate** with define-now-attended fallback), the autonomous dispatch span
+(entry `specify-slice (unattended) → build → review`; frozen per-repo base-ref; mandatory worktree
+isolation per IU per repo, branch `iu/<id>`; stacked branches for dependents; **late-binding**
+no-shared-scope serialisation — improves-overlap at intake, formalised `files` read off
+specify-slice's stage-exit event; concurrency dial default 3; five-bucket return envelope
+`built | review-flagged | escalated | hitl-parked | blocked` — route-outs park, never
 retry, dependents transitively parked; sessions write worktree + own carrier only, the manifest is
 coordinator-regenerated, escalation is coordinator-enacted attended), and the close (integration
 **dry-run** in a discarded scratch worktree re-running each slice's `acceptance_check` on the merged
@@ -1167,7 +1179,13 @@ unit-complete class) carrying **`tokens_per_session`** — a defined superset of
 measure (sequential baseline ~35–80k output tokens/IU); dispatcher's own enter/exit are non-carrier
 events on the factory-conformance stream; event appends contracted as one-line single `O_APPEND`
 writes. *Reviews:* two adversarial rounds (Opus panel + Codex), both REWORK, 19 findings accepted +
-resolved in `docs/loop-runner-design.md` §8–§9. *Built:* the node (validate PASS); spec amendments
+resolved in `docs/loop-runner-design.md` §8–§9; round 1's attended-intake resolution of H1 was then
+superseded by the operator's raise-time redesign (§10) — the contract finding stands, resolved
+upstream — and a **third adversarial round** over the revision-3 artefacts (APPROVE-WITH-FIXES, all
+applied: dependency exception to no-shared-scope; the unattended-body-mode validate carve-out
+written into 02-graph-spec; dependency-as-raise-decision; `invokes: triage` define-now fallback;
+intake-vs-mid-dispatch split for insufficiently-defined — §11). *Built:* the node (validate PASS);
+triage + specify-slice amended per §10; spec amendments
 to 02-graph-spec (traversal is carrier-scoped, not session-scoped), 07-decomposition
 (orchestrator-over-traversals beside the verify worked case), 06-analytics (dispatch-complete +
 tokens_per_session + append contract + conformance-stream routing); and the **projection triple-key

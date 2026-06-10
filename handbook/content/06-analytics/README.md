@@ -258,8 +258,8 @@ arc's stages as one fresh session per carrier, it emits a per-IU **`dispatch-com
 `current_stage`** — the carrier's stage projection comes only from the stage nodes' enter/exit events
 inside the dispatched session.
 
-**`tokens_per_session`** is the dispatched session's **whole cost** — build span + review span + session
-overhead — a **superset of** `tokens_per_iu`. `tokens_per_iu` remains canonical for the IU-sizing dial
+**`tokens_per_session`** is the dispatched session's **whole cost** — the specify, build, and review
+spans + session overhead — a **superset of** `tokens_per_iu`. `tokens_per_iu` remains canonical for the IU-sizing dial
 above; `tokens_per_session` is the **dispatch-efficiency** measure (the dispatched-vs-sequential
 comparison).
 

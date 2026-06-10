@@ -1,9 +1,9 @@
 {
-  "generated": "2026-06-10T08:30:00Z",
+  "generated": "2026-06-10T12:30:00Z",
   "node_count": 44,
   "reference_count": 25,
   "handbook_reference_count": 0,
-  "edge_count": 220,
+  "edge_count": 221,
   "nodes": {
     "align-context": {
       "primitive": "skill",
@@ -732,9 +732,12 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Loop runner",
-      "status": "v0.1.0 — 2026-06-10",
+      "status": "v0.2.0 — 2026-06-10",
       "edges": {
         "invokes": [
+          {
+            "id": "triage"
+          },
           {
             "id": "specify-slice"
           },
@@ -1217,7 +1220,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Specify slice",
-      "status": "v0.1.0 — 2026-06-04",
+      "status": "v0.2.0 — 2026-06-10",
       "edges": {
         "invokes": [
           {
@@ -1319,7 +1322,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Triage",
-      "status": "v0.1.0 — 2026-06-04",
+      "status": "v0.2.0 — 2026-06-10",
       "edges": {
         "composes-into": [
           {
@@ -1407,7 +1410,7 @@
     "IU-schema": {
       "kind": "reference",
       "title": "Implementation-Unit schema — the plan↔build field contract (two shapes)",
-      "status": "v0.6.0 — 2026-06-05",
+      "status": "v0.7.0 — 2026-06-10",
       "consumed_by": [
         "build",
         "loop-runner",
@@ -2210,6 +2213,11 @@
       "to": "debrief",
       "type": "precedes",
       "arc": "dev-sprint"
+    },
+    {
+      "from": "loop-runner",
+      "to": "triage",
+      "type": "invokes"
     },
     {
       "from": "loop-runner",

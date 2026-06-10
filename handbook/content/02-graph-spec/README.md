@@ -392,8 +392,13 @@ status: v0.1.0 — 2026-05-30
 
 `primitive:` names the `.claude` element this node builds into — using the Claude
 taxonomy, not an invented type. `mode:` must agree with it (collaborative↔skill,
-autonomous↔agent). `status:` is required **on node files** (a node versions the primitive it
-builds into) — unlike handbook pages, which carry no status.
+autonomous↔agent). `mode` classifies the node's **default, hand-run** operator posture: a skill
+may render an **unattended body mode** (the `review`-headless / `specify-slice`-unattended
+pattern) without violating `collaborative`, provided that branch **routes out rather than
+proceeds** on any decision it would otherwise put to the operator — validate checks the
+frontmatter `mode` against the default posture, not against body branches. `status:` is required
+**on node files** (a node versions the primitive it builds into) — unlike handbook pages, which
+carry no status.
 
 ## Storage & projection
 

@@ -4,7 +4,8 @@ type: research-report
 status: complete
 authored: 2026-06-10
 last_updated: 2026-06-10
-amended: []
+amended:
+  - "2026-06-10 — design §10 / D67: raise-time capture re-split. specify-slice returns to the dispatched session unattended; intake gains a decision-completeness gate; entry stage = specify-slice; tokens_per_session spans specify+build+review."
 sources_lifted: 4
 external_analogue_found: true
 external_corpora_searched:
@@ -264,3 +265,70 @@ exist in `graph/_refs/` (verified on disk). All targets resolve.
   dispatch-complete + tokens_per_session) and §7.3 a workspace-backend change (publish-projection.ts
   triple-key + allowlists). These are NOT this node's body; flag them to the driver so the maintainer
   routes them (the node body should not try to carry spec text).
+
+## Amendment — 2026-06-10 (design §10 / D67): raise-time capture, the front re-split
+
+After rounds 1–2 the operator redesigned the arc front (design `docs/loop-runner-design.md` §10,
+revision 3). The round-1 H1 resolution — push specification to **attended intake** because
+specify-slice is collaborative — is **superseded**. The contradiction is now resolved **upstream**:
+all operator questions move to **raise time at `triage`** (which harvests the live conversation into
+the carrier body — `## Context` + `## Decisions`), and **`specify-slice` is lightened** to a
+formalise-and-enforce pass with an **unattended mode** (the same body-mode pattern as `review`'s
+headless). The dispatched session therefore runs **`specify-slice (unattended) → build → review`**, and
+returns with nothing left to ask. Field evidence supports it: the chip-spawned cold session ran
+specify → build off the carrier alone and succeeded.
+
+**What changes in the loop-runner body (transcribe from design §10 + the §4 knock-ons — not a
+re-design):**
+
+1. **Intro + "What you are — and are not".** IUs arrive **decision-complete from raise time**; the
+   dispatched session runs `specify-slice (unattended) → build → review`. Drop the "build-ready
+   attended (specify-slice at intake)" framing.
+2. **Phase 0 step 3 — the decision-completeness gate** replaces "Specify attended." Per approved IU,
+   verify the carrier body carries `## Context` (verbatim evidence — observed vs expected, repro,
+   pointers) and `## Decisions` (every call settled, incl. the AFK/HITL call) and **no unresolved fork
+   remains in prose** — the IU-schema loop-eligibility invariant. An under-defined stub does **not**
+   dispatch: the fallback is **define-now attended** (run the raise-capture Q&A at intake — the
+   operator is present anyway) or park.
+3. **Phase 0 step 4 — pre-park** reads the AFK/HITL call from the carrier's recorded **Decisions** (the
+   `slice_type` is *formalised* in-session by specify-slice; the *decision* is readable at intake from
+   the Decisions record).
+4. **Phase 0 step 6 — late-binding no-shared-scope rule.** `files` is formalised in-session, so at
+   intake serialise on **`improves`-target overlap + the Context section's declared scope** (the
+   provisional map); then **late-bind** — specify-slice's carrier-keyed **stage-exit event carries the
+   formalised `files`**, and the coordinator re-checks overlap against in-flight sets before each
+   subsequent dispatch. An already-formalised IU uses its real `files` directly. The Phase-2 dry-run is
+   the backstop.
+5. **Phase 1 step 2 — spawn bundle entry stage = `specify-slice` (unattended)** (entry `build` when
+   the IU is already formalised). Session span = `specify-slice → build → review`. specify-slice
+   formalises the captured definition into the content fields and **enforces** the invariants (routing
+   out on a gap, never asking).
+6. **Phase 1 step 3 — return-envelope route-outs.** `hitl-parked` rationale: the AFK/HITL decision is
+   recorded at raise and read at the intake pre-park, so this is rare post-intake (catches discoveries,
+   not known tags). `blocked` gains the **insufficiently-defined** reason: a carrier specify-slice could
+   not formalise without asking → back to raise-capture.
+7. **Phase 1 step 4 — `tokens_per_session`** = the **specify, build, and review spans + session
+   overhead** (was "build span + review span + session overhead").
+8. **Instrumentation — add the late-binding bullet:** specify-slice's stage-exit event carries the
+   formalised `files` — the scheduling signal the coordinator reads to late-bind the no-shared-scope
+   check.
+9. **Frontmatter edge comments.** `invokes specify-slice` = "the dispatched session's ENTRY stage
+   (unattended mode); also the intake define-now fallback (attended)". `invokes build` = "reached
+   inside the session via specify-slice's own `precedes`; also a direct entry when already formalised".
+   **The edges THEMSELVES are unchanged** (`invokes specify-slice / build / land` + the five
+   references).
+10. **Goal 1 metric** span wording → "(specify span + build span + review span + session overhead)".
+    Goal 3's route-out bucket list already names the buckets — keep.
+
+The primitive/mode/determinism (skill / collaborative / generative) are **unchanged**: loop-runner
+stays collaborative-bookended (batch-subset approval at intake; per-IU land decision at close) with an
+autonomous dispatch span between. The cold-handoff completeness contract is homed in `IU-schema` as the
+**loop-eligibility invariant** (amended in the same wave) — loop-runner's Phase 0.3 gate is the
+consumer of that invariant.
+
+## Review fix-pass — round 3 (2026-06-10)
+
+Adversarial review of revision 3 (design §11) applied to the canonical: dependency exception to
+the no-shared-scope rule (R3-H1); stub candidate card contents (R3-M1); dependency source for
+stubs = the `## Decisions` record (R3-M2); `invokes: triage` edge added for the intake define-now
+fallback (R3-M3); Phase 0.5 scope-mapping wording covers stubs. Edges: +1 (`invokes: triage`).
