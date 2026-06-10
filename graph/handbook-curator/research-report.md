@@ -3,10 +3,12 @@ title: Research report for handbook-curator
 type: research-report
 status: complete
 authored: 2026-05-31
-last_updated: 2026-06-03
+last_updated: 2026-06-10
 amended:
   - date: 2026-06-03
     note: "Backfill — full template populated; source-material lifted (bc-handbook-curator SKILL.md + design doc + what-belongs + bundling-rules + sg-handbook-curator SKILL.md); external analogues section added; challenge findings authored against bc counterpart and Anthropic skill best-practices"
+  - date: 2026-06-10
+    note: "D68 — integrate mode goes LIVE (was contract-recorded/deferred per D40). Fleet authored: consistency-checker + link-validator agent nodes (invokes edges added) and the integrator-checklist reference (references edge added). The mode body follows the factory's D68 build (11 Codex review rounds): merged-preview worktree for post-merge validation, post-preview candidate-set scoping, re-validation on merge-set/order change, chat-resolved decisions recorded as PR comments pre-merge, post-batch index refresh as the one sanctioned direct commit. Merge-walk gate detail delegated to the integrator-checklist reference. Status v0.1.0 → v0.2.0."
 sources_lifted: 5
 external_analogue_found: true
 external_corpora_searched:
