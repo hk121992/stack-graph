@@ -1219,4 +1219,9 @@ regenerated index is a generated artifact, not authored canon, and is carved out
 PR-only hard constraint accordingly. `08-devops` "not yet shipped" line amended. Deliberate
 divergence from `bc-handbook-curator`'s live integrate: single repo / single label (no claude-md
 surfaces — factory has none), the two checker agents bc lacks, and chat-resolution instead of
-bc's per-item `AskUserQuestion`. *Status:* Decided; built.
+bc's per-item `AskUserQuestion`. *Graph-cell parity (same PR):* the vendored `handbook-curator`
+node's integrate mode goes live (v0.2.0), with `consistency-checker` + `link-validator` authored
+as generalised agent nodes (overlay-supplied repo/label; the canon's own index contract in the
+spawn bundle) and `integrator-checklist` as a `_refs` reference. Record 46 nodes / 26 refs /
+224 edges; touched nodes validate PASS. *Status:* Decided; built (tooling + graph cell); plugin
+vendor bump post-merge.
