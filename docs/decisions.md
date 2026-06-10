@@ -1141,3 +1141,39 @@ bundling — a copied ref's pointer never dangles in an installed plugin — and
 parser now folds **block scalars**, un-mangling every vendored description repo-wide);
 factory-side verification structural (vendor parity + G2 load-verify); the live first run is
 harness-side (needs a bound `architecture-reviews-root`), per the Phase-C rehearsal pattern.
+
+---
+
+**D67 — The incremental loop gains an arc-level dispatcher: `loop-runner`, one fresh agent session
+per standalone IU (orchestrator-over-traversals), with specify-slice pulled back to attended
+intake.** Source: issue #19, filed from the first production batch run of the incremental loop
+(be-civic, 2026-06-10, 6 IUs) — sequential-single-session worked but degraded by IU 4 (build's own
+fresh-window doctrine, lifted to the arc level), and one IU accidentally ran cold off the carrier
+file alone, proving carrier-lite self-sufficiency for one-IU-per-session dispatch. The node (skill,
+collaborative, generative; **no `composes-into`, no process edges** — the dispatched sessions
+traverse the arc, the dispatcher never does) owns intake (operator approves the batch subset;
+`specify-slice` runs **attended at intake**, honouring its collaborative contract — a deliberate
+deviation from the issue's sketch, forced by review round 1), the autonomous dispatch span (frozen
+per-repo base-ref; mandatory worktree isolation per IU per repo, branch `iu/<id>`; stacked branches
+for dependents; no-shared-`files` serialisation; concurrency dial default 3; five-bucket return
+envelope `built | review-flagged | escalated | hitl-parked | blocked` — route-outs park, never
+retry, dependents transitively parked; sessions write worktree + own carrier only, the manifest is
+coordinator-regenerated, escalation is coordinator-enacted attended), and the close (integration
+**dry-run** in a discarded scratch worktree re-running each slice's `acceptance_check` on the merged
+tree; per-IU land queue — **land owns the real merge and the single commit-to-land gate**; teardown
+`-d` never `-D`, parked branches retained). Measurement: per-IU **`dispatch-complete`** event (the
+unit-complete class) carrying **`tokens_per_session`** — a defined superset of build's
+`tokens_per_iu` (which stays canonical for IU sizing), the dispatch-vs-sequential calibration
+measure (sequential baseline ~35–80k output tokens/IU); dispatcher's own enter/exit are non-carrier
+events on the factory-conformance stream; event appends contracted as one-line single `O_APPEND`
+writes. *Reviews:* two adversarial rounds (Opus panel + Codex), both REWORK, 19 findings accepted +
+resolved in `docs/loop-runner-design.md` §8–§9. *Built:* the node (validate PASS); spec amendments
+to 02-graph-spec (traversal is carrier-scoped, not session-scoped), 07-decomposition
+(orchestrator-over-traversals beside the verify worked case), 06-analytics (dispatch-complete +
+tokens_per_session + append contract + conformance-stream routing); and the **projection triple-key
+un-gated** — `publish-projection.ts` now keys `current_stage` by `(carrier_id, carrier_kind, arc)`
+(its gating input, real incremental events, now exists; concurrent dispatch makes it mandatory),
+admits `dispatch-complete`/`tokens_per_session` under closed allowlists, excludes legacy
+kind/arc-less events from stage projection (degrade, never guess); 32/32 publisher checks pass.
+*Record:* 44 nodes / 25 refs / 220 edges. *Status:* Decided; built + validated; PR open; plugin
+vendor bump is the standard post-merge `chore(vendor)`; first live batch run is harness-side.

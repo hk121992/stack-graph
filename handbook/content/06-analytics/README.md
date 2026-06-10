@@ -248,6 +248,28 @@ jobs: it calibrates the dial per model, and it is a **decomposition-quality** si
 `plan` — a persistently high share means IUs are drawn too coarse (the same shape as "weak
 acceptance is a *plan* gap, not a *build* gap").
 
+### Per-session cost — `dispatch-complete` and `tokens_per_session`
+
+When an **arc-level dispatcher** ([decomposition](../07-decomposition/README.md)) runs a span of an
+arc's stages as one fresh session per carrier, it emits a per-IU **`dispatch-complete`** event — the
+**same hook-captured subagent-completion event class as `unit-complete`** (the D57 mechanism). It is
+**carrier-keyed** (`carrier_id`, `carrier_kind`, `arc`), carries the dispatch outcome, and carries
+**`tokens_per_session`**. Like `unit-complete`, it is a **measure event the projection never reads for
+`current_stage`** — the carrier's stage projection comes only from the stage nodes' enter/exit events
+inside the dispatched session.
+
+**`tokens_per_session`** is the dispatched session's **whole cost** — build span + review span + session
+overhead — a **superset of** `tokens_per_iu`. `tokens_per_iu` remains canonical for the IU-sizing dial
+above; `tokens_per_session` is the **dispatch-efficiency** measure (the dispatched-vs-sequential
+comparison).
+
+**Append contract for concurrent sessions.** When sessions dispatched concurrently append to the same
+event log, **one event = one whole line written in a single `O_APPEND` write** — never a buffered
+multi-write — so concurrent appends cannot interleave partial records.
+
+An arc-level dispatcher's **own** node-enter/-exit events are **non-carrier events**: they are routed to
+the **factory-conformance stream**, not product-outcomes, so they never touch the carrier projection.
+
 ## The improvement loop
 
 **instrument → review → reconcile → amend.** Read the timeline and the per-node metrics;

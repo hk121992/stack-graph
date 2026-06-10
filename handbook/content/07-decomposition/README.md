@@ -157,6 +157,15 @@ Recurring shapes a pack composes from:
   their findings into one ranked set, surfaces a single verification gate, and owns the corrective
   loop back to `build`. The orchestrator owns the stage; each modality is its own node routed by
   the context axis.
+- **An arc-level dispatcher (orchestrator-over-traversals).** The sibling of the above, one level
+  up: a node that owns **carrier selection, isolation, concurrency, and route-out handling**, and
+  dispatches **one fresh agent session per carrier** through a span of an arc's **own stages**. It
+  declares **`invokes`** to the stages it reaches into, **no `composes-into`**, and **no process
+  edges** — the dispatched sessions traverse the arc, the dispatcher never does; the stage nodes
+  inside each session emit the carrier-keyed events the projection reads. `loop-runner` over the
+  incremental arc's `build → review` span is the worked case. **Distinguish from `verify`:** verify
+  **is** a stage dispatching non-stage *modalities*; the dispatcher is **not** a stage and dispatches
+  the arc's **own stages**.
 - **A zone matrix.** A function that must *examine a product across two responsibilities at once*
   decomposes as a **lens over a matrix**, not a new arc: **verticals** (product-owned customer
   experiences) × **horizontals** (eng-owned architecture layers), the **cell** their intersection.
