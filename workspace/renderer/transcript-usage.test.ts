@@ -62,6 +62,9 @@ if (r) {
     // skipped_lines counts the no-usage assistant + the truncated final line (= 2).
     ["skipped_lines counts no-usage + truncated (= 2)", r.skipped_lines === EXPECT.skipped_lines],
 
+    // deduped_message_ids counts the one id (msg_01Ebfg…) that had a duplicate collapsed.
+    ["deduped_message_ids = 1 (msg_01Ebfg… collapsed)", r.deduped_message_ids === 1],
+
     // Flat-fallback emits a warning (msg E had its cache_creation split removed).
     ["flat-fallback emits exactly 1 warning", r.warnings.length === 1],
     ["flat-fallback warning names the 5m attribution", r.warnings.some((w) => w.includes("5m bucket"))],

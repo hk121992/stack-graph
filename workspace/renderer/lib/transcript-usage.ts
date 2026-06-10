@@ -23,6 +23,10 @@ export interface UsageComponents {
 export interface SumUsageResult extends UsageComponents {
   by_model: Record<string, UsageComponents>;
   counted_messages: number;
+  /** Count of DISTINCT `message.id`s for which a duplicate occurrence was collapsed (the
+   *  max-total tie-break fired ≥1 time). Surfaced by the `sg-token-usage` CLI (design §10) so a
+   *  caller can see how much streamed/partial/retry de-duplication happened. */
+  deduped_message_ids: number;
   skipped_lines: number;
   warnings: string[];
 }
@@ -122,6 +126,8 @@ export function sumUsage(transcriptPath: string, _opts?: SumUsageOptions): SumUs
 
   // Keep the MAX-total occurrence per message.id (the dedup tie-break).
   const best = new Map<string, { model: string; comp: UsageComponents }>();
+  // Distinct ids that saw ≥1 duplicate occurrence collapsed (for deduped_message_ids).
+  const dedupedIds = new Set<string>();
 
   const lines = text.split("\n");
   for (const line of lines) {
@@ -163,6 +169,7 @@ export function sumUsage(transcriptPath: string, _opts?: SumUsageOptions): SumUs
     }
 
     const prior = best.get(id);
+    if (prior) dedupedIds.add(id); // a second+ occurrence of this id — a dedup collapse
     if (!prior || comp.total > prior.comp.total) {
       best.set(id, { model, comp });
     }
@@ -183,6 +190,7 @@ export function sumUsage(transcriptPath: string, _opts?: SumUsageOptions): SumUs
     ...overall,
     by_model,
     counted_messages,
+    deduped_message_ids: dedupedIds.size,
     skipped_lines,
     warnings,
   };
