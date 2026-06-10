@@ -3,7 +3,7 @@ title: Research report for specify-slice
 type: research-report
 status: complete
 authored: 2026-06-04
-last_updated: 2026-06-04
+last_updated: 2026-06-10
 sources_lifted: 0
 external_analogue_found: true
 external_corpora_searched:
@@ -198,3 +198,138 @@ arc resolves once the batch lands). `escalates` is the just-added edge type in t
 - **`escalates` runtime behaviour** (create-or-reuse the work-item carrier; close the standalone IU
   as `dropped`, reason promoted; record the two-way provenance link) is spec prose, not edge
   metadata — the body names it; the carrier mechanics live in the harness.
+
+---
+
+## Amendment 2026-06-10 — lightened to formalise-and-enforce; `unattended` body mode (D67)
+
+**Source:** `docs/loop-runner-design.md` §10 (operator redesign of the incremental-arc front,
+2026-06-10) + §2/§4 (the dispatched-session context the new mode serves). Filed against
+[issue #19](https://github.com/hk121992/stack-graph/issues/19). This amendment **lightens** the
+node from *define-with-the-operator* to *formalise-and-enforce*, and adds a second body mode
+(`unattended`) mirroring `review`'s headless/autofix mode pattern (D34 — modes are body branches,
+not new nodes). No edges change; no schema fields are invented.
+
+### What changed and why
+
+The operator redesigned the arc front (§10) into a **human-facing vs mechanical** split, not the
+original route-vs-define split:
+
+- **`triage` (reinforced)** now owns the operator Q&A **at raise time** — it harvests the live
+  conversation into the carrier body as `## Context` (verbatim evidence: observed vs expected,
+  repro, error output, pointers) and `## Decisions` (every call settled, **including the AFK/HITL
+  call**), gap-checks against the **cold-handoff test**, and asks the remaining questions then
+  (typically 0–2). It never hands off a carrier that fails the cold-handoff test (new invariant,
+  homed in IU-schema as the loop-eligibility invariant).
+- **`specify-slice` (lightened — this node)** therefore receives a **decision-complete carrier**
+  and has **nothing to ask in the normal case**. Its job is reframed to **translation +
+  enforcement**: RENDER the captured definition into the formal content fields, ENFORCE the
+  invariants exactly as before. The original Phase-2 "with the operator, author…" interview posture
+  is removed; the operator-interaction goal implications are recast.
+
+This resolves Review round 1's H1 (an `invokes: specify-slice` for an *unattended* dispatched
+session contradicted the `collaborative` contract): the contradiction is dissolved **upstream** —
+all operator questions move to raise time, and specify-slice gains a mode in which there is nothing
+left to ask. The field evidence supports it: the chip-spawned cold session ran specify → build off
+the carrier file alone and succeeded (design §1, §2).
+
+### Input contract change
+
+| | before (v0.1.0) | after (this amendment) |
+|---|---|---|
+| Input | a `proposed` stub `triage` scaffolded + the operator's intent, gathered interactively here | a **decision-complete carrier** from triage: identity frontmatter **plus** a definition body carrying `## Context` (verbatim evidence) and `## Decisions` (every call settled, incl. the AFK/HITL call) |
+| Posture | define-with-the-operator (slice-spec conversation, rounds) | formalise-and-enforce (derive/confirm from the carrier's Context + Decisions; translation, not specification) |
+
+### Job reframed — translation + enforcement (not specification)
+
+- **RENDER** the captured definition into the formal content fields:
+  `goal / files / acceptance / acceptance_check / dependencies / size / slice_type / verification`,
+  using `explore` (Phase 1, unchanged) for **mechanical detail only** — exact paths, the right test
+  command. `slice_type` is **formalised FROM the recorded decision** (the AFK/HITL call already
+  lives in the carrier's Decisions); `hitl_point` is written when the decision is HITL.
+- **ENFORCE** the vertical-slice / testing / single-slice invariants **exactly as today** — this is
+  unchanged. A gap is a route-out (see the mode contract), never a downstream malformity.
+
+### New body mode — `unattended` (mirrors `review`'s mode pattern)
+
+`review` already renders its modes as **branches of one skill body** (`interactive` / `autofix` /
+`report-only` / `headless`) — the differences are purely operator-interaction + mutation policy,
+one `lens-dispatch`, one scope bundle (D34). specify-slice gains the same shape with **two modes**:
+
+- **`collaborative`** (the hand-run default; the frontmatter `mode: collaborative` is unchanged) —
+  the operator is present; a gap or a fork can be discussed and resolved in-session as before.
+- **`unattended`** (the default *when reached inside a loop-runner-dispatched session*) — **it asks
+  NOTHING.** Two route-out branches replace every operator turn:
+  - a **gap it cannot formalise without a question** → return `blocked: insufficiently-defined`
+    (reason recorded; back to raise-capture at triage). The carrier was not decision-complete; the
+    fix is upstream, not a mid-loop question.
+  - a **fork that only surfaces at formalisation** → this is the **escalate signal**, but in a
+    dispatched session the node **does NOT enact** the escalate path (enacting `escalates` mutates
+    shared surfaces — the work-item create + the `dropped` write — which the dispatched-session
+    write discipline forbids; design §4: a session writes its worktree + its own carrier only). It
+    **stops and returns the escalate signal + rationale to the coordinator**, which enacts attended
+    at the close phase (design §4 Phase 1.3). In the **attended** (`collaborative`) case the
+    existing escalate section applies unchanged — the node enacts it itself.
+
+`unattended` is a **body mode**, exactly like review's `headless` — the frontmatter `mode:`
+classification stays `collaborative` (the node's hand-run character; the graph-lens `mode:` is not
+per-invocation). This keeps `primitive: skill ↔ mode: collaborative` agreement intact and avoids
+inventing a schema field.
+
+### Stage-exit event carries the formalised `files`
+
+The node's stage-complete signal (the imported instrumentation node-exit event) **carries the
+formalised `files`** — this is the coordinator's **late-binding scheduling signal** (design §5,
+§4 Phase 0.6): loop-runner serialises at intake on provisional scope (improves-overlap + the
+Context section's declared scope), then re-checks the **formalised** `files` off this event before
+each subsequent dispatch (build's Parallel Safety Check lifted to the batch level). State this
+where the node-exit signal is emitted (Phase 6 / Output). No new edge, no new field — the existing
+node-exit event simply now carries `files` as part of its payload.
+
+### What is unchanged
+
+- **Edges** — all unchanged: `invokes explore`; `composes-into { incremental, stage: specify-slice }`;
+  `references { IU-schema import, carrier-interface on-demand, instrumentation-preamble import,
+  lens-dispatch on-demand, work-item-schema on-demand }`; `can-follow triage`; `precedes build`;
+  `escalates align-context`. The frontmatter comment block is updated to the new character (the
+  edges-block comment text), not the edge set.
+- **Phase 1 (explore)** stays — now framed as mechanical-detail fill, not context-for-an-interview.
+- **Phase 5 (optional single coherence lens)** stays, off by default.
+- **The escalate section** stays for attended runs; the unattended variant (**signal, don't enact**)
+  is added.
+- **The three-writers no-lifecycle-write discipline** is unchanged (and reinforced by the
+  dispatched-session write discipline: worktree + own carrier only).
+
+### Goals — recast to the new character
+
+- The "well-specified slice enters build" goal **stays** (the build never invents the boundary or
+  the test contract) — its metric/earns-keep hold.
+- The operator-interaction implication is **recast**: under `unattended`, **mid-loop operator
+  questions are zero by construction** — a gap routes out (`blocked: insufficiently-defined`) rather
+  than asking. A non-zero mid-loop question rate in a dispatched session is therefore a *triage*
+  completeness failure (the carrier was not decision-complete), surfaced as a route-out, not a
+  specify-slice cost.
+- A **formalisation-fidelity** goal is added: the content fields are **faithfully derived** from the
+  captured definition (Context + Decisions) — measured by build-stage re-asks (already tracked) plus
+  the rate of route-outs attributable to a carrier that *was* complete but was mis-rendered
+  (formalisation error) vs genuinely under-defined (a triage gap). The fidelity dial: route-outs
+  should attribute to upstream incompleteness, not to this node losing information in translation.
+
+### Conformance after amendment
+
+- `primitive: skill ↔ mode: collaborative` — **still agrees** (`unattended` is a body mode, not a
+  frontmatter classification; the node's hand-run character is collaborative).
+- No schema fields invented: `unattended` is prose (a body branch); `blocked: insufficiently-defined`
+  is the loop-runner return-envelope outcome+reason (design §4 Phase 1.3), not a new carrier field;
+  the stage-exit event carrying `files` reuses the existing node-exit payload.
+- Edges unchanged → edge-target resolution unaffected; validate-clean expected.
+- Language standard: the lightening **shortens** the body — the interview posture ("you hold the
+  operator in the loop"; "with the operator, author…"; "reshaped with the operator") is removed/recast
+  to deriving-and-confirming, which is terser. The safety exception holds (the escalate-enact-vs-signal
+  distinction is order-bearing and stated explicitly, not compressed).
+
+## Review fix-pass — round 3 (2026-06-10)
+
+Design §11 fixes applied to the canonical: the files-carrying event in Phase 6 is named
+**stage-exit** (was node-exit; R3-L3). The unattended-mode legality carve-out is now written into
+02-graph-spec + the maintainer node-schema reference (R3-H2) — no body change needed here.

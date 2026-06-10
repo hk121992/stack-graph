@@ -3,8 +3,10 @@ title: Research report for triage
 type: research-report
 status: complete
 authored: 2026-06-04
-last_updated: 2026-06-04
-amended: []
+last_updated: 2026-06-10
+amended:
+  - date: 2026-06-10
+    hint: "D67 / loop-runner-design §10 — triage becomes the raise-time capture-and-decide node: 'raise an IU' trigger; technical/bug-shaped route tie-breaker; writes the definition body (Context + Decisions) on the carrier; propose-don't-interrogate question discipline; the cold-handoff test invariant; specify-slice now formalise-and-enforce (unattended in a dispatched session). Edges unchanged."
 sources_lifted: 0
 external_analogue_found: true
 external_corpora_searched:
@@ -205,3 +207,101 @@ once the sibling lands.
 - **`escalates` arc note.** The escalation creates-or-reuses a work-item carrier and records two-way
   provenance — that runtime behaviour is body prose, not edge metadata (per the taxonomy). The body
   states it; the spec (`02-graph-spec` escalates semantics) is the canonical source.
+
+---
+
+## Amendment — 2026-06-10 (D67 / loop-runner-design §10): raise-time capture-and-decide
+
+**Why.** The loop-runner design (`docs/loop-runner-design.md`) dispatches a batch of standalone IUs,
+one fresh agent session per IU, running `specify-slice (unattended) → build → review` against the
+carrier file alone. For that to be safe, each IU must be **decision-complete from raise time** — no
+operator question can surface mid-loop. Rounds 1–2 first resolved this by attended intake; the
+**operator redesign (§10)** moved it upstream instead: **all operator questions happen at `triage`,
+on the spot, in the session that already holds the context.** `triage` is reinforced as the
+human-facing capture node; `specify-slice` is lightened to a mechanical formalise-and-enforce pass
+that returns to the dispatched session with nothing left to ask. The operator explicitly kept both
+front nodes (a proposed fuse-and-retire was rejected). This is the **human-facing vs mechanical**
+split, not route-vs-define.
+
+**What changed in the node (all within the existing scope — no new schema field, no edge change):**
+
+1. **Trigger — the "raise an IU" phrase.** The `description` and `when-to-use` gain the operator
+   routing signal: when something comes up mid-session and the operator says *raise it*, this node
+   captures and decides on the spot. This is the field-true trigger (§10: "I say raise the IU and
+   the agent asks me any questions to define it on the spot").
+
+2. **Route rule — the technical/bug-shaped tie-breaker.** Added as the decisive tie-breaker (§10):
+   **incremental = work whose specification is derivable from the carrier + codebase with no
+   product/design judgment; anything needing a product decision ⇒ wholesale.** This sharpens the
+   three existing tie-breakers (design? / decompose? / tracked?) with the loop-scope discriminator
+   the operator named.
+
+3. **Incremental branch reshaped — capture, don't defer.** Triage still scaffolds the same identity
+   stub (`id`, `title`, `channel: incremental`, `improves`, `lifecycle_state: proposed`,
+   `status: planned`, empty `gate_decisions`) — the writer split is unchanged. But it now ALSO
+   writes the **definition body** on the carrier:
+   - `## Context` — harvested from the live conversation: observed vs expected, repro, error
+     output, file/scope pointers — **verbatim evidence, never "see this conversation"** (a fresh
+     agent has no access to it).
+   - `## Decisions` — every call settled in the raise conversation, **including the AFK/HITL call**
+     (formalised later as `slice_type`/`hitl_point` by `specify-slice`; the *decision* is recorded
+     here so loop-runner's intake pre-park can read it).
+   These are **body sections on the carrier**, not new schema fields — `goal/files/acceptance/
+   acceptance_check/size/slice_type/verification` stay `specify-slice`'s content fields, and triage
+   still writes no lifecycle past `proposed`.
+
+4. **Question-shape discipline — propose, don't interrogate.** Harvest first; derive what the repo
+   can answer (may note `explore` for mechanical detail); ask the operator **only the genuine
+   remaining decisions — typically 0–2 questions**, because the raising session already holds the
+   context. This replaces the old "ask one specific question when tie-breakers disagree" with a
+   fuller capture-then-ask discipline (the route question is one case of it).
+
+5. **New invariant — the cold-handoff test.** Triage may **not** hand off a carrier that fails it:
+   *a fresh agent with only this carrier file + repo access could implement and prove the slice.*
+   Checklist: outcome-framed intent in Context; evidence verbatim; scope pointers real; **no
+   unresolved decision left in prose** — an unresolved fork is settled now, escalated, or the IU is
+   not raised. This is homed in `IU-schema` as the loop-eligibility invariant (a `proposed` stub
+   without a passing definition body is a valid intra-conversation state but **never loop-eligible**).
+
+6. **Handoff text — specify-slice now formalise-and-enforce, unattended.** The arc is unchanged
+   (`precedes specify-slice`), but `specify-slice` now runs as formalise-and-enforce — typically
+   UNATTENDED inside a loop-runner-dispatched session. The body says triage's capture is what makes
+   that possible: a **decision-complete carrier = loop-eligible**. Triage still writes NO content
+   fields and no lifecycle past `proposed`.
+
+7. **Goals.** Added a fourth goal covering **decision-completeness at raise** (the new invariant's
+   measurable face): share of dispatched IUs that route out `blocked: insufficiently-defined` or
+   generate mid-loop operator questions — trends to zero; a rising rate means triage's capture is
+   failing its invariant. The three existing goals still hold (correct routing; no standalone-IU
+   misuse; clean escalation with provenance) and are kept.
+
+8. **Edges — unchanged.** `composes-into incremental @triage`; `references` (IU-schema import,
+   bindings-contract on-demand, instrumentation-preamble import, work-item-schema on-demand);
+   `precedes specify-slice`; `escalates align-context`. The frontmatter edge **comment block** is
+   updated to reflect the new shape (capture-and-decide; the definition body is written here; the
+   cold-handoff test gates the handoff).
+
+**External analogue still holds.** `office-hours` remains the genuine counterpart — its entry
+classifies and routes, and its mid-session upgrade rule is the incremental→wholesale escalation
+shape. The reshape adds a *capture* responsibility (harvest the live conversation), for which
+`office-hours`'s own intake-interview discipline (probe to get the requirements complete before
+handing to `/plan-*`) is the same shape: ask enough to make the downstream handoff self-sufficient.
+No new lift — the analogue value is shape, recorded here.
+
+**Keep / Drop deltas.**
+- **Newly kept (absorbed into body):** the "raise an IU" trigger phrase; the technical/bug-shaped
+  route tie-breaker; the `## Context` + `## Decisions` definition-body write; the propose-don't-
+  interrogate question discipline; the cold-handoff test invariant; the decision-complete ⇒
+  loop-eligible framing of the handoff to `specify-slice`.
+- **Still dropped (unchanged):** the IU content fields and `slice_type` *formalisation* (specify-
+  slice's — triage records the *decision*, specify-slice *renders* it); the vertical-slice/testing
+  invariant enforcement (specify-slice/validate); the tracer-bullet inner loop (build); the
+  auto-feed implementation from `triage-source` (input-gated).
+
+## Review fix-pass — round 3 (2026-06-10)
+
+Design §11 fixes applied to the canonical: the `## Decisions` capture now includes any inter-IU
+dependency ("depends on `<id>`, or none") and the cold-handoff checklist gains the
+dependencies-named-or-none item (R3-M2). loop-runner now declares `invokes: triage` for its
+intake define-now fallback (R3-M3) — no edge change on triage's side (targets declare no inbound
+edge).

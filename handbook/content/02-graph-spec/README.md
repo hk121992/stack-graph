@@ -196,6 +196,10 @@ would let one carrier's `current_stage` bleed into another's at the shared node;
 keeps each arc's projection separate, and the carrier kind keeps the two carrier shapes from colliding. A
 carrier's `current_stage` is therefore the latest event matching its own id, kind, *and* arc.
 
+An arc traversal is **carrier-scoped, not session-scoped**: the projection key is carrier id + carrier kind +
+arc id, with no session in it, so one traversal may span multiple sessions or execute inside a single
+dispatched session — the projection is indifferent to which session emitted the stage events.
+
 The **terminal snapshot** is the only point a derived value enters a committed file. It is written by a
 **recorder** — a dedicated action keyed off the terminal lifecycle transition, decoupled from the gate that
 advances the state — and it is written once, at close. After that, the closed record is complete and
@@ -388,8 +392,13 @@ status: v0.1.0 — 2026-05-30
 
 `primitive:` names the `.claude` element this node builds into — using the Claude
 taxonomy, not an invented type. `mode:` must agree with it (collaborative↔skill,
-autonomous↔agent). `status:` is required **on node files** (a node versions the primitive it
-builds into) — unlike handbook pages, which carry no status.
+autonomous↔agent). `mode` classifies the node's **default, hand-run** operator posture: a skill
+may render an **unattended body mode** (the `review`-headless / `specify-slice`-unattended
+pattern) without violating `collaborative`, provided that branch **routes out rather than
+proceeds** on any decision it would otherwise put to the operator — validate checks the
+frontmatter `mode` against the default posture, not against body branches. `status:` is required
+**on node files** (a node versions the primitive it builds into) — unlike handbook pages, which
+carry no status.
 
 ## Storage & projection
 
