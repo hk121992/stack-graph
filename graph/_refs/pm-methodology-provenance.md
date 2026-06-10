@@ -2,7 +2,8 @@
 id: pm-methodology-provenance
 kind: reference
 title: PM pack — methodology provenance
-status: v0.1.0 — 2026-06-01
+description: Methodology-audit manifest for the product-management pack — the declared method claims, per-principle encoding state, omitted principles, and method-interface seams. Use when convening the advisory council over the PM pack or auditing what the pack claims to encode.
+status: v0.1.1 — 2026-06-10
 ---
 
 # PM pack — methodology provenance

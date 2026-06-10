@@ -3,8 +3,10 @@ title: Research report for lens-maintainability
 type: research-report
 status: complete
 authored: 2026-05-30
-last_updated: 2026-05-30
-amended: []
+last_updated: 2026-06-10
+amended:
+  - date: 2026-06-10
+    note: "architecture-doctrine reference wiring — added references: architecture-doctrine (load: on-demand). The Pocock-derived structural-judgment vocabulary (graph/_refs/architecture-doctrine.md: module / interface / depth / seam / adapter / leverage / locality; the deletion test; dependency categories; replace-don't-layer) is now the NAMED source grounding the depth/seam vocabulary the lens's structural hunt-list already paraphrases privately. One body line added grounding the hunt-list vocabulary in the named reference; the hunt-list itself, the goals, and every other edge are UNCHANGED. on-demand (not import) — the lens already operationalises the doctrine inline, so the reference is the consultable single source of truth, not doubled standing context. Exactly the rationale test-discipline used for build/lens-tests (cite docs/architecture-review-import.md). Surgical edge+pointer amend, no scope expansion."
 sources_lifted: 7
 researcher_adequacy_note: |
   Lifted seven sources: CE's ce-maintainability-reviewer (the closest direct analog — an
@@ -204,6 +206,14 @@ section but keep the same schema.)
 - The finding contract (schema, severity scale, confidence anchors) → a `kind: reference`
   artefact in `graph/_refs/`, passed into the lens by the dispatching stage's spawn
   prompt; the lens declares no edge to it.
+- The structural-judgment vocabulary the hunt-list paraphrases (module / interface / depth
+  / seam / adapter / leverage / locality; the deletion test; dependency categories;
+  replace-don't-layer) → the named `architecture-doctrine` reference (`graph/_refs/`),
+  consumed via a `references` edge (`load: on-demand`). The hunt-list itself stays inline
+  and unchanged; the reference is the single source for the vocabulary it leans on, named
+  so the depth/seam language is not redefined in the body. (See the body-line note in Open
+  questions — one line added grounding the hunt-list vocabulary in the named reference,
+  read on-demand; the rationale mirrors test-discipline for lens-tests.)
 - The sibling lenses (`lens-correctness`, `lens-security`, `lens-tests`,
   `lens-performance`) → they are peers in the family, not things this node points at; the
   boundary between them is documented (don't double-flag), but there is no edge between
@@ -261,6 +271,7 @@ fanned-out-to, returns a summary, edges minimal.
 | composes-into | `dev-sprint` (stage: review) | Primary home: the review stage fans out to this lens over a diff. Per graph-map, lenses compose into the arc via their consuming stage. |
 | composes-into | `dev-sprint` (stage: design) | Additional consumer: design fans out to this lens over the design doc (`target: doc`). |
 | composes-into | `dev-sprint` (stage: plan) | Additional consumer: plan-review fans out to this lens over the plan doc (`target: doc`, sequential surfacing). |
+| references | `architecture-doctrine` (`load: on-demand`) | The named source for the depth/seam vocabulary the structural hunt-list already paraphrases privately (module / interface / depth / seam / adapter / leverage / locality; the deletion test; dependency categories; replace-don't-layer). Single-sources the vocabulary; consulted on-demand because the lens already operationalises the doctrine inline. Same rationale test-discipline used for build/lens-tests (D55; docs/architecture-review-import.md). |
 
 **Deliberately NO other edges:**
 - **No edge to `lens-dispatch`.** The dispatching stage follows the `lens-dispatch`
@@ -269,9 +280,12 @@ fanned-out-to, returns a summary, edges minimal.
   / `confidence-anchors` are `kind: reference` artefacts in `graph/_refs/`; the lens does
   **not** depend on them. The dispatching stage owns the `references` edges (with
   `load: import`) and passes the contract into the lens's spawn prompt. This is a
-  deliberate modelling choice (see Open questions).
+  deliberate modelling choice (see Open questions). (The one `references` edge the lens
+  *does* declare — `architecture-doctrine`, `load: on-demand` — is the grounding of the
+  hunt-list vocabulary, not the finding contract; distinct concern.)
 - **No `invokes` / `loads`.** The lens calls no other node and loads no other node into
-  its context (it reads the target + the spawn-passed contract; everything else is inline read-only
+  its context (it reads the target + the spawn-passed contract + the on-demand
+  `architecture-doctrine` reference; everything else is inline read-only
   tool use / MCP-style inspection).
 - **No `precedes` / `can-follow`.** It is a fanned-out-to leaf; it has no process
   position of its own. The process flow (review↔build correction loop) lives on the
@@ -330,3 +344,15 @@ edge this lens declares.
   always-on personas. If a `model:` field is authored, lean to a strong tier (structural
   judgment is hard); otherwise omit and let the consuming stage decide at dispatch.
   (Optional native field, not required — mirrors the lens-correctness decision.)
+- **architecture-doctrine grounding — ONE body line, hunt-list otherwise frozen (amend
+  2026-06-10).** Render the new `references: architecture-doctrine (load: on-demand)` edge
+  in frontmatter, and add **exactly one line** before the structural hunt-list grounding
+  its depth/seam vocabulary in the named reference (read on-demand) — e.g. "The depth /
+  seam / module / interface / adapter / leverage / locality vocabulary the hunt-list below
+  uses is grounded in **`architecture-doctrine`** (the deletion test, dependency
+  categories, replace-don't-layer); read it on-demand. The hunt-list is its review-time
+  application." Translator: do **NOT** rewrite the hunt-list, the goals, the suppression
+  discipline, the calibration, or any other edge — the vocabulary was already paraphrased
+  inline; this names its single source (one line, on-demand), nothing more. Same pattern
+  and rationale as test-discipline → lens-tests (D55; provenance in
+  docs/architecture-review-import.md).

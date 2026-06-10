@@ -1105,3 +1105,39 @@ fixture battery (dangling `outcome_link`/`value_prop_link`/`strategy_link`, unbo
 object `canvas.json`, stale/absent/non-object projection, `<script>` in canvas text + detail) degrades
 without crashing and `esc()`s all untrusted canvas free-text. Next: vendor → plugin (version bump) → the
 be-civic rehearsal refresh.
+
+---
+
+**D66 — Pocock's improve-codebase-architecture (ICA) is imported as the `architecture-review` node +
+the `architecture-doctrine` reference — a standing, operator-triggered capability beside
+`optimise`/`health`, not a diff-time lens and not a backbone stage.** The node (skill, collaborative,
+generative; no `composes-into`/`precedes`/`can-follow`) carries the 3-phase process — `explore`
+fan-out for organic friction (shallow modules, seam leakage, no-locality extractions; deletion test)
+→ a candidate-card report (strength badge + dependency-category tag + before/after diagram; **no
+interfaces** — premature-interface leakage is a stated goal-zero) → a grilling loop in which every
+picked candidate reaches a terminal disposition: **pursued → `escalates triage`** (triage owns
+incremental-vs-wholesale and reaches the curator itself) or **rejected-with-load-bearing-reason →
+`invokes log-decision`** (the ADR that stops re-suggestion). `interface-design` (Design-It-Twice,
+3+ divergent constraints) is a body mode gated on a prior pick, never auto-chained. Hard read-only
+gate throughout. The doctrine (module/interface/depth/seam/adapter/leverage/locality; deletion test;
+two-adapters-=-real-seam; the four dependency categories; replace-don't-layer) is single-sourced as
+`graph/_refs/architecture-doctrine.md`, consumed on-demand by `architecture-review`,
+`lens-maintainability` (hunt-list vocabulary grounding), and `test-discipline` — discharging the
+forward pointer `docs/test-discipline-import.md` parked (the first ref→ref `references` edge in the
+record). Candidate cards deliberately do **not** conform to `findings-schema` (opportunity-shaped,
+not defect-shaped). Pocock's CONTEXT.md coupling maps to the harness-supplied `domain-glossary`
+external pointer (health-manifest pattern); docs/adr/ maps to the decisions store via `log-decision`.
+*Report persistence (operator decision):* reports are **filed, not thrown away** — a committed pair
+`<date>-<slug>.html` (immutable diagnosis, Tailwind+Mermaid self-contained) + `<date>-<slug>.md`
+(living disposition record linking pursued→work-item id / rejected→decision id) under the new
+**optional** `architecture-reviews-root` binding (committed per the D60 generative/non-replayable
+test; optional-when-capability-unused per the `axis-root` precedent; no manifest at v0; portal
+publication input-gated). *Provenance:* github.com/mattpocock/skills @ `aaf2453f`, MIT; import note
+`docs/architecture-review-import.md`. *Record:* 43 nodes / 25 refs / 212 edges; plugin **0.7.0**.
+*Status:* Decided; built + validated (validate-all 67/68 — the one failure pre-existing
+[`pm-methodology-provenance` missing `description`], fixed in the same wave); Codex-reviewed (gate
+PASS, 2×P2 fixed in-wave: vendor.ts now follows **ref→ref `references` edges transitively** when
+bundling — a copied ref's pointer never dangles in an installed plugin — and the vendor frontmatter
+parser now folds **block scalars**, un-mangling every vendored description repo-wide);
+factory-side verification structural (vendor parity + G2 load-verify); the live first run is
+harness-side (needs a bound `architecture-reviews-root`), per the Phase-C rehearsal pattern.

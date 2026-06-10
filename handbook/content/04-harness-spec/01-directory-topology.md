@@ -147,6 +147,7 @@ from there. The set of keys a process may require (not every process needs all o
 | `axis-root` | root path holding the zone-matrix axis-entry references (verticals + horizontals, each tagged `axis:`); **optional** — present only when the harness uses the zone matrix |
 | `code-map` | path to the extracted code-map under `.stack-graph/` (repo-map + ast-grep output); **optional**, path-only, degradable — read by `explore`'s `repo` and `zone` modes |
 | `zone-test-root` | where the two-tier zone/experience tests live; **optional**, **forward-referenced** — the testing layer is input-gated and realised in a harness, not the factory |
+| `architecture-reviews-root` | the committed dir holding `architecture-review`'s per-run report pair (immutable `.html` diagnosis + living `.md` disposition record); **optional** — bound only when the harness runs the capability |
 
 This is the **factory contract** — the keys the vendored graph can require. A harness is free to
 supply additional harness-local keys for local nodes; local nodes declare their own required keys
