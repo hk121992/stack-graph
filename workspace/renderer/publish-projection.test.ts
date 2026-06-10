@@ -73,19 +73,34 @@ const EVENTS = [
   { ts: "2026-02-01T09:05:00Z", session: "d1", kind: "enter", node: "review", carrier: "ci-wi", carrier_kind: "work-item",    arc: "dev-sprint"  },
   // ci-iu's last stage event stays `build` — must NOT pick up ci-wi's later `review`.
 
-  // ── dispatch-complete NEVER advances current_stage (measure event) ──
-  // ci-iu emits a dispatch-complete naming node `land` as a hostile attempt to advance its stage.
-  // The projection must ignore it for current_stage (ci-iu stays at `build`) and admit only the
-  // tokens_per_session measure.
+  // ── dispatch-complete NEVER advances current_stage AND its model-authored token key is REJECTED ──
+  // ci-iu emits a dispatch-complete naming node `land` (hostile stage attempt) carrying a stale
+  // metrics.tokens_per_session (fabrication). current_stage must stay `build`; the token key must be
+  // rejected (counted, never echoed); cost comes only from the hook usage events below.
   { ts: "2026-02-01T09:10:00Z", session: "d2", kind: "dispatch-complete", node: "land", carrier: "ci-iu", carrier_kind: "standalone-iu", arc: "incremental", outcome: "built", metrics: { "tokens_per_session": 52000 } },
 
-  // ── tokens_per_session admitted; hostile values rejected ──
-  // good (admitted), negative (rejected), NaN-string (rejected), absurd-magnitude overflow→Infinity
-  // (rejected by the finite guard). Each rides a valid triple so only the VALUE discipline is under test.
-  { ts: "2026-02-02T09:00:00Z", session: "d3", kind: "dispatch-complete", carrier: "ci-good", carrier_kind: "standalone-iu", arc: "incremental", outcome: "built",          metrics: { "tokens_per_session": 38000 } },
-  { ts: "2026-02-02T09:01:00Z", session: "d4", kind: "dispatch-complete", carrier: "ci-neg",  carrier_kind: "standalone-iu", arc: "incremental", outcome: "built",          metrics: { "tokens_per_session": -5 } },
-  { ts: "2026-02-02T09:02:00Z", session: "d5", kind: "dispatch-complete", carrier: "ci-nan",  carrier_kind: "standalone-iu", arc: "incremental", outcome: "built",          metrics: { "tokens_per_session": "9e9SECRET" as unknown as number } },
-  { ts: "2026-02-02T09:03:00Z", session: "d6", kind: "dispatch-complete", carrier: "ci-huge", carrier_kind: "standalone-iu", arc: "incremental", outcome: "built",          metrics: { "tokens_per_session": 1e400 } }, // → Infinity, non-finite, dropped
+  // ── HOOK usage events (D69) — the ONLY cost source. 6-component token_usage; cache split preserved.
+  // unit-usage child (iu-iu) + a dispatch-usage parent for carrier ci-iu → Σchild ≤ parent (inequality ok).
+  { ts: "2026-02-01T09:11:00Z", session: "d2", kind: "unit-usage", scope_id: "iu-iu", iu: "iu-iu", carrier: "ci-iu", carrier_kind: "standalone-iu", arc: "incremental", cumulative: false, model: "claude-opus-4-8", token_usage: { input: 100, output: 50, cache_creation_5m: 0, cache_creation_1h: 0, cache_read: 9000, total: 9150 }, v: "0.4.0" },
+  { ts: "2026-02-01T09:12:00Z", session: "d2", kind: "dispatch-usage", scope_id: "ci-iu", carrier: "ci-iu", carrier_kind: "standalone-iu", arc: "incremental", cumulative: true, model: "claude-opus-4-8", token_usage: { input: 200, output: 80, cache_creation_5m: 10, cache_creation_1h: 0, cache_read: 20000, total: 20290 }, v: "0.4.0" },
+  // session-usage cumulative — two turns of the SAME session; latest (higher total) is kept, the
+  // raw session id is anonymised. Tests Stop-is-per-turn latest-per-scope.
+  { ts: "2026-02-02T08:00:00Z", session: "main-1", kind: "session-usage", scope_id: "main-1", carrier: null, cumulative: true, model: "claude-opus-4-8", token_usage: { input: 1000, output: 500, cache_creation_5m: 0, cache_creation_1h: 0, cache_read: 3500, total: 5000 }, v: "0.4.0" },
+  { ts: "2026-02-02T08:05:00Z", session: "main-1", kind: "session-usage", scope_id: "main-1", carrier: null, cumulative: true, model: "claude-opus-4-8", token_usage: { input: 2000, output: 900, cache_creation_5m: 100, cache_creation_1h: 0, cache_read: 9000, total: 12000 }, v: "0.4.0" },
+  // hostile usage — incompatible version → dropped + counted.
+  { ts: "2026-02-02T08:06:00Z", kind: "unit-usage", scope_id: "iubadver", carrier: null, cumulative: false, model: "claude-opus-4-8", token_usage: { input: 1, output: 1, cache_creation_5m: 0, cache_creation_1h: 0, cache_read: 0, total: 2 }, v: "1.0.0" },
+  // hostile usage — token_usage missing a component → whole point dropped.
+  { ts: "2026-02-02T08:07:00Z", kind: "unit-usage", scope_id: "iubadusage", carrier: null, cumulative: false, model: "claude-opus-4-8", token_usage: { input: 1 } as unknown as Record<string, number>, v: "0.4.0" },
+  // hostile usage — oversized scope_id → dropped (ID_RE).
+  { ts: "2026-02-02T08:08:00Z", kind: "unit-usage", scope_id: OVERSIZED_ID, carrier: null, cumulative: false, model: "claude-opus-4-8", token_usage: { input: 1, output: 1, cache_creation_5m: 0, cache_creation_1h: 0, cache_read: 0, total: 2 }, v: "0.4.0" },
+  // hostile usage — metachar model → sanitised to "unknown" (point KEPT, model never echoed raw).
+  { ts: "2026-02-02T08:09:00Z", kind: "unit-usage", scope_id: "iubadmodel", carrier: null, cumulative: false, model: "<script>alert(1)</script>", token_usage: { input: 1, output: 2, cache_creation_5m: 0, cache_creation_1h: 0, cache_read: 0, total: 3 }, v: "0.4.0" },
+  // fabrication on a model-authored exit — metrics.tokens_per_iu rejected (counted). No legit trend
+  // key here, so it does not perturb the trend assertions above.
+  { ts: "2026-02-02T08:10:00Z", session: "s9", kind: "enter", node: "optimise", carrier: null },
+  { ts: "2026-02-02T08:11:00Z", session: "s9", kind: "exit", node: "optimise", carrier: null, outcome: "v", gates: [], metrics: { "tokens_per_iu": 7777 } },
+  // instrumentation-error (a hook fired but failed loud) → counted in reconciliation.
+  { ts: "2026-02-02T08:12:00Z", kind: "instrumentation-error", hook: "stop", error: "node runtime not resolvable", v: "0.4.0" },
 
   // ── legacy events (no carrier_kind / arc) excluded from stage projection ──
   // ci-legacy has a conforming carrier id but NO kind/arc (preamble < v0.2.0). Its enter events
@@ -115,7 +130,9 @@ const snap = JSON.parse(raw) as {
   ax: Record<string, Record<string, unknown>>;
   trends: Record<string, Array<{ at: string; value: number }>>;
   conformance: { experience_contract: { pass: number; fail: number } };
-  session_costs: Array<{ at: string; carrier_id: string; carrier_kind: string; arc: string; tokens_per_session: number }>;
+  session_costs: Array<{ at: string; kind: string; scope_id: string; carrier_id: string | null; carrier_kind: string | null; arc: string | null; model: string; cumulative: boolean; usage: { input: number; output: number; cache_creation_5m: number; cache_creation_1h: number; cache_read: number; total: number } }>;
+  reconciliation: { unit_usage: number; session_usage: number; dispatch_usage: number; measured_iu_total: number; session_total: number; inequality_ok: boolean | null; instrumentation_errors: number; rejected_model_token_keys: number; version_incompatible_events: number; notes: string[] };
+  provenance: { commit: string; generator_version: string; event_schema_version: string; compatible_event_range: string; observed_event_versions: string[] };
 };
 
 // The whole serialized snapshot must not carry any private/free-text field that should have
@@ -127,8 +144,9 @@ const FORBIDDEN = ["secret.series", "leak_field", "DROP_ME", "design-approved", 
   "TS_SECRET_LEAK", TS_TRAILING_COMMENT, TS_NON_ISO, "DecSecret",
   // non-string id-coercion vectors (Fix 2): neither the array element nor the numeric carrier may appear.
   "privateToken", "90909",
-  // tokens_per_session hostile-value vector: the NaN-string measure must be dropped, never echoed.
-  "9e9SECRET"];
+  // D69 vectors: a metachar model must be sanitised to "unknown" (raw never echoed); the raw session
+  // id "main-1" must be anonymised (the session-usage scope is sess-<n>, not the raw id).
+  "<script>", "alert(1)", "\"main-1\""];
 
 const bp = snap.trends["benchmark.perf"] ?? [];
 const hq = snap.trends["health.quality"] ?? [];
@@ -183,17 +201,42 @@ checks.push(
   ["dispatch-complete did NOT add a `land` transition to ci-iu", !(ciIu?.transition_summary ?? []).some((t) => t.stage === "land")],
 );
 
-// ── tokens_per_session admitted; hostile values (negative, NaN-string, Infinity) rejected ──
+// ── HOOK usage events are the cost source; model token keys are rejected (D69) ──
 const sc = snap.session_costs ?? [];
-const scById = (id: string) => sc.filter((p) => p.carrier_id === id);
+const scOf = (kind: string, scope: string) => sc.find((p) => p.kind === kind && p.scope_id === scope);
+const sessionPts = sc.filter((p) => p.kind === "session-usage");
 checks.push(
-  ["tokens_per_session: ci-iu admitted (52000)", scById("ci-iu").length === 1 && scById("ci-iu")[0].tokens_per_session === 52000],
-  ["tokens_per_session: ci-good admitted (38000)", scById("ci-good").length === 1 && scById("ci-good")[0].tokens_per_session === 38000],
-  ["tokens_per_session: negative dropped (ci-neg absent)", scById("ci-neg").length === 0],
-  ["tokens_per_session: NaN-string dropped (ci-nan absent)", scById("ci-nan").length === 0],
-  ["tokens_per_session: Infinity/absurd-magnitude dropped (ci-huge absent)", scById("ci-huge").length === 0],
-  ["session_costs carry the carrier triple", sc.every((p) => typeof p.carrier_id === "string" && typeof p.carrier_kind === "string" && typeof p.arc === "string")],
+  ["unit-usage ci-iu/iu-iu admitted with 6-component usage", scOf("unit-usage", "iu-iu")?.usage.total === 9150 && scOf("unit-usage", "iu-iu")?.usage.cache_read === 9000],
+  ["dispatch-usage ci-iu admitted (cache split preserved)", scOf("dispatch-usage", "ci-iu")?.usage.total === 20290 && scOf("dispatch-usage", "ci-iu")?.usage.cache_creation_5m === 10],
+  ["session-usage latest-per-scope kept (12000, not the earlier 5000)", sessionPts.length === 1 && sessionPts[0].usage.total === 12000],
+  ["session-usage scope anonymised to sess-<n> (raw session id not echoed)", sessionPts.length === 1 && /^sess-\d+$/.test(sessionPts[0].scope_id)],
+  ["incompatible-version usage dropped (iubadver absent)", !scOf("unit-usage", "iubadver")],
+  ["bad token_usage dropped (iubadusage absent)", !scOf("unit-usage", "iubadusage")],
+  ["oversized scope_id usage dropped", !sc.some((p) => p.scope_id === OVERSIZED_ID)],
+  ["metachar model sanitised to 'unknown' (point kept)", scOf("unit-usage", "iubadmodel")?.model === "unknown"],
+  ["dispatch-complete tokens_per_session REJECTED (no 52000 in costs)", !sc.some((p) => p.usage && p.usage.total === 52000)],
+  ["no legacy tokens_per_session field on any cost point", sc.every((p) => !("tokens_per_session" in (p as object)))],
   ["session_costs time-sorted ascending", sc.every((p, i) => i === 0 || new Date(sc[i - 1].at).getTime() <= new Date(p.at).getTime())],
+);
+
+// ── Reconciliation (instrumentation health) ──
+const rec = snap.reconciliation;
+checks.push(
+  ["reconciliation block present", !!rec],
+  ["reconciliation counts unit/session/dispatch (iu-iu + iubadmodel = 2 unit)", rec?.unit_usage === 2 && rec?.session_usage === 1 && rec?.dispatch_usage === 1],
+  ["reconciliation inequality_ok = true (Σchild 9150 ≤ dispatch 20290)", rec?.inequality_ok === true],
+  ["reconciliation rejected_model_token_keys ≥ 2 (dispatch-complete + exit fabrication)", rec?.rejected_model_token_keys >= 2],
+  ["reconciliation instrumentation_errors = 1 (loud hook failure)", rec?.instrumentation_errors === 1],
+  ["reconciliation version_incompatible_events = 1", rec?.version_incompatible_events === 1],
+  ["reconciliation measured_iu_total = 9153 (iu-iu 9150 + iubadmodel 3)", rec?.measured_iu_total === 9153],
+);
+
+// ── Provenance version fields (the renderer banner reads these) ──
+const prov = snap.provenance;
+checks.push(
+  ["provenance carries event_schema_version", prov?.event_schema_version === "0.4.0"],
+  ["provenance carries compatible_event_range", prov?.compatible_event_range === "0.x"],
+  ["observed_event_versions includes both 0.4.0 and the incompatible 1.0.0", prov?.observed_event_versions.includes("0.4.0") && prov?.observed_event_versions.includes("1.0.0")],
 );
 
 // ── legacy events (no carrier_kind/arc) excluded from stage projection ──
