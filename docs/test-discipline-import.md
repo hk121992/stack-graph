@@ -46,6 +46,8 @@ Consumed (on-demand) by two nodes — the reference is the **named standard**, n
 
 ## Next
 
-`improve-codebase-architecture` is the natural next import — it shares deep-modules/interface-design
-with this reference. When it lands, `test-discipline` adds a `references` edge to it (no edge now — F7,
-no edge to a non-existent target) so the shared doctrine stays single-sourced.
+~~`improve-codebase-architecture` is the natural next import~~ — **discharged 2026-06-10**: the
+import landed as the `architecture-review` node + the `architecture-doctrine` reference, and
+`test-discipline` now carries the promised `references` edge to `architecture-doctrine` (see
+`docs/architecture-review-import.md`). The shared doctrine is single-sourced in both directions:
+the doctrine ref owns module/seam shape; this ref owns test quality.

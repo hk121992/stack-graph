@@ -141,7 +141,9 @@ the gate facts **are**.
   path/shape under `.stack-graph/`), `renderer` (entrypoint + output/portal), `deploy-config`,
   `experience-contract`, `okr-binding` (how `outcome_link` resolves to an objective id), `plan-policy`
   (in-body vs linked threshold + link shape), `terminal-recorder` (who freezes the timeline), `maturity`
-  (the dial setting), `stale-projection-policy` (degraded-mode policy).
+  (the dial setting), `stale-projection-policy` (degraded-mode policy), and the optional
+  capability-gated keys the contract enumerates (e.g. `architecture-reviews-root` — the committed
+  home of `architecture-review`'s report pair, bound only when the harness runs that capability).
 
 ## 7. Resolves — the dashboard design's open questions
 

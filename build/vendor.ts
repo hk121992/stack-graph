@@ -114,7 +114,7 @@ const NATIVE_KEY_ORDER = [
   "argument-hint",
 ];
 
-const PLUGIN_VERSION = "0.6.0";
+const PLUGIN_VERSION = "0.7.0";
 
 // The plugin lives in its own repo, vendored into the factory as a git submodule
 // at this path. Inputs (graph/) are read from the factory root; outputs are written
@@ -269,12 +269,37 @@ function parseNativeScalars(block: string): {
 } {
   const fm: Record<string, string> = {};
   const fmRaw: Record<string, string> = {};
-  for (const line of block.split("\n")) {
+  const lines = block.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     // Only top-level keys (column 0), never indented sub-keys, never comments.
     const m = line.match(/^([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*)$/);
     if (!m) continue;
     const key = m[1];
     const rhsRaw = m[2];
+    // A block-scalar indicator (`>-`, `>`, `|`, `|-`, …) opens a folded/literal
+    // multi-line scalar: collect the indented continuation lines and fold them
+    // into one space-joined string (descriptions are prose — folding is correct
+    // for both styles here).
+    if (/^[>|][+-]?\s*(#.*)?$/.test(rhsRaw.trim()) && rhsRaw.trim() !== "") {
+      const folded: string[] = [];
+      while (i + 1 < lines.length) {
+        const next = lines[i + 1];
+        if (next.trim() === "") {
+          i++;
+          continue;
+        }
+        if (!/^\s{2,}/.test(next)) break; // column-0 line ends the scalar
+        folded.push(next.trim());
+        i++;
+      }
+      if (folded.length > 0) {
+        const value = folded.join(" ");
+        fmRaw[key] = value;
+        fm[key] = value;
+      }
+      continue;
+    }
     // `edges`/`goals` open multi-line blocks — their RHS is empty; skip. Any
     // key whose RHS is empty is a block opener, not a scalar we carry.
     if (rhsRaw.trim() === "") continue;
@@ -397,14 +422,28 @@ function placeReferences(
   const resolvedPaths: string[] = [];
   const dir = consumerRefsDir(node);
 
+  // A ref may itself depend on another ref (a `references` edge in its own
+  // frontmatter — e.g. test-discipline → architecture-doctrine). Follow those
+  // edges transitively so the bundle is self-contained: a copied ref's pointer
+  // must never dangle in an installed plugin. Transitive copies are always
+  // on-demand (the node never declared them for `@`-import splicing).
+  const visited = new Set<string>();
+  const queue: { id: string; load: "import" | "on-demand"; via?: string }[] = [];
   for (const ref of node.references) {
     if (ref.external) continue; // ship the pointer prose only; harness supplies it.
+    if (visited.has(ref.id)) continue;
+    visited.add(ref.id);
+    queue.push({ id: ref.id, load: ref.load });
+  }
 
+  while (queue.length > 0) {
+    const ref = queue.shift()!;
     const srcRefPath = join(refsRoot, `${ref.id}.md`);
     if (!existsSync(srcRefPath)) {
       fail(
-        `vendor: ${node.id}: non-external reference \`${ref.id}\` has no file at ` +
-          `graph/_refs/${ref.id}.md.`,
+        `vendor: ${node.id}: non-external reference \`${ref.id}\`` +
+          (ref.via ? ` (reached via \`${ref.via}\`)` : "") +
+          ` has no file at graph/_refs/${ref.id}.md.`,
       );
     }
     const refContent = readFileSync(srcRefPath, "utf-8");
@@ -416,7 +455,23 @@ function placeReferences(
     if (ref.load === "import") {
       imports.push(`@${pointer}`);
     } else {
-      onDemand.push("`" + pointer + "`" + ` — \`${ref.id}\``);
+      onDemand.push(
+        "`" +
+          pointer +
+          "`" +
+          ` — \`${ref.id}\`` +
+          (ref.via ? ` (via \`${ref.via}\`)` : ""),
+      );
+    }
+
+    // Enqueue the ref's own non-external references edges.
+    const split = splitFrontmatter(refContent);
+    if (split) {
+      for (const sub of parseReferenceEdges(split.block)) {
+        if (sub.external || visited.has(sub.id)) continue;
+        visited.add(sub.id);
+        queue.push({ id: sub.id, load: "on-demand", via: ref.id });
+      }
     }
   }
 
