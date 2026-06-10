@@ -3,8 +3,9 @@ kind: reference
 id: bindings-contract
 title: Bindings contract — the keys a harness supplies, and the surface template
 description: The factory contract the plugin ships so a consuming workspace can instantiate a harness — the complete set of binding keys the vendored graph may require, the bindings.yaml file format, the org-root CLAUDE.md ambient-surface template, and the dashboard + improvements surface-structure templates harness-init scaffolds. The plugin carries this contract; the harness supplies the values. No product data.
-status: v0.5.0 — 2026-06-10
+status: v0.6.0 — 2026-06-10
 changelog:
+  - v0.6.0 (2026-06-10): D69 token instrumentation — add optional `pricing` key; note the absolute `SG_EVENT_LOG` consumer on `event-log`; add §6 (the token-instrumentation env the harness exports + the per-scope dispatcher env + the validate live-hook probe)
   - v0.5.0 (2026-06-10): add optional `architecture-reviews-root` — the committed home of architecture-review's report pair (the axis-root pattern: bound only when the harness runs the capability)
   - v0.4.1 (2026-06-06): clarify strategy-doc binds the authored vision narrative (not a canvas/bmd inventory); augment renderer.canvas-root notes with dashboard bets-rollup use and graceful-degradation contract
 ---
@@ -48,7 +49,8 @@ target does not resolve.
 | `handbook-index` | the product canon index | the handbook `index.json` (the `handbook` external ref binds here) |
 | `personas` | the product's user profiles | PM-owned surface; consumed by the experience thread (optional pre-launch) |
 | `experience-contract` | the session-shape invariants doc | authored by `design`; per `experience-contract-schema` |
-| `event-log` | the carrier-tagged event stream | path + shape under `.stack-graph/` (gitignored, local) |
+| `event-log` | the carrier-tagged event stream | path + shape under `.stack-graph/` (gitignored, local). The **token-instrumentation hooks** (D69) append to the **same** log but run in arbitrary cwd (subagent sessions, isolated worktrees), so the harness also exports it as an **absolute** path `SG_EVENT_LOG` (the org-root `.stack-graph/events.jsonl`) — see §6. One log, two writers (the preamble body + the hooks). |
+| `pricing` | the host token-pricing table | **optional** — the operator-maintained `pricing.json` (rates + cache multipliers + `verified_on`) the analytics Cost block prices with (D69). Exported as `SG_PRICING`; absent → the Cost block renders components without `$` (degrades, never $0). The plugin ships a default `pricing.json`; a harness binds its own to override |
 | `renderer` | the vendored workspace render (0.5.0+) | the bound surface roots it is pointed at (`handbook-root` / `dashboard-root` / `canvas-root` / `brand-root` / `graph-root`, plus optional `graph-local` — the harness's local graph-overlay manifest, composed onto the vendored graph so the surface shows the **whole** graph by owner) + the output/portal dir + degraded-policy. The renderer ships in the plugin; this overlays it onto the harness's surfaces (optional). **`canvas-root` (a sub-key of `renderer`, optional):** when bound, the dashboard bets rollup reads `canvas.json` from this root and renders the two-axis posture (lifecycle state + evidence-strength rung) and four-risks coverage on the Direction and Vision & strategy pages. When absent, the dashboard **must degrade gracefully** — rendering the narrative and OKR cascade without the bets rollup, never crashing or silently vanishing. No new first-class required binding is introduced; `canvas-root` is and remains a sub-key of the optional `renderer` block. |
 | `deploy-config` | the deploy target | e.g. the portal's `wrangler.jsonc` (optional) |
 | `plan-policy` | in-body vs linked plan threshold + link shape | scalar policy (see `IU-schema`) |
@@ -135,3 +137,23 @@ and carries the `handbook-index` pointer.
 - `harness-init` is the executable instantiation of this contract: it **writes** `bindings.yaml`
   (filling these keys against the workspace), **scaffolds** §3, and **validates** that every
   required key resolves.
+
+## 6. Token-instrumentation env (D69)
+
+The token-instrumentation hooks the plugin ships (`hooks/hooks.json` → `sg-token-hook.sh`) are
+**scope-gated by environment**: absent the scope env they are a **dormant no-op** (so the factory's
+own dev environment never fires them). A harness activates them by exporting three env vars into
+the session environment — via the org-root `.claude/settings.json` `env` block (or the launch
+profile where the harness uses one):
+
+| env var | value | role |
+|---|---|---|
+| `SG_EVENT_LOG` | **absolute** path to `<org-root>/.stack-graph/events.jsonl` (the `event-log` binding, absolutised) | where the hooks append; absolute because hooks run in arbitrary cwd / worktrees |
+| `SG_TOKEN_EVENT_KIND` | the activation flag (any non-empty value, e.g. `on`) | the scope gate — unset ⇒ hooks dormant |
+| `SG_PRICING` | absolute path to the `pricing` binding's `pricing.json` | the renderer Cost block prices with it (optional; absent ⇒ components-without-$) |
+
+The dispatcher (`build` / `loop-runner`) additionally sets the **per-scope** binding env on a child
+session it spawns — `SG_IU_ID` / `SG_SCOPE_ID` (the IU/scope the usage attributes to) and the
+carrier triple `SG_CARRIER_ID` / `SG_CARRIER_KIND` / `SG_ARC` — so a `unit-usage` / `dispatch-usage`
+event is bound deterministically, never by a fuzzy time-window join. `harness-init validate` runs a
+**live-hook probe** to confirm the plugin is active and the wiring works end-to-end (see that node).

@@ -528,7 +528,7 @@
       "primitive": "skill",
       "mode": "collaborative",
       "title": "Harness init",
-      "status": "v0.3.0 — 2026-06-04",
+      "status": "v0.4.0 — 2026-06-10",
       "edges": {
         "references": [
           {
@@ -1465,7 +1465,7 @@
     "bindings-contract": {
       "kind": "reference",
       "title": "Bindings contract — the keys a harness supplies, and the surface template",
-      "status": "v0.5.0 — 2026-06-10",
+      "status": "v0.6.0 — 2026-06-10",
       "consumed_by": [
         "harness-init",
         "loop-runner",

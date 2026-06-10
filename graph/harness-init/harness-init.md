@@ -3,7 +3,7 @@
 id: harness-init
 primitive: skill
 title: Harness init
-description: Stands up a harness in a consuming workspace — writes bindings.yaml, scaffolds the dashboard surface skeleton, and validates every required binding resolves. Modes — scaffold (greenfield bootstrap), bind (re-author bindings only), validate (the harness gate before the loop runs). Structure only — work-item content is added separately via product-dashboard-curator.
+description: Stands up a harness in a consuming workspace — writes bindings.yaml, scaffolds the dashboard surface skeleton, activates the token-instrumentation hooks (the SG_* env), and validates every required binding resolves plus a live-hook probe. Modes — scaffold (greenfield bootstrap), bind (re-author bindings only), validate (the harness gate before the loop runs). Structure only — work-item content is added separately via product-dashboard-curator.
 when-to-use: A consuming workspace needs to stand up its harness for the first time (greenfield), re-point its bindings after a path change, or verify the harness is complete before running the dev-sprint loop. NOT for authoring work-item content (product-dashboard-curator), the strategy canvas (strategy-curator), or canon (handbook-curator) — harness-init creates the empty, bound structure those then fill.
 # classification — graph lens
 mode: collaborative
@@ -19,13 +19,13 @@ goals:
   - outcome: A consuming workspace can stand up a working harness from the vendored plugin alone — bindings written and the dashboard surface scaffolded — with no hand-assembly and no copying another workspace's files.
     metric: share of harnesses stood up via harness-init vs hand-built; share of scaffold runs that produce a bindings.yaml whose required keys all resolve + a surface skeleton that exists.
     earns-keep: new harnesses bootstrap from the plugin (the contract + template ship; the workspace instantiates) — not by cloning a sibling workspace's files.
-  - outcome: The loop never runs against a half-bound harness — every binding the vendored graph requires resolves, and the surface exists, before the first traversal. validate is the gate.
-    metric: harness-init validate pass before the first loop run; count of loop runs against a missing/unbound surface (target 0); count of required keys unresolved at first run (target 0).
-    earns-keep: validate catches missing/dangling bindings up front; a workspace that fails validate does not exercise the loop until fixed.
+  - outcome: The loop never runs against a half-bound harness — every binding the vendored graph requires resolves, the surface exists, and token capture is proven wired, before the first traversal. validate is the gate.
+    metric: harness-init validate pass before the first loop run; count of loop runs against a missing/unbound surface (target 0); count of required keys unresolved at first run (target 0); count of loop runs whose token capture was silently inactive (target 0 — the live-hook probe catches it).
+    earns-keep: validate catches missing/dangling bindings AND an inactive/unwired token hook up front (the live-hook probe lands an event in the org-root log, or reports why); a workspace that fails validate does not exercise the loop until fixed.
   - outcome: Instantiation is an additive local overlay — harness-init writes only harness-local files and never mutates the vendored graph, and never invents product content.
     metric: count of harness-init writes outside the harness-local tree (bindings.yaml + the org-root CLAUDE.md + the surface under surface-root) — target 0; count of work-items harness-init authored (target 0 — content is the curator's).
     earns-keep: the vendored plugin is never touched by instantiation; harness-init scaffolds empty structure, the curator family fills content.
-status: v0.3.0 — 2026-06-04
+status: v0.4.0 — 2026-06-10
 ---
 
 # Harness init
@@ -49,9 +49,11 @@ You create the **bound, empty structure**; the curator family fills the **conten
 
 - **You write** `<org-root>/.claude/bindings.yaml` (the binding values), the org-root **`CLAUDE.md`**
   (the harness's **ambient surface** — the handbook-index pointer + the bindings-reference pointer +
-  the how-to-use-the-graph navigation), and the **surface skeleton** under `surface-root` (the
-  `strategy.md` / `objectives.md` templates, `items/` + an empty `manifest.json`, `sprints/`), **plus
-  the improvements surface** under `improvements-root` (a sibling of `surface-root`: an empty `manifest.json`).
+  the how-to-use-the-graph navigation), the **surface skeleton** under `surface-root` (the
+  `strategy.md` / `objectives.md` templates, `items/` + an empty `manifest.json`, `sprints/`), the
+  **improvements surface** under `improvements-root` (a sibling of `surface-root`: an empty `manifest.json`),
+  and the **token-instrumentation activation env** in `<org-root>/.claude/settings.json` (D69 —
+  `SG_EVENT_LOG` / `SG_TOKEN_EVENT_KIND` / `SG_PRICING`; `bindings-contract` §6).
 - **You do NOT author work items.** Work-item content is **`product-dashboard-curator`**'s
   (`add-item`/`triage`). You scaffold an empty `items/` + manifest; the first work item is added
   through the curator, under its PR gating.
@@ -111,6 +113,18 @@ bindings live at `<org-root>/.claude/bindings.yaml`). If you cannot locate it un
    **sibling** of `surface-root`), scaffold an **empty** `manifest.json` (`[]`) — the incremental
    loop's surface; `triage` adds standalone-IU slices here. **Idempotent:** never clobber existing
    content — create only what's missing and warn on what's already there.
+5b. **Activate token instrumentation** (D69; `bindings-contract` §6). The plugin's token hooks are
+   **scope-gated by env** — dormant until the harness exports their scope. Write the activation env
+   into `<org-root>/.claude/settings.json` (the `env` block — idempotent; never clobber existing
+   keys):
+   - `SG_EVENT_LOG` = the **absolute** path to `<org-root>/.stack-graph/events.jsonl` (the `event-log`
+     binding, absolutised — hooks run in arbitrary cwd / worktrees, so a relative path would miss the
+     org-root log).
+   - `SG_TOKEN_EVENT_KIND` = the activation flag (e.g. `on`) — its presence is the scope gate.
+   - `SG_PRICING` = the absolute path to the `pricing` binding's `pricing.json`, when bound (the Cost
+     block prices with it; omit if `pricing` is unbound — the block degrades to components-without-$).
+   Resolve the optional `pricing` binding in step 2 alongside the others (the plugin ships a default
+   `pricing.json`; bind a host one to override). This is a harness-local write under `<org-root>/.claude/`.
 6. **Run `validate`** (below) and report, then hand off with the **load canary**: tell the operator
    what a correctly-loaded harness looks like next session — launch at the org root, and the first
    message should show the harness was picked up (the handbook index is reachable by name and a
@@ -140,17 +154,36 @@ bindings live at `<org-root>/.claude/bindings.yaml`). If you cannot locate it un
    `improvements-manifest`, `learnings-archive` (the committed archive
    file). The `event-log` location is reachable (the `.stack-graph/` parent exists or can be
    created).
-5. **Report pass/fail with the specific gaps.** A fail means the loop must not run yet — surface
+5. **Token instrumentation is wired (D69 — plugin-active + live-hook probe).** This is the
+   capture gate the analytics evidentiary layer depends on; verify it end-to-end, not by assertion:
+   - **Plugin active.** The vendored plugin is installed and enabled (its `hooks/hooks.json` is on
+     disk and the plugin is listed/enabled). A harness whose plugin is not enabled captures **no**
+     token usage — report it as a gap, not a pass.
+   - **Activation env present.** `SG_EVENT_LOG` (absolute, resolving to the org-root
+     `.stack-graph/events.jsonl`) and `SG_TOKEN_EVENT_KIND` are exported (scaffold step 5b);
+     `SG_PRICING` resolves when `pricing` is bound.
+   - **Live-hook probe.** Confirm capture actually works: run the guard once against a tiny synthetic
+     payload (e.g. `printf '{"transcript_path":"<a tiny fixture transcript>"}' | hooks/sg-token-hook.sh stop`
+     with the scope env set), then assert a fresh event **landed in the org-root `SG_EVENT_LOG`** — a
+     `session-usage` (probe succeeded) **or** an `instrumentation-error` (the hook fired but failed
+     loud — node missing / transcript unreadable). **Either is a PASS for "the hook is wired"**; a log
+     with **no** new line is the failure (the hook never fired — plugin not enabled or env not
+     exported). Report which, with the remedy. Clean up the probe line after (or note it is a probe).
+   The probe proves the whole path — plugin → guard → node handler → org-root log — before the loop
+   ever relies on it. A loud `instrumentation-error` is healthy wiring (fail-loud working); silence is not.
+6. **Report pass/fail with the specific gaps.** A fail means the loop must not run yet — surface
    exactly what to fix (a missing binding, a dangling path, an absent surface dir, an unwired
-   `CLAUDE.md`). This is the gate the first traversal depends on.
+   `CLAUDE.md`, an inactive plugin, or a token-hook probe that never landed). This is the gate the
+   first traversal depends on.
 
 ## Hard constraints
 
 - **Structure only — never content.** You scaffold the bound, empty surface; you never author work
   items (`product-dashboard-curator`), the strategy canvas (`strategy-curator`), or OKR values. You
   leave valid empty templates.
-- **Harness-local writes only.** You write `bindings.yaml`, the org-root `CLAUDE.md`, and the
-  surface skeleton under `surface-root` — nothing else, and **never** the vendored graph.
+- **Harness-local writes only.** You write `bindings.yaml`, the org-root `CLAUDE.md`, the
+  surface skeleton under `surface-root`, and the org-root `.claude/settings.json` **env block** (the
+  token-instrumentation activation, D69) — nothing else, and **never** the vendored graph.
   Instantiation is an additive overlay.
 - **Idempotent.** Re-running `scaffold` fills only what is missing and warns on what exists; it
   never clobbers authored content, an existing `bindings.yaml`, or an existing `CLAUDE.md` (re-pointing
