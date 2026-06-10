@@ -786,7 +786,7 @@
       "primitive": "agent",
       "mode": "autonomous",
       "title": "Measure outcomes",
-      "status": "v0.1.0 — 2026-06-01",
+      "status": "v0.2.0 — 2026-06-10",
       "edges": {}
     },
     "optimise": {
