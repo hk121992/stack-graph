@@ -29,7 +29,8 @@
  *   workspace/renderer/…        — the workspace portal renderer (Stage 5, 0.5.0+)
  *   workspace/{build.sh,_headers,wrangler.jsonc} — the portal build orchestration
  *   workspace/graph/…           — the dev-loop graph data the graph surface renders
- *   .claude-plugin/plugin.json  — version + description updated
+ *   hooks/…                     — the token-instrumentation hooks (Stage 6, 0.10.0+, D69)
+ *   .claude-plugin/plugin.json  — version + description + hooks declaration updated
  *
  * THE 5 STAGES (scope: 28 nodes + 16 refs + the vendored workspace renderer)
  *   1. Place references. Per node `references` edge: resolve graph/_refs/<id>.md;
@@ -79,6 +80,7 @@ import {
   readFileSync,
   writeFileSync,
   copyFileSync,
+  chmodSync,
   mkdirSync,
   rmSync,
   statSync,
@@ -114,7 +116,7 @@ const NATIVE_KEY_ORDER = [
   "argument-hint",
 ];
 
-const PLUGIN_VERSION = "0.9.0";
+const PLUGIN_VERSION = "0.10.0";
 
 // The plugin lives in its own repo, vendored into the factory as a git submodule
 // at this path. Inputs (graph/) are read from the factory root; outputs are written
@@ -541,6 +543,9 @@ function buildPluginManifest(root: string): EmittedFile {
   const raw = readFileSync(p, "utf-8");
   const obj = JSON.parse(raw) as Record<string, unknown>;
   obj.version = PLUGIN_VERSION;
+  // Declare the hooks config (D69 / #21) so a consuming harness wires the token-instrumentation
+  // hooks on install. The path is plugin-root-relative; the file is vendored by the hooks stage.
+  obj.hooks = "./hooks/hooks.json";
   // Drop the "Scaffold; specs in progress." tail from the description.
   if (typeof obj.description === "string") {
     obj.description = obj.description
@@ -870,6 +875,72 @@ function checkWorkspace(factoryRoot: string, pluginRoot: string): string[] {
 }
 
 // ----------------------------------------------------------------------------
+// Stage 6 — vendor the token-instrumentation hooks (0.10.0+, D69 / #21).
+//
+// The factory `hooks/` tree (the POSIX guard + node handler + hooks.json) is byte-copied into the
+// plugin so a consuming harness picks the hooks up on install (plugin.json declares
+// `hooks: ./hooks/hooks.json`). Like the workspace stage it runs OUTSIDE the text primitive
+// pipeline (it ships a shell script whose +x bit is load-bearing) — a recursive byte-copy with its
+// own clean (write) and Buffer-compare drift check (--check). The node handler imports the
+// transcript-usage core via the STABLE relative path `../../workspace/renderer/lib/transcript-usage.ts`,
+// which the workspace stage (Stage 5) also vendors — so the bundle is self-contained.
+// ----------------------------------------------------------------------------
+
+/** The plugin-relative subtree this stage owns; cleaned + drift-checked on its own. */
+const HOOKS_TREE = "hooks";
+
+/** Enumerate (absolute source, plugin-relative dest) pairs for the hooks tree. */
+function hooksFiles(factoryRoot: string): { src: string; rel: string }[] {
+  const pairs: { src: string; rel: string }[] = [];
+  const hooksSrc = join(factoryRoot, "hooks");
+  if (!existsSync(hooksSrc)) return pairs;
+  walkFiles(hooksSrc, hooksSrc, (rel) => {
+    pairs.push({ src: join(hooksSrc, rel), rel: join("hooks", rel) });
+  });
+  return pairs;
+}
+
+/** A shell script's executable bit is load-bearing (the hook command invokes it by bare path). */
+function isExecutableHook(rel: string): boolean {
+  return rel.endsWith(".sh");
+}
+
+/** Write the hooks tree into the plugin (clean its tree first; preserve the +x bit on .sh). */
+function writeHooks(factoryRoot: string, pluginRoot: string): number {
+  const dest = join(pluginRoot, HOOKS_TREE);
+  if (existsSync(dest)) rmSync(dest, { recursive: true, force: true });
+  const pairs = hooksFiles(factoryRoot);
+  for (const { src, rel } of pairs) {
+    const abs = join(pluginRoot, rel);
+    mkdirSync(dirname(abs), { recursive: true });
+    copyFileSync(src, abs);
+    if (isExecutableHook(rel)) chmodSync(abs, 0o755); // copyFileSync drops mode — restore +x.
+  }
+  return pairs.length;
+}
+
+/** --check the hooks tree: byte-compare expected files + flag stale ones + verify the +x bit. */
+function checkHooks(factoryRoot: string, pluginRoot: string): string[] {
+  const drift: string[] = [];
+  const pairs = hooksFiles(factoryRoot);
+  const expected = new Set(pairs.map((p) => p.rel));
+  for (const { src, rel } of pairs) {
+    const abs = join(pluginRoot, rel);
+    if (!existsSync(abs)) { drift.push(`missing: ${rel}`); continue; }
+    if (!readFileSync(src).equals(readFileSync(abs))) drift.push(`differs: ${rel}`);
+    if (isExecutableHook(rel) && (statSync(abs).mode & 0o111) === 0) drift.push(`not executable: ${rel}`);
+  }
+  const destRoot = join(pluginRoot, HOOKS_TREE);
+  if (existsSync(destRoot)) {
+    walkFiles(destRoot, pluginRoot, (rel) => {
+      if (rel.endsWith(".gitkeep")) return;
+      if (!expected.has(rel)) drift.push(`stale: ${rel}`);
+    });
+  }
+  return drift;
+}
+
+// ----------------------------------------------------------------------------
 // Helpers + main
 // ----------------------------------------------------------------------------
 
@@ -908,10 +979,11 @@ function main(): void {
   }
 
   if (check) {
-    // G1 freshness gate — primitives (text pipeline) + the vendored workspace render.
+    // G1 freshness gate — primitives (text pipeline) + the vendored workspace render + the hooks tree.
     const drift = [
       ...checkBuild(pluginRoot, build),
       ...checkWorkspace(factoryRoot, pluginRoot),
+      ...checkHooks(factoryRoot, pluginRoot),
     ];
     if (drift.length > 0) {
       console.error("vendor --check: committed output is STALE vs a fresh build (G1):");
@@ -929,10 +1001,11 @@ function main(): void {
 
   writeBuild(pluginRoot, build);
   const wsCount = writeWorkspace(factoryRoot, pluginRoot);
+  const hookCount = writeHooks(factoryRoot, pluginRoot);
   console.log(
     `vendor: emitted ${build.counts.skills} skills + ${build.counts.agents} agents + ` +
-      `${build.counts.refCopies} reference copies + ${wsCount} workspace-render files; ` +
-      `plugin.json -> ${PLUGIN_VERSION}. Stage 4 parity: pass. G2 load-verify: pass.`,
+      `${build.counts.refCopies} reference copies + ${wsCount} workspace-render files + ` +
+      `${hookCount} hook files; plugin.json -> ${PLUGIN_VERSION}. Stage 4 parity: pass. G2 load-verify: pass.`,
   );
 }
 
