@@ -52,8 +52,9 @@ factory-loop PR here; a product-specific one stays in the harness.
 
 Handbook changes land via labelled PRs raised by `/sg-handbook-curator raise`; graph and
 tooling changes follow the same branch/label model. Direct push to `main` is not the path
-for handbook content. A periodic **integrate** cadence that merges open PRs in batches is a
-later addition — the curator's `integrate` mode is not yet shipped.
+for handbook content. A periodic **integrate** cadence merges open PRs in batches: the
+curator's `integrate` mode runs cross-PR consistency and link checks over the queue, then
+walks the merges in an operator session.
 
 ## CI gates
 
