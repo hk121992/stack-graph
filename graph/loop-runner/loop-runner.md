@@ -29,9 +29,11 @@ determinism: generative
 # fires its own commit-to-land gate and owns the real merge).
 # REFERENCES: IU-schema (import — read to interpret manifest entries + return envelopes); carrier-
 # interface (on-demand — the projection key + common-vs-per-kind fields, at the seam where events are
-# keyed); instrumentation-preamble (import — the enter/exit emit + append discipline); bindings-
-# contract (on-demand — resolves improvements-root/-manifest + event-log at intake); deploy-config
-# (on-demand — per-repo roots + branch policy, the surface ship/deploy already read).
+# keyed); instrumentation-preamble (import — the enter/exit emit + append discipline); handoff-prompt-
+# convention (import — the field form + the machine-readable META: attribution line each dispatch
+# prompt carries, so the transcript analyzer attributes the dispatched session deterministically);
+# bindings-contract (on-demand — resolves improvements-root/-manifest + event-log at intake); deploy-
+# config (on-demand — per-repo roots + branch policy, the surface ship/deploy already read).
 # NOT DECLARED (design-locked): no composes-into; no precedes/can-follow; no invokes: review. The
 # triage relationship is dataflow on the arc (it scaffolds the proposed IUs) — the invokes edge here
 # is ONLY the intake define-now fallback, not arc sequence.
@@ -46,6 +48,7 @@ edges:
     - { id: IU-schema,                load: import }
     - { id: carrier-interface,        load: on-demand }
     - { id: instrumentation-preamble, load: import }
+    - { id: handoff-prompt-convention, load: import }
     - { id: bindings-contract,        load: on-demand }
     - { id: deploy-config,            load: on-demand }
 # analytics — the loop
@@ -180,18 +183,30 @@ Per scheduled IU:
    silent overwrite.
 2. **Dispatch one fresh agent session** with the **spawn bundle** — the contract is canonical, the
    mechanism is not (native subagent dispatch with `isolation: 'worktree'` is the default where the
-   runtime offers it; a headless `claude -p` session is the fallback). The bundle carries:
-   - the **carrier file path** (the decision-complete carrier is sufficient context, proven);
-   - **entry stage `specify-slice` in unattended mode** (entry `build` when the IU is **already
-     formalised**) — the session runs `specify-slice → build → review` per the arc's own node bodies:
-     specify-slice **formalises** the captured definition into the content fields (`goal / files /
-     acceptance / acceptance_check / size / slice_type / verification`) and **enforces** the
+   runtime offers it; a headless `claude -p` session is the fallback). **Write the dispatch prompt in
+   the `handoff-prompt-convention` field form** (imported) — the delta-only `GOAL / WHERE / DO /
+   DONE-WHEN / POL / EPH / META` envelope a cold session consumes — never free prose. The bundle
+   carries, as field-form fields:
+   - **`WHERE:`** — the **carrier file path** (the decision-complete carrier is sufficient context,
+     proven), the worktree path(s), and the `iu/<id>` branch (`<repo>@iu/<id> — <carrier path>`);
+   - **`DO:`** — **entry stage `specify-slice` in unattended mode** (entry `build` when the IU is
+     **already formalised**) — the session runs `specify-slice → build → review` per the arc's own node
+     bodies: specify-slice **formalises** the captured definition into the content fields (`goal /
+     files / acceptance / acceptance_check / size / slice_type / verification`) and **enforces** the
      vertical-slice / testing / single-slice invariants, **routing out on a gap, never asking**; build
      runs the tracer-bullet inner loop; review runs in `headless`/`autofix` mode for an AFK slice —
      honouring the arc's escalate and HITL semantics, and **stopping after the review verdict — it never
      runs `land`**;
-   - the **worktree path(s) and branch**;
-   - the **event-log binding**;
+   - **`POL:`** — the **event-log binding** path (policy by pointer, never copied);
+   - **`META:`** — the **machine-readable attribution line**, exactly:
+     `META: carrier=<id> kind=<work-item|standalone-iu> arc=<dev-sprint|incremental> iu=<id>`. Emit it
+     verbatim in this fixed `key=value` grammar, using **only** the allowlisted `kind` values
+     (`work-item` | `standalone-iu`) and `arc` values (`dev-sprint` | `incremental`) — for a
+     loop-runner-dispatched standalone IU that is `kind=standalone-iu arc=incremental`, with `carrier`
+     the IU's carrier id and `iu` its id. This is the **attribution source** the transcript analyzer
+     reads off the dispatched-session transcript to key the IU's derived analytics to the right
+     `(carrier, kind, arc, iu)` deterministically; a malformed token degrades to a null attribution at
+     the publisher, never a wrong one (see `handoff-prompt-convention`);
    - the **return-envelope contract** (below).
 
    **Write discipline inside the session:** the session writes its worktree(s) and **its own carrier

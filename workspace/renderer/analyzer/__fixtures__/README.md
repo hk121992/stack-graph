@@ -25,6 +25,10 @@ projects/
   sess-alpha/subagents/agent-build1.jsonl  dispatched build IU with a META: line → attribution
                                            (carrier=wave-A kind=standalone-iu arc=incremental iu=A1)
                                            + dispatch/unit usage.
+  sess-looprunner/subagents/agent-lr1.jsonl  a full loop-runner field-form dispatch prompt (the A3′
+                                           producer form: GOAL/WHERE/DO/DONE-WHEN/POL/META) → the META
+                                           line resolves carrier=loop-batch-3 kind=standalone-iu
+                                           arc=incremental iu=B7 even though it is not the first line.
   sess-browse.jsonl                        ~30 attributionSkill browse↔null toggles → must coalesce
                                            to ONE span (browse is non-graph → no node row, §3.4).
   sess-prose/subagents/agent-prose1.jsonl  dispatched session with a PROSE first message (no META:)

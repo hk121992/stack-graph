@@ -149,10 +149,18 @@ describe("A3: attribution from the META dispatch line", () => {
   const parsed = parseAll(FIXTURE_ROOT);
   const sub = parsed.find((p) => p.meta.path.includes("agent-build1"))!;
   const prose = parsed.find((p) => p.meta.path.includes("agent-prose1"))!;
+  const lr = parsed.find((p) => p.meta.path.includes("agent-lr1"))!;
 
   it("a META-bearing dispatched session resolves the exact (carrier,kind,arc,iu)", () => {
     const a = resolveAttribution(sub.entries, sub.meta);
     expect(a).toEqual({ carrier: "wave-A", carrier_kind: "standalone-iu", arc: "incremental", iu: "A1" });
+  });
+
+  it("a loop-runner-shaped field-form dispatch prompt (A3′ producer form) resolves the carrier triple", () => {
+    // The full GOAL/WHERE/DO/DONE-WHEN/POL/META envelope loop-runner emits after A3′ — the META line
+    // is embedded among the other fields, so attribute.ts must find it without being the first line.
+    const a = resolveAttribution(lr.entries, lr.meta);
+    expect(a).toEqual({ carrier: "loop-batch-3", carrier_kind: "standalone-iu", arc: "incremental", iu: "B7" });
   });
 
   it("a META-absent (prose) dispatched session falls back to null — never a wrong carrier", () => {
