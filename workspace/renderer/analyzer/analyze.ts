@@ -43,6 +43,8 @@ import { loadCursor, saveCursor, fileSignature, isUnchanged } from "./cursor.ts"
 import type { CursorFile } from "./cursor.ts";
 import { deriveTokenRows } from "./derive-tokens.ts";
 import { deriveFrictionRow } from "./derive-friction.ts";
+import { deriveActivityRows } from "./derive-activity.ts";
+import { resolveAttribution } from "./attribute.ts";
 
 // ── CLI / config ──────────────────────────────────────────────────────────────────────────────
 
@@ -116,6 +118,34 @@ function parseOptions(argv: string[]): Options {
     cursorPath: path.join(path.dirname(resolvedOut), "analyzer-cursor.json"),
     stallThresholdMs: Math.max(0, thresholdMin) * 60_000,
   };
+}
+
+// ── Graph node-id set ───────────────────────────────────────────────────────────────────────────
+
+/** Load the known graph-node id set from graph-record.json. Tries the factory layout
+ *  (<repo>/graph/graph-record.json) and the vendored-plugin layout (alongside the renderer), then
+ *  degrades to an EMPTY set — with no record, no skill maps to a node, so activity rows are simply not
+ *  emitted (honest under-capture; the publisher would drop unknown ids anyway). Never throws. */
+export function loadNodeIds(explicitPath?: string): Set<string> {
+  const here = path.dirname(new URL(import.meta.url).pathname);
+  const candidates = [
+    explicitPath,
+    process.env.SG_GRAPH_RECORD,
+    path.resolve(here, "..", "..", "..", "graph", "graph-record.json"), // factory: workspace/renderer/analyzer → repo/graph
+    path.resolve(here, "..", "graph-record.json"),
+    path.resolve(here, "graph-record.json"),
+  ].filter((p): p is string => typeof p === "string" && p !== "");
+  for (const cand of candidates) {
+    try {
+      const obj = JSON.parse(fs.readFileSync(cand, "utf8")) as { nodes?: Record<string, unknown> };
+      if (obj && obj.nodes && typeof obj.nodes === "object") {
+        return new Set(Object.keys(obj.nodes));
+      }
+    } catch {
+      /* try next candidate */
+    }
+  }
+  return new Set();
 }
 
 // ── Transcript discovery + parsing ──────────────────────────────────────────────────────────────
@@ -219,15 +249,26 @@ export interface ParsedTranscript {
  * the same rows out (order-independent — the caller sorts canonically). Split out from runtime I/O so
  * the test harness can drive it directly.
  *
- * A1 wires the token derivation; A2 adds per-session friction; A3/A4 add activity+attribution and
- * stalls.
+ * A1 wires token derivation; A2 adds per-session friction; A3 adds activity spans + attribution;
+ * A4 adds stalls.
  */
-export function deriveAll(parsed: ParsedTranscript[], _opts: { stallThresholdMs: number }): DerivedRow[] {
+export interface DeriveOptions {
+  stallThresholdMs: number;
+  /** The known graph-node id set — an activity span maps to a node only when its skill is in here. */
+  nodeIds: ReadonlySet<string>;
+}
+
+export function deriveAll(parsed: ParsedTranscript[], opts: DeriveOptions): DerivedRow[] {
   const rows: DerivedRow[] = [];
   for (const p of parsed) {
-    // A3 will resolve real attribution; A1/A2 use the null triple (no carrier signal from
-    // tokens/friction alone — friction is per-session, attribution-free).
-    rows.push(...deriveTokenRows(p.meta, { carrier: null, carrier_kind: null, arc: null, iu: null }));
+    // Resolve attribution once per transcript (META line for dispatched sessions, gitBranch fallback,
+    // then null — never a wrong carrier, §3.5). Token + activity rows carry the resolved triple.
+    const attribution = resolveAttribution(p.entries, p.meta);
+
+    rows.push(...deriveTokenRows(p.meta, attribution));
+
+    // Activity spans → enter/exit rows for skills that match a graph node id.
+    rows.push(...deriveActivityRows(p.entries, p.meta, attribution, opts.nodeIds));
 
     // Friction is per top-level session. Subagent transcripts are folded into their parent session's
     // friction view by the publisher; the analyzer emits friction only for top-level transcripts to
@@ -278,7 +319,8 @@ function main(): void {
     };
   }
 
-  const rows = deriveAll(parsed, { stallThresholdMs: opts.stallThresholdMs });
+  const nodeIds = loadNodeIds();
+  const rows = deriveAll(parsed, { stallThresholdMs: opts.stallThresholdMs, nodeIds });
   const body = serializeRows(rows);
   fs.writeFileSync(opts.outPath, body, "utf8");
 
