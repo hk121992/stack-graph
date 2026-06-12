@@ -16,14 +16,14 @@
  * into the submodule (the PLUGIN root = <factoryRoot>/stack-graph-plugin/).
  *
  * Inputs  (factory root resolved by walking up to the `graph/` + `handbook/` marker):
- *   graph/<id>/<id>.md          — 29 node files (16 skill + 13 agent)
- *   graph/_refs/<id>.md         — 17 shared references
+ *   graph/<id>/<id>.md          — 47 node files (28 skill + 19 agent)
+ *   graph/_refs/<id>.md         — 28 shared references
  *   graph/graph-record.json     — the maintainer-owned record (read-only parity check)
  *   stack-graph-plugin/.claude-plugin/plugin.json — manifest (version bumped)
  *
  * Outputs (emitted into the plugin submodule at <factoryRoot>/stack-graph-plugin/):
- *   skills/<id>/SKILL.md        — built skill nodes (16)
- *   agents/<id>.md              — built agent nodes (13)
+ *   skills/<id>/SKILL.md        — built skill nodes (28)
+ *   agents/<id>.md              — built agent nodes (19)
  *   skills/<id>/references/<refid>.md      — per-skill reference copies
  *   references/<agent-id>/<refid>.md       — per-agent reference copies
  *   workspace/renderer/…        — the workspace portal renderer (Stage 5, 0.5.0+)
@@ -31,7 +31,7 @@
  *   workspace/graph/…           — the dev-loop graph data the graph surface renders
  *   .claude-plugin/plugin.json  — version + description updated
  *
- * THE 5 STAGES (scope: 28 nodes + 16 refs + the vendored workspace renderer)
+ * THE STAGES (scope: 47 nodes + 28 refs + the vendored workspace renderer + the index-generator script)
  *   1. Place references. Per node `references` edge: resolve graph/_refs/<id>.md;
  *      SKIP external:true (handbook/personas/experience-contract/strategy-canvas —
  *      ship the pointer only). Copy (not symlink) the ref into the consumer's bundle
@@ -114,7 +114,7 @@ const NATIVE_KEY_ORDER = [
   "argument-hint",
 ];
 
-const PLUGIN_VERSION = "0.10.0";
+const PLUGIN_VERSION = "0.11.0";
 
 // The plugin lives in its own repo, vendored into the factory as a git submodule
 // at this path. Inputs (graph/) are read from the factory root; outputs are written
