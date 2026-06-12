@@ -884,6 +884,7 @@ function checkWorkspace(factoryRoot: string, pluginRoot: string): string[] {
 // own clean (write) and Buffer-compare drift check (--check). The node handler imports the
 // transcript-usage core via the STABLE relative path `../../workspace/renderer/lib/transcript-usage.ts`,
 // which the workspace stage (Stage 5) also vendors — so the bundle is self-contained.
+// (NOTE: the unified transcript-analytics rework retires these hooks; until then they ride along.)
 // ----------------------------------------------------------------------------
 
 /** The plugin-relative subtree this stage owns; cleaned + drift-checked on its own. */
@@ -919,6 +920,49 @@ function writeHooks(factoryRoot: string, pluginRoot: string): number {
   return pairs.length;
 }
 
+// ----------------------------------------------------------------------------
+// Scripts stage — vendor the tooling scripts (handbook index generator).
+//
+// The index generator is a tooling script, not a `.claude` primitive (the build
+// aborts on `primitive: script`), so it is byte-copied into the plugin like the
+// workspace render: self-cleaning dest tree, recursive byte-copy, its own --check
+// drift list. The consuming harness's curator overlay invokes the SAME vendored
+// generator (parameterized by canon root) so every harness regenerates its index
+// with one validated tool.
+// ----------------------------------------------------------------------------
+
+/** The plugin-relative subtree this stage owns; cleaned + drift-checked on its own. */
+const SCRIPTS_TREE = "scripts";
+
+/** Enumerate (absolute source, plugin-relative dest) pairs for the vendored scripts. */
+function scriptsFiles(factoryRoot: string): { src: string; rel: string }[] {
+  return [
+    {
+      src: join(
+        factoryRoot,
+        "tooling",
+        "sg-handbook-curator",
+        "scripts",
+        "refresh-index.ts",
+      ),
+      rel: join("scripts", "refresh-index.ts"),
+    },
+  ];
+}
+
+/** Write the vendored scripts into the plugin (clean its tree first). */
+function writeScripts(factoryRoot: string, pluginRoot: string): number {
+  const dest = join(pluginRoot, SCRIPTS_TREE);
+  if (existsSync(dest)) rmSync(dest, { recursive: true, force: true });
+  const pairs = scriptsFiles(factoryRoot);
+  for (const { src, rel } of pairs) {
+    const abs = join(pluginRoot, rel);
+    mkdirSync(dirname(abs), { recursive: true });
+    copyFileSync(src, abs);
+  }
+  return pairs.length;
+}
+
 /** --check the hooks tree: byte-compare expected files + flag stale ones + verify the +x bit. */
 function checkHooks(factoryRoot: string, pluginRoot: string): string[] {
   const drift: string[] = [];
@@ -931,6 +975,26 @@ function checkHooks(factoryRoot: string, pluginRoot: string): string[] {
     if (isExecutableHook(rel) && (statSync(abs).mode & 0o111) === 0) drift.push(`not executable: ${rel}`);
   }
   const destRoot = join(pluginRoot, HOOKS_TREE);
+  if (existsSync(destRoot)) {
+    walkFiles(destRoot, pluginRoot, (rel) => {
+      if (rel.endsWith(".gitkeep")) return;
+      if (!expected.has(rel)) drift.push(`stale: ${rel}`);
+    });
+  }
+  return drift;
+}
+
+/** --check the vendored scripts: byte-compare expected files + flag stale ones. */
+function checkScripts(factoryRoot: string, pluginRoot: string): string[] {
+  const drift: string[] = [];
+  const pairs = scriptsFiles(factoryRoot);
+  const expected = new Set(pairs.map((p) => p.rel));
+  for (const { src, rel } of pairs) {
+    const abs = join(pluginRoot, rel);
+    if (!existsSync(abs)) { drift.push(`missing: ${rel}`); continue; }
+    if (!readFileSync(src).equals(readFileSync(abs))) drift.push(`differs: ${rel}`);
+  }
+  const destRoot = join(pluginRoot, SCRIPTS_TREE);
   if (existsSync(destRoot)) {
     walkFiles(destRoot, pluginRoot, (rel) => {
       if (rel.endsWith(".gitkeep")) return;
@@ -984,6 +1048,7 @@ function main(): void {
       ...checkBuild(pluginRoot, build),
       ...checkWorkspace(factoryRoot, pluginRoot),
       ...checkHooks(factoryRoot, pluginRoot),
+      ...checkScripts(factoryRoot, pluginRoot),
     ];
     if (drift.length > 0) {
       console.error("vendor --check: committed output is STALE vs a fresh build (G1):");
@@ -1002,10 +1067,12 @@ function main(): void {
   writeBuild(pluginRoot, build);
   const wsCount = writeWorkspace(factoryRoot, pluginRoot);
   const hookCount = writeHooks(factoryRoot, pluginRoot);
+  const scriptsCount = writeScripts(factoryRoot, pluginRoot);
   console.log(
     `vendor: emitted ${build.counts.skills} skills + ${build.counts.agents} agents + ` +
       `${build.counts.refCopies} reference copies + ${wsCount} workspace-render files + ` +
-      `${hookCount} hook files; plugin.json -> ${PLUGIN_VERSION}. Stage 4 parity: pass. G2 load-verify: pass.`,
+      `${hookCount} hook files + ${scriptsCount} vendored script(s); ` +
+      `plugin.json -> ${PLUGIN_VERSION}. Stage 4 parity: pass. G2 load-verify: pass.`,
   );
 }
 
