@@ -11,18 +11,37 @@ This doc is the authoritative hand-off. It carries every resolved decision so a 
 build without re-litigating. It is deliberately decision-dense; per-cluster *design* docs + spec
 amendments are the implementation session's first task (DESIGN → SPEC AMENDMENT → REVIEW → build).
 
+> ## ⚠️ AMENDMENT (2026-06-12) — Cluster A re-scoped; #21 retired
+> The original **Cluster A (#28)** below — a hook-stacking design with IUs **A1–A4** that stacks on
+> #21's hook tree — has been **superseded** by a unified, deterministic **transcript-derived batch
+> analyzer** (operator decision). The new design is
+> [`docs/issue-sweep-designs/cluster-A-unified-analytics.md`](issue-sweep-designs/cluster-A-unified-analytics.md)
+> (+ its spec amendment), with IUs **A1–A6**. Consequences that override the text below:
+> - **#21 is retired, not stacked-on.** PR #25 will **not** merge; #21's transcript-usage *core* is
+>   reused by the analyzer, the hook tree is deleted. So "rebase onto main after #25 lands" no longer
+>   applies — the wave's final PR-vs-`main` carries #21's preserved core + the analyzer (hooks add-then-
+>   removed in history; net tree clean), and #25 is closed.
+> - **No new hooks anywhere.** The session-end friction hook (A1), the schema-validated append + the
+>   `gate-open`/`gate-closed` inline events (A2) are **gone** — friction/stalls are *derived from
+>   transcripts in batch*, not emitted. `instrumentation-preamble` is retired as a runtime emit
+>   contract; backbone nodes stop emitting events.
+> - **Clusters H, F, C are unaffected** by this amendment and built as specified.
+>
+> The Cluster A IU section below is **replaced** by the A1–A6 list in the unified-analytics design;
+> the inline `### Cluster A` heading carries a SUPERSEDED pointer. Other clusters' text stands.
+
 ---
 
 ## Disposition of all open issues
 
 | # | Title (short) | Disposition | Note |
 |---|---|---|---|
-| #21 | Token instrumentation hook-captured | **In-flight** | Built (D69 IU1–9), PR #25 open. Merge separately. This wave stacks on its branch. |
+| #21 | Token instrumentation hook-captured | **RETIRED** (see amendment) | PR #25 will **not** merge; the hook tree is deleted by Cluster A's A6. #21's `transcript-usage.ts` core is preserved + reused by the unified analyzer. |
 | #23 | Vendor `harness-update` skill | **Build (this wave)** | Sibling to `harness-init`. |
 | #24 | Integration merges must flow through `land` | **ON HOLD** | Deferred until the Be Civic setup is right; revisit + possibly upstream then. Do **not** build this wave. |
 | #26 | Index generator no harness supplies | **Build (this wave)** | Ship a general generator (Option 1). |
 | #27 | link-validator `related[]` not actionable | **Build (this wave)** | A + B + C, per resolved decisions below. |
-| #28 | Friction & stall telemetry | **Build (this wave)** | Factory captures + projects; ops-review stays product-local. |
+| #28 | Friction & stall telemetry | **Build (this wave — re-scoped)** | Unified transcript-derived batch analyzer (supersedes the hook design + #21); see amendment + `cluster-A-unified-analytics.md`. Ops-review stays product-local. |
 | #29 | Handoff/chip-prompt convention reference | **Build (this wave)** | Reference node + scaffold pointer. |
 
 No issues closed. #24 is the only deferral.
@@ -31,16 +50,19 @@ No issues closed. #24 is the only deferral.
 
 ## Resolved decisions (do not re-open)
 
-1. **Sequencing.** All five build in one wave, stacked on `graph/token-instrumentation`. #28 needs
-   #21's hook tree (`hooks/hooks.json`, `sg-token-hook.sh`, `lib/emit-usage.mjs`); the rest don't,
-   but ride the same branch.
+1. **Sequencing.** All five build in one wave on the `issue-sweep-wave` branch (off
+   `graph/token-instrumentation`). ~~#28 needs #21's hook tree~~ **(SUPERSEDED — see amendment:** #28
+   is re-scoped to a transcript-batch analyzer that **retires** #21's hook tree rather than stacking on
+   it; the analyzer reuses #21's preserved `transcript-usage.ts` core.) H/F/C are independent and built.
 2. **#27-B (pre-existing broken `related[]`).** `integrate` escalates standing breaks **directly
    into a `raise`** — *not* gated on `introduced_by`, and *not* routed through a separate `sweep`
    run. integrate detects standing `related_slug` / `unindexable` breaks in the merged preview and
    opens a gated raise for them.
-3. **#28 factory/product split.** Factory scope = **capture (hooks) + project (workspace analytics
-   "Process cost" block)**. **No new judgment node** (no `measure-process`). The ops-review
-   *process* stays product-local in Be Civic. No factory ops-review issue filed.
+3. **#28 factory/product split.** Factory scope = **capture + project (workspace analytics "Process
+   cost" block)**. **No new judgment node** (no `measure-process`). The ops-review *process* stays
+   product-local in Be Civic. No factory ops-review issue filed. **(AMENDED — see amendment:** "capture"
+   is now a deterministic transcript-batch analyzer, **not hooks**; the split and the no-judgment-node
+   ruling stand.)
 4. **#26 mechanism.** Option 1 — **ship one general, canon-root-parameterized index generator** in
    the plugin (generalize the existing `tooling/sg-handbook-curator/scripts/refresh-index.ts`), so
    any harness's curator runs the same validated generator. No new bindings-contract key. Generator
@@ -113,40 +135,49 @@ These are coupled: the generator (H1) normalizes `related[]` on write, and the l
   the version/commit landed. Note the upstream `claude plugin update` "not found" bug in the body
   (skill works around it).
 
-### Cluster A — friction & stall telemetry (#28) — stacks on #21
+### Cluster A — ⛔ SUPERSEDED → unified transcript-derived analytics (#28, supersedes #21)
 
-- **IU-A1 — session-end friction hook.**
-  Add a `SessionEnd`/`Stop` hook (alongside #21's `hooks/`) that writes **one JSONL friction row
-  per session**: permission denials + matched rule, classifier denials + reason category,
-  `tool_result` error count, rejected tool calls, wakeups armed/fired. Hook-captured, never model
-  prose. Same fail-loud / scope-gated / `<4KB` append discipline as the #21 hooks.
-  *Acceptance:* a session with denials/rejections/wakeups produces a deterministic friction row;
-  none of it originates from model judgment.
+> **The hook-stacking A1–A4 below are RETIRED.** Build the unified analyzer instead:
+> **[`docs/issue-sweep-designs/cluster-A-unified-analytics.md`](issue-sweep-designs/cluster-A-unified-analytics.md)**
+> (+ [`cluster-A-unified-analytics-amendment.md`](issue-sweep-designs/cluster-A-unified-analytics-amendment.md)).
+> One deterministic, scheduled (~1–2×/day) batch analyzer reads the session transcripts and derives
+> the **entire** substrate — tokens/cost (reusing #21's preserved `transcript-usage.ts` core),
+> friction, stalls, node-activity, attribution. **No hooks, no inline emission.** #21's hook tree is
+> deleted; PR #25 will not merge.
 
-- **IU-A2 — schema-validated event append + gate-wait first-class.**
-  A tiny CLI/script the skills call (or a `PostToolUse` path) to emit node enter/exit + gate events
-  with **schema validation on append**: reject unknown shape, validate `ts`. Model-authored
-  freeform rows rejected. Add **`gate-open` / `gate-closed`** events carrying the blocking
-  condition, so overnight human-gate stalls fall out of a query (the 14h stall in the evidence was
-  invisible). Document the foreign-schema / fabricated-timestamp failure mode this closes.
-  *Acceptance:* an append with an unknown shape or malformed `ts` is rejected; a gate wait emits
-  paired `gate-open`/`gate-closed` with the condition; stall duration is derivable from the log.
+**New IU decomposition (A1–A6 — replaces A1–A4):**
 
-- **IU-A3 — workspace analytics "Process cost" block.**
-  `workspace/renderer/publish-projection.ts` computes a process-cost series from the friction +
-  gate events; `workspace/renderer/build-analytics.ts` renders a **"Process cost" block** (sibling
-  to #21's Cost block): denial counts (by rule/category), stall time, dangling/unpaired spans,
-  rejected-call count. Keep the publisher↔build-analytics allowlists in lockstep (the in-file
-  comments mandate it). **No judgment node** — deterministic projection only.
-  *Acceptance:* the analytics surface renders a process-cost view from real events; ops-review
-  reads it; nothing is model-emitted.
-
-- **IU-A4 — preamble + spec amendment (#28).**
-  Document the new event kinds (`friction-record`, `gate-open`, `gate-closed`) in
-  `graph/_refs/instrumentation-preamble.md` (bump version), reconcile against the live kinds, and
-  amend `06-analytics` (the process/friction layer + the deterministic-not-model-emitted invariant).
-  *Acceptance:* every live event kind is documented; preamble version bumped; `06-analytics`
-  describes the process layer.
+- **IU-A1 — analyzer core + cursor**, reusing `workspace/renderer/lib/transcript-usage.ts`. Walk
+  `SG_TRANSCRIPT_ROOT`, emit `unit/session/dispatch-usage` rows to
+  `.stack-graph/derived/analyzer-events.jsonl`, advance the cursor.
+  *Acceptance:* emits the same token rows #21's hooks would; a second run is byte-identical (idempotent).
+- **IU-A2 — friction + permission-decision extraction.** Per-session `friction-record` rows (denials,
+  rejected calls, tool errors, `permissionDecision`/`Reason`/`Mode`), categorised counts only, no free-text.
+  *Acceptance:* a fixture with a hard denial / user rejection / tool error / `permissionDecision` yields
+  correct counts; absent fields degrade to 0, none model-filled.
+- **IU-A3 — node-activity + attribution from dispatch prompts.** Skill/slash/Task spans → enter/exit/
+  duration (coalescing `attributionSkill`); dispatch-prompt envelope parse → carrier triple (the
+  **C-convergence**: attribution reads cluster C's handoff envelope); session-level + null fallback.
+  *Acceptance:* a dispatched-session fixture attributes the correct `(carrier,kind,arc)`; non-dispatched
+  falls back to session-level/null; the browse-toggle fixture coalesces to one span.
+- **IU-A4 — stall derivation.** Cross-session timestamp-gap `stall-record` rows over the threshold dial,
+  gate-tagged where the pre-gap node is gate-holding (the 14h stall falls out).
+  *Acceptance:* a 14h cross-session gap on a gate-holding node yields one `stall-record` with the gap +
+  node tag; sub-threshold gaps yield none.
+- **IU-A5 — publisher + renderer integration ("Process cost" block).** `publish-projection.ts`:
+  `FRICTION_KINDS` + `FRICTION_KEYS` + the `process_costs` read path (token/activity paths unchanged).
+  `build-analytics.ts`: `processCostSection` + lockstep `FRICTION_KEYS`. Cost block + reconciliation now
+  render from analyzer rows. **No judgment node** — deterministic projection only.
+  *Acceptance:* analyzer→publish→build renders both a Cost block and a Process-cost block; hostile-fixture
+  sanitisation drops bad rows exactly as the usage path does.
+- **IU-A6 — config + harness-init registration + spec amendment + #21 hook retirement.**
+  `SG_TRANSCRIPT_ROOT` env + `harness-init scaffold` step 5c (scheduled-task registration) + validate
+  analyzer dry-run probe. Delete `hooks/` tree + `plugin.json` hooks decl + the vendor hook step; retire
+  `instrumentation-preamble` as a runtime contract (extract surviving vocabulary into `analytics-vocabulary`,
+  drop the `load: import` edges from backbone nodes). Amend `06-analytics` + `instrumentation-preamble`.
+  *Acceptance:* `harness-init validate` registers the task + passes the dry-run probe; the hooks tree is
+  gone and vendor no longer copies it; the spec describes the single transcript-derived source; no backbone
+  node imports the preamble.
 
 ### Cluster C — handoff convention (#29)
 
@@ -165,9 +196,12 @@ These are coupled: the generator (H1) normalizes `related[]` on write, and the l
 
 - **IU-Z1 — re-vendor + records + decisions.**
   Run `build/vendor.ts` (bump plugin version; vendor the new/changed skills `harness-update` +
-  `harness-init`, the index generator, the new hook, the workspace renderer process block, the new
-  reference). Pass G1 (idempotency `--check`) + G2 (load-verify) gates. Update
-  `graph/graph-record.json` (new node + ref counts). Log **D70** (+ any split) in `docs/decisions.md`.
+  `harness-init`, the index generator, the workspace renderer process block + the unified analyzer,
+  the new references). **Vendor stops copying the `hooks/` tree** (A6 retires it; remove the
+  `plugin.json` hooks decl). Pass G1 (idempotency `--check`) + G2 (load-verify) gates. Update
+  `graph/graph-record.json` (new node + ref counts, incl. `handoff-prompt-convention`,
+  `analytics-vocabulary`, the dropped `instrumentation-preamble` import edges). Log **D70** (+ any
+  split) in `docs/decisions.md`.
   *Acceptance:* `vendor.ts --check` clean; graph-record parity holds; decisions logged; plugin
   version bumped with the changelog delta.
 
@@ -177,7 +211,10 @@ These are coupled: the generator (H1) normalizes `related[]` on write, and the l
 
 - #26/#27 → `05-maintenance-skill` (the generator + link-validator contract), `bindings-contract`
   (document `handbook-index` as path + the generator is plugin-shipped, no new key).
-- #28 → `06-analytics` (process/friction layer), `instrumentation-preamble`.
+- #28 → `06-analytics` (single transcript-derived source; process/friction/stall/node-activity layers),
+  `instrumentation-preamble` (**retired** as a runtime emit contract), `bindings-contract`
+  (`SG_TRANSCRIPT_ROOT` env + scheduled-task; remove the hook-activation env). See the unified-analytics
+  amendment doc.
 - #23 → `03-plugin-spec` (install/update lifecycle), `04-harness-spec` (harness-update alongside
   harness-init).
 - #29 → new reference; `04-harness-spec` (scaffold writes the pointer).
@@ -190,15 +227,16 @@ Attach both the per-cluster design doc **and** its spec-amendment proposal when 
 ## Dependencies & order
 
 ```
-#21 (PR #25) ──merge──► rebase wave onto main
-        │
-        └─ A1 ─► A2 ─► A3 ─► A4        (cluster A stacks on #21's hooks)
-H1 ─► H2 ─► H3                          (handbook; H1 normalize-on-write feeds H2)
-F1                                      (independent)
-C1                                      (independent; shares "policy by pointer" idea with held #24)
+H1 ─► H2 ─► H3                          (handbook; H1 normalize-on-write feeds H2)   [BUILT]
+F1                                      (independent)                                [BUILT]
+C1                                      (independent; the handoff envelope feeds A3's attribution) [BUILT]
+A1 ─► A2 · A3 · A4 ─► A5 ─► A6          (unified analyzer; A2/A3/A4 independent on A1's spine;
+                                         A6 retires #21 + amends spec. NOT stacked on hooks — retires them.)
         ↓
-        Z1  (re-vendor + records + decisions — last)
+        Z1  (re-vendor [no hooks] + records + decisions — last)
 ```
+Note: #21/PR #25 is **retired, not merged** — the wave's final PR-vs-`main` carries #21's preserved
+core + the analyzer (hooks add-then-removed in history; net tree clean), closing #25.
 
 Independent clusters (H, F, C) can be dispatched in parallel by `loop-runner`; cluster A is internally
 ordered. Z1 is last (it vendors everything).

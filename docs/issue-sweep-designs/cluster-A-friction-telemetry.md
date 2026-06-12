@@ -1,4 +1,14 @@
-# Cluster A — friction & stall telemetry (#28)
+> # ⛔ SUPERSEDED — DO NOT BUILD
+> This hook-stacking design (IUs **A1–A4**, which stack on #21's hook tree) has been **superseded
+> wholesale** by **[`cluster-A-unified-analytics.md`](cluster-A-unified-analytics.md)** — a single
+> deterministic, scheduled **transcript-derived batch analyzer** that **retires all hooks** (including
+> #21's; PR #25 will not merge). The new IU decomposition is **A1–A6** (analyzer core → friction →
+> node-activity+attribution → stalls → publisher/renderer integration → config+spec+#21 retirement).
+> **Build from the unified-analytics design, not this file.** Kept only for provenance of the retired
+> hook approach (operator decision, 2026-06-12). See also the spec amendment in
+> [`cluster-A-unified-analytics-amendment.md`](cluster-A-unified-analytics-amendment.md).
+
+# Cluster A — friction & stall telemetry (#28) — ⛔ SUPERSEDED (see banner above)
 
 **Issue:** [#28](https://github.com/hk121992/stack-graph/issues/28) — hook-captured session/node
 friction events, not model-emitted prose. **IUs:** A1 (session-end friction hook), A2
