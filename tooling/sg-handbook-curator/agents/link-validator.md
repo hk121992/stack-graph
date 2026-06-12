@@ -24,6 +24,9 @@ broken:
     target: <the slug, path, or anchor that failed>
     evidence: <one sentence — where it appears and why it fails>
     introduced_by: [<int>, ...]   # PR number(s) whose files plausibly caused it; [] if queue absent or no PR touches the involved files
+    # related_asymmetric only — triage annotations (see Task step 3):
+    inbound_degree: <int>         # how many pages list `target` in their related[]
+    net_new_in_batch: <boolean>   # the asymmetry was introduced by a PR in this batch's queue (vs pre-existing)
 all_resolve: <boolean>
 pages_checked: <int>
 notes: <free-form>
@@ -43,14 +46,38 @@ All paths below are relative to `<worktree>`.
 
 2. Walk `handbook/content/` for pages (`NN-section/NN-page.md` and `NN-section/README.md`).
    Compute each file's clean slug the same way `scripts/refresh-index.ts` does (strip `NN-`
-   prefixes and extension; `README.md` → bare section slug).
+   prefixes and extension; `README.md` → bare section slug). This is the canonical page-slug set.
+
+   **`canon_rule` (the one normalization, applied to `related[]` entries before every check
+   below).** `related[]` entries are canonicalized **identically to file-path slugs** — the
+   exact rule `scripts/refresh-index.ts` applies on write (IU-H1), so a `related[]` entry and
+   the page it points at land on the same string. Apply, in order:
+   - strip a trailing `.md` suffix if present;
+   - split on `/`; strip a leading `NN-` (`/^\d{2}-/`) on the **final** segment only;
+   - `X/README` → `X`; bare `README` → root (`""`).
+
+   Apply `canon_rule` to every `related[]` entry **before** both the `related_slug` membership
+   test and the `related_asymmetric` pairing. A canon with mixed forms (clean / `NN-`prefixed /
+   `X/README`) therefore produces **zero** false `related_slug` breaks.
 
 3. Check, per page:
-   - **`related_slug`** — every entry in frontmatter `related[]` exists in the computed slug
-     set (not just in `index.json` — the index itself may be stale).
+   - **`related_slug`** — every `canon_rule`-normalized entry in frontmatter `related[]` exists
+     in the computed slug set (not just in `index.json` — the index itself may be stale).
    - **`related_asymmetric`** — `related[]` edges are bidirectional by convention
-     (`00-overview/01-authoring.md`): if A lists B, B must list A. Emit one entry per
-     missing reverse edge, naming both pages.
+     (`00-overview/01-authoring.md`): if A lists B, B must list A. Compare **normalized**
+     forms on both sides (`canon_rule` applied to A's entry for B and B's entry for A). Emit
+     one entry per missing reverse edge, naming both pages, and annotate each with:
+     - **`inbound_degree`** — how many pages list `target` (the unreciprocated end) in their
+       `related[]`, counted over normalized forms;
+     - **`net_new_in_batch`** — `true` iff the asymmetry was introduced by a PR in this batch's
+       `queue` (the linking edge sits in a file a queued PR touched); `false` if pre-existing or
+       `queue` is absent.
+
+     **Triage view (advisory, never auto-reciprocate).** Default the surfaced
+     `related_asymmetric` set to **net-new + low-inbound** — `net_new_in_batch: true` AND
+     `inbound_degree` ≤ 1 (the 1:1 pairs). Collapse the tolerated baseline (high-inbound hubs,
+     child→section-index edges) out of the default view; keep it available but folded. Reciprocity
+     is an altitude judgment the operator owns — emit the finding, never edit the reverse edge.
    - **`file_link`** — every relative markdown link resolves in the worktree. Handbook links
      are typically directory-style (`[graph-spec](../02-graph-spec/)`) — a directory target
      resolves iff it contains a `README.md`; a file target must exist as written. Skip
