@@ -42,6 +42,7 @@ import type { TranscriptEntry, TranscriptMeta, DerivedRow } from "./schema.ts";
 import { loadCursor, saveCursor, fileSignature, isUnchanged } from "./cursor.ts";
 import type { CursorFile } from "./cursor.ts";
 import { deriveTokenRows } from "./derive-tokens.ts";
+import { deriveFrictionRow } from "./derive-friction.ts";
 
 // ── CLI / config ──────────────────────────────────────────────────────────────────────────────
 
@@ -218,13 +219,23 @@ export interface ParsedTranscript {
  * the same rows out (order-independent — the caller sorts canonically). Split out from runtime I/O so
  * the test harness can drive it directly.
  *
- * A1 wires the token derivation; A2–A4 add friction, activity+attribution, and stalls.
+ * A1 wires the token derivation; A2 adds per-session friction; A3/A4 add activity+attribution and
+ * stalls.
  */
 export function deriveAll(parsed: ParsedTranscript[], _opts: { stallThresholdMs: number }): DerivedRow[] {
   const rows: DerivedRow[] = [];
   for (const p of parsed) {
-    // A3 will resolve real attribution; A1 uses the null triple (no carrier signal from tokens alone).
+    // A3 will resolve real attribution; A1/A2 use the null triple (no carrier signal from
+    // tokens/friction alone — friction is per-session, attribution-free).
     rows.push(...deriveTokenRows(p.meta, { carrier: null, carrier_kind: null, arc: null, iu: null }));
+
+    // Friction is per top-level session. Subagent transcripts are folded into their parent session's
+    // friction view by the publisher; the analyzer emits friction only for top-level transcripts to
+    // keep one settled friction-record per session (§3.2 "one per session").
+    if (!p.meta.isSubagent) {
+      const friction = deriveFrictionRow(p.entries, p.meta);
+      if (friction) rows.push(friction);
+    }
   }
   return rows;
 }
