@@ -230,11 +230,22 @@ Header: "Which mode?". Options: "sweep", "raise", "queue", "integrate", "refresh
 
 5. **Re-validate if the merge set — or its order — changed.** If triage held or deferred any previewed PR, or the operator confirmed a different merge order than the oldest-first one the preview was built in (order changes the intermediate trees when PRs touch the same pages), the step-3 results no longer describe what will merge — a link or a `stale_against_batch` finding can appear or vanish with the set. Rebuild the preview from the confirmed merge set, in the confirmed order (re-admitting any preview-conflicted PR whose blocker was deferred), and re-dispatch **both** agents against it; discard findings that name a PR no longer in the set. A `broken[]` entry holds the PR(s) its `introduced_by` names, same as a high-severity consistency finding — **except `index_missing` / `index_orphan`**, which are expected generated-index drift in any batch and are resolved by the post-walk refresh, never a hold (`unindexable` — incomplete frontmatter that `refresh-index` would skip — DOES hold).
 
+   **Net-new vs standing breaks.** Partition the final preview's `related_slug` / `unindexable` findings by attribution:
+   - **Net-new-in-batch** — `introduced_by` names a PR in the merge set. These **block** that PR as above (the existing hold is unchanged).
+   - **Standing** — `introduced_by` is `[]` (the break exists on a page no queued PR touched; pre-existing canon drift). These do **not** block the batch and must **not** live forever in the triage view — they become a gated `raise` after the batch lands (step 9). Carry the standing `related_slug` / `unindexable` set forward from this step's link-validator findings; do not re-derive it from a separate `sweep` run.
+
 6. **Walk the merges** per `references/integrator-checklist.md`: oldest-first within topical clusters (operator may reorder); post each operator resolution as a PR comment before its merge; pre-merge `mergeable` gate (skip-and-defer on `CONFLICTING`); squash by default; a high-severity finding or broken link holds its PR back unless the operator overrides.
 
 7. **Refresh the index** after the walk (`refresh-index` mode), back in the primary checkout — never the preview worktree. If it changed, commit and push straight to `main` as `chore(handbook): refresh index post-integrate` — the generated-artifact exception in the hard constraints.
 
-8. **Clean up** the preview worktree and its branches, then print the final report per the checklist's report shape (merged / deferred / decisions recorded / index / next steps).
+8. **Clean up** the preview worktree and its branches (`git worktree remove`, delete `integrate/preview` + every `integrate/pr-*`). Main is now clean.
+
+9. **Escalate standing breaks into a `raise`** — the final integrate action, **off clean `main`**. If step 5 carried any **standing** `related_slug` / `unindexable` breaks (`introduced_by: []` — pre-existing, on pages no PR in this batch touched), open ONE gated labelled PR for them via `raise` mode. This is the **only** path that retires a standing break: it is detected directly from the merged-preview link-validator findings (independent of `introduced_by` attribution), not gated on a queued PR and not routed through a separate `sweep` run.
+   - **Ordering (critical — worktree/branch hazard).** This fires **only after** step 7's index commit to `main` *and* step 8's preview-worktree + `integrate/*` branch teardown. `raise` requires a clean tree and branches off `main`, and its preflight hard-aborts on any leftover `integrate/*` ref — so the raise can run **only** once the integrate worktree and all `integrate/*` branches are gone. **Never invoke `raise` mid-integrate** while the preview worktree or `integrate/*` branches still exist.
+   - Pass `raise` the standing breaks as the proposal (the dangling `related[]` targets / unindexable pages to fix), with trigger context "standing breaks surfaced by the integrate batch on \<base SHA\>". `raise` opens the gated PR (the operator reviews + merges it on its own cadence — never auto-merged here).
+   - If there are no standing breaks, skip this step.
+
+   Then print the final report per the checklist's report shape (merged / deferred / decisions recorded / index / **standing-breaks raise PR, if any** / next steps).
 
 **Refusal cases.**
 
@@ -242,7 +253,7 @@ Header: "Which mode?". Options: "sweep", "raise", "queue", "integrate", "refresh
 - A PR fails the `mergeable` gate → skip, defer with the state value, continue the walk (never force).
 - `gh` auth or network failure → surface stderr and abort before any merge.
 
-**Output.** Squash merges landed on `main`; decision comments on merged PRs; refreshed `handbook/content/index.json` (committed if changed); chat report. The preview worktree is removed; no audit files.
+**Output.** Squash merges landed on `main`; decision comments on merged PRs; refreshed `handbook/content/index.json` (committed if changed); a gated `handbook`-labelled `raise` PR for any standing `related_slug` / `unindexable` breaks (opened off clean `main` as the final action); chat report. The preview worktree is removed; no audit files.
 
 ## Shared infrastructure
 
