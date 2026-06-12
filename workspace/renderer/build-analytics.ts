@@ -61,6 +61,24 @@ interface Reconciliation {
   inequality_ok?: boolean | null; instrumentation_errors?: number;
   rejected_model_token_keys?: number; version_incompatible_events?: number; notes?: string[];
 }
+// Analyzer-derived process cost (Cluster A §3.2/§3.3). The publisher emits friction[] + stalls[];
+// this surface renders them as a Process-cost block. Counts are numbers, mode is a closed enum, node
+// tags are bounded ids — all already sanitised by the publisher (the second line of defence).
+interface ProcessCostPoint {
+  at?: string; session_label?: string;
+  permission_denials?: number; rejected_calls?: number; tool_errors?: number;
+  permission_decisions?: { allow?: number; deny?: number; ask?: number };
+  permission_mode?: string;
+}
+interface StallPoint {
+  at?: string; gap_ms?: number;
+  before_node?: string | null; after_node?: string | null;
+  session_before?: string; session_after?: string;
+}
+interface ProcessCosts { friction?: ProcessCostPoint[]; stalls?: StallPoint[] }
+// The closed friction numeric keys — kept in LOCKSTEP with publish-projection.ts FRICTION_KEYS and
+// docs/workspace-portal-design.md. A key absent from any of the three is silently dropped on a surface.
+const FRICTION_KEYS = ["permission_denials", "rejected_calls", "tool_errors"] as const;
 interface Projection {
   provenance?: {
     commit?: string; generated_at?: string; generator_version?: string;
@@ -71,6 +89,7 @@ interface Projection {
   trends?: Record<string, TrendPoint[]>;
   conformance?: { experience_contract?: { pass?: number; fail?: number } };
   session_costs?: SessionCostPoint[];
+  process_costs?: ProcessCosts;
   reconciliation?: Reconciliation;
 }
 
@@ -116,10 +135,13 @@ interface View extends Projection {
 let view: View | null = proj as View | null;
 let sampleMode = false;
 // realHasData must include COST fields (design §6) so a cost-only projection (hooks fired, no node
-// activity yet) is NOT discarded for the sample view.
+// activity yet) is NOT discarded for the sample view. It must ALSO include PROCESS-cost fields (§4.2 S7)
+// so a friction-only projection (friction/stalls present, no token rows) renders the real degraded
+// surface, NOT the sample.
 const realHasData = !!(
   (proj?.nodes && Object.keys(proj.nodes).length > 0) ||
   (proj?.session_costs && proj.session_costs.length > 0) ||
+  (proj?.process_costs && ((proj.process_costs.friction?.length ?? 0) > 0 || (proj.process_costs.stalls?.length ?? 0) > 0)) ||
   (proj?.reconciliation && ((proj.reconciliation.instrumentation_errors ?? 0) > 0 || (proj.reconciliation.version_incompatible_events ?? 0) > 0))
 );
 if (!realHasData) {
@@ -279,6 +301,80 @@ ${healthHtml}
 ${versionBanner(v as View)}`;
 }
 
+const FRICTION_LABEL: Record<string, string> = {
+  permission_denials: "denials", rejected_calls: "rejections", tool_errors: "tool errors",
+};
+function fmtGap(ms?: number): string {
+  if (typeof ms !== "number" || !isFinite(ms) || ms < 0) return "—";
+  const m = Math.round(ms / 60000);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  return `${h}h ${m % 60}m`;
+}
+
+// The Process-cost block (Cluster A §4.3): analyzer-derived friction (denials/rejections/errors +
+// permission-decision breakdown) and cross-session stalls (total + longest, gate-tagged). All values
+// are publisher-sanitised (counts numeric, mode a closed enum, node tags ID_RE); this surface only
+// renders. Degraded state when no process data exists yet (analyzer not yet run).
+function processCostSection(v: View | null): string {
+  const pc = v?.process_costs ?? {};
+  const friction = pc.friction ?? [];
+  const stalls = pc.stalls ?? [];
+
+  if (friction.length === 0 && stalls.length === 0) {
+    return `<h2>Process cost</h2>
+<div class="callout callout-info"><p><strong>No process data.</strong> Friction (permission denials, rejected calls, tool errors) and stalls are derived by the transcript analyzer. They appear once the analyzer has run over this workspace's session transcripts (scheduled batch, ~1–2×/day).</p></div>`;
+  }
+
+  // Friction totals across sessions + the permission-decision breakdown.
+  const totals: Record<string, number> = { permission_denials: 0, rejected_calls: 0, tool_errors: 0 };
+  const decisions = { allow: 0, deny: 0, ask: 0 };
+  for (const f of friction) {
+    for (const k of FRICTION_KEYS) {
+      const val = (f as Record<string, unknown>)[k];
+      if (typeof val === "number" && isFinite(val) && val >= 0) totals[k] += val;
+    }
+    const d = f.permission_decisions ?? {};
+    decisions.allow += typeof d.allow === "number" && d.allow >= 0 ? d.allow : 0;
+    decisions.deny += typeof d.deny === "number" && d.deny >= 0 ? d.deny : 0;
+    decisions.ask += typeof d.ask === "number" && d.ask >= 0 ? d.ask : 0;
+  }
+
+  const frictionStats = FRICTION_KEYS
+    .map((k) => `<div class="ax-stat"><div class="ax-stat-n">${esc(totals[k])}</div><div class="ax-stat-l">${esc(FRICTION_LABEL[k])}</div></div>`)
+    .join("");
+  const decisionStats = `<div class="ax-stat"><div class="ax-stat-n">${esc(decisions.allow)}</div><div class="ax-stat-l">decisions: allow</div></div>
+<div class="ax-stat"><div class="ax-stat-n">${esc(decisions.deny)}</div><div class="ax-stat-l">deny</div></div>
+<div class="ax-stat"><div class="ax-stat-n">${esc(decisions.ask)}</div><div class="ax-stat-l">ask</div></div>`;
+
+  const frictionHtml = friction.length
+    ? `<h3>Friction</h3>
+<p class="ax-note">Categorised counts across ${esc(friction.length)} session(s) — denial commands and rejection reasons are deliberately not carried (locality).</p>
+<div class="ax-stats">${frictionStats}${decisionStats}</div>`
+    : "";
+
+  // Stalls — total, longest, and the gate-tagged ones.
+  let stallHtml = "";
+  if (stalls.length) {
+    const longest = stalls.reduce((mx, s) => Math.max(mx, typeof s.gap_ms === "number" ? s.gap_ms : 0), 0);
+    const tagged = stalls.filter((s) => s.before_node);
+    const stallRows = stalls
+      .slice()
+      .sort((a, b) => (b.gap_ms ?? 0) - (a.gap_ms ?? 0))
+      .slice(0, 10)
+      .map((s) => `<tr><td class="ax-num">${esc(fmtGap(s.gap_ms))}</td><td><code>${esc(s.before_node ?? "—")}</code></td><td><code>${esc(s.after_node ?? "—")}</code></td><td>${esc(s.at ? String(s.at).slice(0, 16).replace("T", " ") : "—")}</td></tr>`)
+      .join("\n");
+    stallHtml = `<h3>Stalls</h3>
+<p class="ax-note">Cross-session activity gaps over the threshold. ${esc(stalls.length)} stall(s); longest <strong>${esc(fmtGap(longest))}</strong>; ${esc(tagged.length)} tagged to a gate-holding node (a gap straddling a pause point).</p>
+<table class="analytics-table"><thead><tr><th class="ax-num">gap</th><th>before</th><th>after</th><th>started</th></tr></thead>
+<tbody>${stallRows}</tbody></table>`;
+  }
+
+  return `<h2>Process cost</h2>
+${frictionHtml}
+${stallHtml}`;
+}
+
 let dataHtml: string;
 if (hasData) {
   const maxTrav = Math.max(...nodeEntries.map(([, n]) => n.traversals_30d ?? 0), 1);
@@ -373,7 +469,7 @@ const out = renderSurfacePage({
   slug: "",
   page,
   nav: [{ group: "Workspace", pages: [""] }],
-  bodyHtml: banner + introHtml + dataHtml + costSection(view),
+  bodyHtml: banner + introHtml + dataHtml + costSection(view) + processCostSection(view),
   pageLabel: () => "Analytics",
   showToc: false,
   layoutVariant: "app",

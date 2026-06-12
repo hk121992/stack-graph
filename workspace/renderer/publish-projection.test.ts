@@ -108,6 +108,19 @@ const EVENTS = [
   // as a used node (node tracking is independent of the stage projection).
   { ts: "2026-02-03T09:00:00Z", session: "d7", kind: "enter", node: "legacynode", carrier: "ci-legacy" },
   { ts: "2026-02-03T09:05:00Z", session: "d7", kind: "enter", node: "build",      carrier: "ci-legacy" },
+
+  // ── ANALYZER process-cost events (Cluster A §3.2/§3.3, #28) — friction-record + stall-record. ──
+  // A clean friction-record: counts admitted, mode echoed (closed enum), session anonymised.
+  { ts: "2026-03-01T09:00:00Z", session: "fric-1", kind: "friction-record", permission_denials: 2, rejected_calls: 1, tool_errors: 3, permission_decisions: { allow: 5, deny: 2, ask: 1 }, permission_mode: "auto", v: "0.5.0" },
+  // HOSTILE friction-record — a free-text COMMAND smuggled into an unexpected field (`command`) must
+  // be dropped (the publisher has no index signature + reads only the allowlist), and a free-text
+  // permission_mode must be dropped to "" (not echoed). Counts still admitted.
+  { ts: "2026-03-01T10:00:00Z", session: "fric-2", kind: "friction-record", permission_denials: 1, rejected_calls: 0, tool_errors: 0, permission_decisions: { allow: 0, deny: 1, ask: 0 }, permission_mode: "EVIL git push --force; rm -rf /", command: "rm -rf / SMUGGLED_COMMAND", v: "0.5.0" },
+  // A clean stall-record: gate-tagged cross-session gap, sessions anonymised.
+  { ts: "2026-03-02T18:00:00Z", session: "stall-s", kind: "stall-record", gap_ms: 50400000, before_node: "review", after_node: "land", session_before: "stall-a", session_after: "stall-b", v: "0.5.0" },
+  // HOSTILE stall-record — a non-ID_RE before_node (free text with spaces/metachars) must be dropped
+  // to null (never echoed), the gap still recorded.
+  { ts: "2026-03-03T18:00:00Z", session: "stall-h", kind: "stall-record", gap_ms: 3600000, before_node: "EVIL <script> node with spaces", after_node: "land", session_before: "stall-c", session_after: "stall-d", v: "0.5.0" },
 ];
 
 const dir = mkdtempSync(path.join(tmpdir(), "sg-pub-test-"));
@@ -131,6 +144,10 @@ const snap = JSON.parse(raw) as {
   trends: Record<string, Array<{ at: string; value: number }>>;
   conformance: { experience_contract: { pass: number; fail: number } };
   session_costs: Array<{ at: string; kind: string; scope_id: string; carrier_id: string | null; carrier_kind: string | null; arc: string | null; model: string; cumulative: boolean; usage: { input: number; output: number; cache_creation_5m: number; cache_creation_1h: number; cache_read: number; total: number } }>;
+  process_costs: {
+    friction: Array<{ at: string; session_label: string; permission_denials: number; rejected_calls: number; tool_errors: number; permission_decisions: { allow: number; deny: number; ask: number }; permission_mode: string }>;
+    stalls: Array<{ at: string; gap_ms: number; before_node: string | null; after_node: string | null; session_before: string; session_after: string }>;
+  };
   reconciliation: { unit_usage: number; session_usage: number; dispatch_usage: number; measured_iu_total: number; session_total: number; inequality_ok: boolean | null; instrumentation_errors: number; rejected_model_token_keys: number; version_incompatible_events: number; notes: string[] };
   provenance: { commit: string; generator_version: string; event_schema_version: string; compatible_event_range: string; observed_event_versions: string[] };
 };
@@ -146,7 +163,12 @@ const FORBIDDEN = ["secret.series", "leak_field", "DROP_ME", "design-approved", 
   "privateToken", "90909",
   // D69 vectors: a metachar model must be sanitised to "unknown" (raw never echoed); the raw session
   // id "main-1" must be anonymised (the session-usage scope is sess-<n>, not the raw id).
-  "<script>", "alert(1)", "\"main-1\""];
+  "<script>", "alert(1)", "\"main-1\"",
+  // Cluster A friction/stall vectors: a smuggled free-text command, a free-text permission_mode, and a
+  // non-ID before_node must NEVER reach the snapshot (no index sig + closed allowlists drop them).
+  "SMUGGLED_COMMAND", "rm -rf", "EVIL", "node with spaces",
+  // and the raw friction/stall session ids must be anonymised (sess-<n>), never echoed.
+  "\"fric-1\"", "\"stall-a\""];
 
 const bp = snap.trends["benchmark.perf"] ?? [];
 const hq = snap.trends["health.quality"] ?? [];
@@ -245,6 +267,32 @@ checks.push(
   ["legacy node still counted as a used node", "legacynode" in snap.nodes],
 );
 
+// ── ANALYZER process-cost (Cluster A §3.2/§3.3) — friction + stalls, with hostile drops ──
+const pc = snap.process_costs;
+const fr = pc?.friction ?? [];
+const st = pc?.stalls ?? [];
+const cleanFric = fr.find((f) => f.permission_denials === 2 && f.tool_errors === 3);
+const hostileFric = fr.find((f) => f.permission_denials === 1 && f.tool_errors === 0);
+const cleanStall = st.find((s) => s.gap_ms === 50400000);
+const hostileStall = st.find((s) => s.gap_ms === 3600000);
+checks.push(
+  ["process_costs block present (friction + stalls arrays)", !!pc && Array.isArray(fr) && Array.isArray(st)],
+  ["clean friction-record admitted with its counts", !!cleanFric && cleanFric.rejected_calls === 1],
+  ["friction permission_decisions sub-object read by the 3 known keys", !!cleanFric && cleanFric.permission_decisions.allow === 5 && cleanFric.permission_decisions.deny === 2 && cleanFric.permission_decisions.ask === 1],
+  ["friction permission_mode 'auto' (closed enum) echoed", cleanFric?.permission_mode === "auto"],
+  ["friction session anonymised to sess-<n> (raw 'fric-1' not echoed)", !!cleanFric && /^sess-\d+$/.test(cleanFric.session_label)],
+  // HOSTILE friction — smuggled command field dropped (no index sig), free-text mode → "", counts kept.
+  ["HOSTILE friction: smuggled `command` field NOT echoed anywhere", !!hostileFric && !("command" in (hostileFric as object))],
+  ["HOSTILE friction: free-text permission_mode dropped to ''", hostileFric?.permission_mode === ""],
+  ["HOSTILE friction: counts still admitted (denials=1)", hostileFric?.permission_denials === 1],
+  // Clean stall — gate-tagged, sessions anonymised.
+  ["clean stall-record admitted (gap + ID_RE node tags)", !!cleanStall && cleanStall.before_node === "review" && cleanStall.after_node === "land"],
+  ["stall sessions anonymised (raw 'stall-a' not echoed)", !!cleanStall && /^sess-\d+$/.test(cleanStall.session_before)],
+  // HOSTILE stall — non-ID_RE before_node dropped to null, gap still recorded.
+  ["HOSTILE stall: non-ID before_node dropped to null", hostileStall !== undefined && hostileStall.before_node === null],
+  ["HOSTILE stall: gap still recorded (3600000)", hostileStall?.gap_ms === 3600000],
+);
+
 let ok = true;
 for (const [name, pass] of checks) {
   console.log(`${pass ? "✓" : "✗"} ${name}`);
@@ -261,9 +309,10 @@ try {
   const emptyOk =
     JSON.stringify(empty.trends) === "{}" &&
     JSON.stringify(empty.session_costs) === "[]" &&
+    JSON.stringify(empty.process_costs) === '{"friction":[],"stalls":[]}' &&
     empty.conformance.experience_contract.pass === 0 &&
     empty.conformance.experience_contract.fail === 0;
-  console.log(`${emptyOk ? "✓" : "✗"} empty snapshot has trends:{} + session_costs:[] + zero conformance tally`);
+  console.log(`${emptyOk ? "✓" : "✗"} empty snapshot has trends:{} + session_costs:[] + process_costs empty + zero conformance tally`);
   if (!emptyOk) ok = false;
 } catch (e) {
   console.log("✗ empty-snapshot run failed:", e);

@@ -153,6 +153,27 @@ const USAGE_COMPONENT_KEYS = [
   "input", "output", "cache_creation_5m", "cache_creation_1h", "cache_read", "total",
 ] as const;
 
+// ANALYZER-derived process-cost events (Cluster A §3.2/§3.3, #28). The analyzer emits per-session
+// friction-record + cross-session stall-record rows; the publisher reads them on an ADDITIVE path
+// (parallel to USAGE_KINDS) and surfaces a Process-cost block. These carry ONLY categorised
+// counts/enums + bounded ids/ts — never the raw denial command / rejection reason (those stay in the
+// analyzer's local log; §3.2 no-free-text rule).
+const FRICTION_KINDS = new Set(["friction-record", "stall-record"]);
+
+// The closed numeric allowlist for a friction-record (parallel to USAGE_COMPONENT_KEYS). Each is read
+// value-by-value with a finite + non-negative integer guard; a bad value drops THAT field (degrade to
+// 0), never the whole row — a friction count is independently meaningful. The permission_decisions
+// sub-object + permission_mode enum are read separately below. NEVER spread the row verbatim.
+// Keep in lockstep with build-analytics.ts FRICTION_KEYS and docs/workspace-portal-design.md.
+const FRICTION_KEYS = [
+  "permission_denials", "rejected_calls", "tool_errors",
+] as const;
+
+// The closed permission-mode enum — a friction-record's permission_mode is echoed into the snapshot
+// (it is a render value), so it is a locality boundary: only these known modes pass, anything else
+// (incl. a smuggled free-text mode) renders as "" (dropped, never echoed).
+const PERMISSION_MODES = new Set(["auto", "default", "plan", "acceptEdits", "bypassPermissions"]);
+
 // FABRICATION GUARD (design §4): the model body emits only STRUCTURAL events (unit-complete /
 // dispatch-complete / exit) — never token numbers. A `tokens_per_*` / `token_usage` key arriving in a
 // model-authored `metrics` object is REJECTED (dropped + counted) so the 25× cache-blind fabrication
@@ -290,6 +311,19 @@ interface RawEvent {
   agent_id?: string;
   iu?: string;
   v?: string;
+  // analyzer-derived process-cost fields (friction-record / stall-record, §3.2/§3.3). Read by the
+  // FRICTION_KEYS numeric allowlist + the permission-decision sub-object + the permission-mode enum;
+  // stall fields are bounded ids + a numeric gap. NEVER spread verbatim.
+  permission_denials?: unknown;
+  rejected_calls?: unknown;
+  tool_errors?: unknown;
+  permission_decisions?: unknown;
+  permission_mode?: unknown;
+  gap_ms?: unknown;
+  before_node?: unknown;
+  after_node?: unknown;
+  session_before?: unknown;
+  session_after?: unknown;
 }
 // NOTE: deliberately NO index signature. A future `{...ev}` then becomes a type error
 // rather than a silent leak — the output is constructed field-by-field from an allowlist.
@@ -361,6 +395,36 @@ interface SessionCostPoint {
   usage: UsagePoint;
 }
 
+/** Analyzer-derived process cost (Cluster A §3.2/§3.3): a per-session friction summary and the
+ *  cross-session stalls. Categorised counts + bounded enums/ids only — never the raw denial command or
+ *  rejection reason (those stay in the analyzer's local, gitignored log). The session id is ANONYMISED
+ *  exactly as session-usage (the raw id is private and never echoed). */
+interface ProcessCostPoint {
+  at: string;
+  session_label: string; // anonymised label (sess-<n>), never the raw session id
+  permission_denials: number;
+  rejected_calls: number;
+  tool_errors: number;
+  permission_decisions: { allow: number; deny: number; ask: number };
+  permission_mode: string; // closed enum or "" (a non-allowlisted/free-text mode is dropped)
+}
+
+interface StallPoint {
+  at: string;
+  gap_ms: number;
+  before_node: string | null; // ID_RE-clean graph node id or null
+  after_node: string | null;
+  session_before: string; // anonymised
+  session_after: string; // anonymised
+}
+
+/** The Process-cost projection: per-session friction + the cross-session stalls. Empty arrays when no
+ *  friction/stall events exist (the renderer shows a degraded "analyzer not yet run" state). */
+interface ProcessCosts {
+  friction: ProcessCostPoint[];
+  stalls: StallPoint[];
+}
+
 /** Instrumentation-health reconciliation (design §7) — coverage + inequality, the tripwire that would
  *  have caught the 25× gap. Σ(child unit usage per carrier) ≤ that carrier's dispatch/session usage;
  *  missing-child / missing-parent / version / fabrication-rejection states are surfaced as notes. */
@@ -402,6 +466,9 @@ interface PortalProjection {
   // per (kind, scope), latest-per-scope for cumulative kinds. NEVER advances current_stage. Empty
   // when no usage events exist.
   session_costs: SessionCostPoint[];
+  // Analyzer-derived process cost (Cluster A §3.2/§3.3): per-session friction + cross-session stalls.
+  // Empty arrays when no friction/stall events exist. Parallel to session_costs.
+  process_costs: ProcessCosts;
   // Instrumentation-health reconciliation (coverage + inequality + health states).
   reconciliation: Reconciliation;
 }
@@ -439,6 +506,7 @@ function buildEmptySnapshot(commit: string, generatedAt: string): PortalProjecti
     trends: {},
     conformance: { experience_contract: { pass: 0, fail: 0 } },
     session_costs: [],
+    process_costs: { friction: [], stalls: [] },
     reconciliation: emptyReconciliation(),
   };
 }
@@ -524,6 +592,10 @@ function deriveProjection(
   // anonymiser (a raw session id is private and never echoed — session-usage scope is anonymised).
   const usageLatest = new Map<string, SessionCostPoint>();
   const sessionAnon = new Map<string, string>();
+  // Analyzer-derived process cost (§3.2/§3.3). friction is per-session (latest-per anonymised session);
+  // stalls accumulate (one per cross-session gap). Sanitised exactly as the usage path (ts/ID_RE/anon).
+  const frictionLatest = new Map<string, ProcessCostPoint>();
+  const stallPoints: StallPoint[] = [];
   let instrumentationErrors = 0;
   let rejectedModelTokenKeys = 0;
   let versionIncompatible = 0;
@@ -604,6 +676,76 @@ function deriveProjection(
       const key = `${point.kind}::${scope_id}`;
       const prior = usageLatest.get(key);
       if (!prior || new Date(point.at).getTime() >= new Date(prior.at).getTime()) usageLatest.set(key, point);
+      continue;
+    }
+
+    // ── ANALYZER process-cost events (Cluster A §3.2/§3.3) — friction-record / stall-record. Additive
+    //    read path, sanitised EXACTLY as the usage path: version-gated, ts-validated (strict UTC ISO,
+    //    no future), counts read by a finite-non-negative-INTEGER guard (a bad value → 0, never echoed),
+    //    permission_mode against a closed enum, node tags against ID_RE, session ANONYMISED. NEVER spread
+    //    a row verbatim — a smuggled free-text command / non-ID node / free-text mode cannot ride through.
+    if (typeof ev.kind === "string" && FRICTION_KINDS.has(ev.kind)) {
+      if (typeof ev.v === "string") observedVersions.add(ev.v);
+      if (!eventVersionCompatible(ev.v)) {
+        versionIncompatible++;
+        console.warn(`  [WARN] ${ev.kind} with incompatible/absent version \`${String(ev.v)}\` dropped (expected ${COMPATIBLE_EVENT_RANGE}).`);
+        continue;
+      }
+      const fts = ev.ts;
+      if (typeof fts !== "string" || !ISO_UTC_RE.test(fts)) { console.warn(`  [WARN] ${ev.kind} non-ISO-8601 ts — dropped.`); continue; }
+      const fMs = new Date(fts).getTime();
+      if (isNaN(fMs) || fMs > now) { console.warn(`  [WARN] ${ev.kind} unparseable/future ts — dropped.`); continue; }
+      const fIso = new Date(fMs).toISOString();
+
+      // A non-negative finite integer, else 0 — a count is independently meaningful, so a bad field
+      // degrades that field rather than dropping the row. Never echoes a non-number.
+      const readCount = (v: unknown): number =>
+        typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0;
+      // A bounded ID_RE-clean node tag, else null (a non-string or free-text tag is never echoed).
+      const readNodeTag = (v: unknown): string | null =>
+        typeof v === "string" && ID_RE.test(v) ? v : null;
+
+      if (ev.kind === "friction-record") {
+        // permission_decisions sub-object: read ONLY the three known keys, each count-guarded.
+        const pd = ev.permission_decisions;
+        const pdSrc = pd && typeof pd === "object" && !Array.isArray(pd) ? (pd as Record<string, unknown>) : {};
+        // permission_mode: closed enum or "" (a smuggled free-text mode is dropped, never echoed).
+        const mode = typeof ev.permission_mode === "string" && PERMISSION_MODES.has(ev.permission_mode)
+          ? ev.permission_mode : "";
+        const rawSess = typeof ev.session === "string" ? ev.session : (typeof ev.scope_id === "string" ? ev.scope_id : "");
+        const fp: ProcessCostPoint = {
+          at: fIso,
+          session_label: anonSession(rawSess || `anon-${frictionLatest.size}`),
+          permission_denials: readCount(ev.permission_denials),
+          rejected_calls: readCount(ev.rejected_calls),
+          tool_errors: readCount(ev.tool_errors),
+          permission_decisions: {
+            allow: readCount(pdSrc["allow"]),
+            deny: readCount(pdSrc["deny"]),
+            ask: readCount(pdSrc["ask"]),
+          },
+          permission_mode: mode,
+        };
+        // Latest-per anonymised session (the analyzer emits one settled friction-record per session,
+        // but a re-publish over a re-run log is idempotent — keep the latest by ts).
+        const prior = frictionLatest.get(fp.session_label);
+        if (!prior || new Date(fp.at).getTime() >= new Date(prior.at).getTime()) frictionLatest.set(fp.session_label, fp);
+        continue;
+      }
+
+      // stall-record — one per cross-session gap. gap_ms numeric-guarded; node tags ID_RE; sessions anon.
+      const gap = ev.gap_ms;
+      if (typeof gap !== "number" || !Number.isFinite(gap) || gap < 0) { console.warn(`  [WARN] stall-record with invalid gap_ms — dropped.`); continue; }
+      const sb = typeof ev.session_before === "string" ? ev.session_before : "";
+      const sa = typeof ev.session_after === "string" ? ev.session_after : "";
+      stallPoints.push({
+        at: fIso,
+        gap_ms: Math.floor(gap),
+        before_node: readNodeTag(ev.before_node),
+        after_node: readNodeTag(ev.after_node),
+        session_before: anonSession(sb || `anon-${frictionLatest.size}`),
+        session_after: anonSession(sa || `anon-${frictionLatest.size}`),
+      });
       continue;
     }
 
@@ -795,6 +937,13 @@ function deriveProjection(
   // Session costs — latest-per-scope points, ordered by time so the cost read is a clean slope.
   const session_costs = [...usageLatest.values()].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
 
+  // Process costs (§3.2/§3.3) — per-session friction (latest-per anonymised session) + cross-session
+  // stalls, each ordered by time for a clean render.
+  const process_costs: ProcessCosts = {
+    friction: [...frictionLatest.values()].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime()),
+    stalls: stallPoints.slice().sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime()),
+  };
+
   // ── Reconciliation (instrumentation health, design §7): coverage + the Σchild ≤ parent inequality.
   const unitPoints = session_costs.filter((p) => p.kind === "unit-usage");
   const sessionPoints = session_costs.filter((p) => p.kind === "session-usage");
@@ -852,6 +1001,7 @@ function deriveProjection(
     trends,
     conformance: { experience_contract: { pass: conformanceTally.pass, fail: conformanceTally.fail } },
     session_costs,
+    process_costs,
     reconciliation,
   };
 }

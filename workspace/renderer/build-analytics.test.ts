@@ -115,6 +115,60 @@ const costProj = {
   );
 }
 
+// ── Process-cost block (Cluster A §4.3, #28) ──
+// A cost-bearing AND process-cost-bearing projection → BOTH the Cost block and the Process-cost block
+// render, with the friction counts + a gate-tagged stall.
+{
+  const both = {
+    ...costProj,
+    process_costs: {
+      friction: [
+        { at: "2026-06-02T09:00:00Z", session_label: "sess-1", permission_denials: 2, rejected_calls: 1, tool_errors: 3, permission_decisions: { allow: 5, deny: 2, ask: 1 }, permission_mode: "auto" },
+      ],
+      stalls: [
+        { at: "2026-06-02T18:00:00Z", gap_ms: 50400000, before_node: "review", after_node: "land", session_before: "sess-2", session_after: "sess-3" },
+      ],
+    },
+  };
+  const html = render(both);
+  checks.push(
+    ["render: BOTH Cost + Process-cost blocks present", html.includes("<h2>Cost</h2>") && html.includes("<h2>Process cost</h2>")],
+    ["render: friction counts surfaced (denials/rejections/errors)", html.includes("denials") && html.includes("rejections") && html.includes("tool errors")],
+    ["render: stalls block with gate-tagged node", html.includes("<h3>Stalls</h3>") && html.includes("review")],
+    ["render: not the sample view (real data drives the surface)", !html.includes("Sample data")],
+  );
+}
+
+// A FRICTION-ONLY projection — no nodes, no session_costs, ONLY process_costs — must render the REAL
+// (degraded) surface, NOT the SAMPLE view (realHasData must include process_costs, §4.2 S7). The Cost
+// block degrades ("No cost data") while the Process-cost block shows the friction data.
+{
+  const frictionOnly = {
+    provenance: { commit: "fc", generator_version: "0.3.0", event_schema_version: "0.4.0", compatible_event_range: "0.x", observed_event_versions: ["0.5.0"] },
+    nodes: {},
+    session_costs: [],
+    process_costs: {
+      friction: [
+        { at: "2026-06-02T09:00:00Z", session_label: "sess-1", permission_denials: 4, rejected_calls: 0, tool_errors: 1, permission_decisions: { allow: 0, deny: 4, ask: 0 }, permission_mode: "default" },
+      ],
+      stalls: [],
+    },
+    reconciliation: { unit_usage: 0, session_usage: 0, dispatch_usage: 0, measured_iu_total: 0, session_total: 0, inequality_ok: null, instrumentation_errors: 0, rejected_model_token_keys: 0, version_incompatible_events: 0, notes: [] },
+  };
+  const html = render(frictionOnly);
+  checks.push(
+    ["render: friction-only is NOT the sample view", !html.includes("Sample data")],
+    ["render: friction-only shows the Process-cost block with data", html.includes("<h2>Process cost</h2>") && html.includes("denials")],
+    ["render: friction-only Cost block degrades ('No cost data')", html.includes("No cost data")],
+  );
+}
+
+// No process data at all → the Process-cost block degrades with the 'analyzer not yet run' remedy.
+{
+  const html = render({ ...costProj, process_costs: { friction: [], stalls: [] } });
+  checks.push(["render: no process data → degraded 'No process data' state", html.includes("<h2>Process cost</h2>") && html.includes("No process data")]);
+}
+
 let ok = true;
 for (const [name, pass] of checks) {
   console.log(`${pass ? "✓" : "✗"} ${name}`);
