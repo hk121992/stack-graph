@@ -1017,9 +1017,13 @@ async function main() {
   const commit = gitHead(root);
   const generatedAt = new Date().toISOString();
 
-  // Resolve events path
+  // Resolve events path. The default is the analyzer's derived output —
+  // `.stack-graph/derived/analyzer-events.jsonl` (the A6c event-log migration, #28): the analyzer
+  // writes that file, the publisher reads it. All three resolution paths converge on it — the
+  // `STACK_GRAPH_EVENTS_DIR` default below, the `--events` flag (`argEvents`), and the bound
+  // `SG_EVENT_LOG` the harness passes as `--events`.
   const eventsDir = process.env["STACK_GRAPH_EVENTS_DIR"] ?? path.join(root, ".stack-graph");
-  const eventsFile = argEvents ?? path.join(eventsDir, "events.jsonl");
+  const eventsFile = argEvents ?? path.join(eventsDir, "derived", "analyzer-events.jsonl");
 
   // Resolve output path
   const defaultOut = path.join(root, "workspace", "dist", "portal-projection.json");

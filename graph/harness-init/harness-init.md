@@ -3,7 +3,7 @@
 id: harness-init
 primitive: skill
 title: Harness init
-description: Stands up a harness in a consuming workspace — writes bindings.yaml, scaffolds the dashboard surface skeleton, activates the token-instrumentation hooks (the SG_* env), and validates every required binding resolves plus a live-hook probe. Modes — scaffold (greenfield bootstrap), bind (re-author bindings only), validate (the harness gate before the loop runs). Structure only — work-item content is added separately via product-dashboard-curator.
+description: Stands up a harness in a consuming workspace — writes bindings.yaml, scaffolds the dashboard surface skeleton, writes the analytics env (the SG_* vars), emits the scheduled analyzer-task install runbook, and validates every required binding resolves plus the analyzer dry-run probe. Modes — scaffold (greenfield bootstrap), bind (re-author bindings only), validate (the harness gate before the loop runs). Structure only — work-item content is added separately via product-dashboard-curator.
 when-to-use: A consuming workspace needs to stand up its harness for the first time (greenfield), re-point its bindings after a path change, or verify the harness is complete before running the dev-sprint loop. NOT for authoring work-item content (product-dashboard-curator), the strategy canvas (strategy-curator), or canon (handbook-curator) — harness-init creates the empty, bound structure those then fill.
 # classification — graph lens
 mode: collaborative
@@ -21,12 +21,12 @@ goals:
     metric: share of harnesses stood up via harness-init vs hand-built; share of scaffold runs that produce a bindings.yaml whose required keys all resolve + a surface skeleton that exists.
     earns-keep: new harnesses bootstrap from the plugin (the contract + template ship; the workspace instantiates) — not by cloning a sibling workspace's files.
   - outcome: The loop never runs against a half-bound harness — every binding the vendored graph requires resolves, the surface exists, and token capture is proven wired, before the first traversal. validate is the gate.
-    metric: harness-init validate pass before the first loop run; count of loop runs against a missing/unbound surface (target 0); count of required keys unresolved at first run (target 0); count of loop runs whose token capture was silently inactive (target 0 — the live-hook probe catches it).
-    earns-keep: validate catches missing/dangling bindings AND an inactive/unwired token hook up front (the live-hook probe lands an event in the org-root log, or reports why); a workspace that fails validate does not exercise the loop until fixed.
+    metric: harness-init validate pass before the first loop run; count of loop runs against a missing/unbound surface (target 0); count of required keys unresolved at first run (target 0); count of harnesses whose analyzer task was unregistered or unable to derive a row at first loop run (target 0 — the dry-run probe + the read-only registration check catch it).
+    earns-keep: validate catches missing/dangling bindings AND an unregistered/non-deriving analyzer up front (the dry-run probe lands a derived row from a fixture, or reports why); a workspace that fails validate does not exercise the loop until fixed.
   - outcome: Instantiation is an additive local overlay — harness-init writes only harness-local files and never mutates the vendored graph, and never invents product content.
     metric: count of harness-init writes outside the harness-local tree (bindings.yaml + the org-root CLAUDE.md + the surface under surface-root) — target 0; count of work-items harness-init authored (target 0 — content is the curator's).
     earns-keep: the vendored plugin is never touched by instantiation; harness-init scaffolds empty structure, the curator family fills content.
-status: v0.4.0 — 2026-06-10
+status: v0.5.0 — 2026-06-12
 ---
 
 # Harness init
@@ -53,8 +53,9 @@ You create the **bound, empty structure**; the curator family fills the **conten
   the how-to-use-the-graph navigation), the **surface skeleton** under `surface-root` (the
   `strategy.md` / `objectives.md` templates, `items/` + an empty `manifest.json`, `sprints/`), the
   **improvements surface** under `improvements-root` (a sibling of `surface-root`: an empty `manifest.json`),
-  and the **token-instrumentation activation env** in `<org-root>/.claude/settings.json` (D69 —
-  `SG_EVENT_LOG` / `SG_TOKEN_EVENT_KIND` / `SG_PRICING`; `bindings-contract` §6).
+  and the **analytics env** in `<org-root>/.claude/settings.json` (the transcript analyzer —
+  `SG_TRANSCRIPT_ROOT` / `SG_EVENT_LOG` / `SG_PRICING`; `bindings-contract` §6). You **emit** (do not
+  install) the scheduled analyzer-task runbook.
 - **You do NOT author work items.** Work-item content is **`product-dashboard-curator`**'s
   (`add-item`/`triage`). You scaffold an empty `items/` + manifest; the first work item is added
   through the curator, under its PR gating.
@@ -120,18 +121,33 @@ bindings live at `<org-root>/.claude/bindings.yaml`). If you cannot locate it un
    **sibling** of `surface-root`), scaffold an **empty** `manifest.json` (`[]`) — the incremental
    loop's surface; `triage` adds standalone-IU slices here. **Idempotent:** never clobber existing
    content — create only what's missing and warn on what's already there.
-5b. **Activate token instrumentation** (D69; `bindings-contract` §6). The plugin's token hooks are
-   **scope-gated by env** — dormant until the harness exports their scope. Write the activation env
-   into `<org-root>/.claude/settings.json` (the `env` block — idempotent; never clobber existing
-   keys):
-   - `SG_EVENT_LOG` = the **absolute** path to `<org-root>/.stack-graph/events.jsonl` (the `event-log`
-     binding, absolutised — hooks run in arbitrary cwd / worktrees, so a relative path would miss the
-     org-root log).
-   - `SG_TOKEN_EVENT_KIND` = the activation flag (e.g. `on`) — its presence is the scope gate.
+5b. **Write the analytics env** (the transcript analyzer; `bindings-contract` §6). Analytics are
+   **transcript-derived in batch** — there are **no hooks** and **no scope-gating flag**. Write the
+   analyzer's env into `<org-root>/.claude/settings.json` (the `env` block — idempotent; never clobber
+   existing keys):
+   - `SG_TRANSCRIPT_ROOT` = the analyzer's **input** root (default `~/.claude/projects`) — where the
+     raw session transcripts live. An env var, **not** a binding key (no graph node resolves it).
+   - `SG_EVENT_LOG` = the **absolute** path to `<org-root>/.stack-graph/derived/analyzer-events.jsonl`
+     (the `event-log` binding, absolutised — the analyzer's **output**; absolute because it runs
+     out-of-band in arbitrary cwd).
    - `SG_PRICING` = the absolute path to the `pricing` binding's `pricing.json`, when bound (the Cost
      block prices with it; omit if `pricing` is unbound — the block degrades to components-without-$).
    Resolve the optional `pricing` binding in step 2 alongside the others (the plugin ships a default
    `pricing.json`; bind a host one to override). This is a harness-local write under `<org-root>/.claude/`.
+5c. **Emit the scheduled analyzer-task install runbook** (`bindings-contract` §6). The analytics
+   substrate is produced by a **scheduled `analyze → publish` job**, and `harness-init` **does NOT
+   install it** — registering a system scheduler is a privileged write outside the harness root and
+   violates harness-local-writes-only. Do **one** of:
+   1. **(default) Emit the exact command + a short runbook** for the operator to install — the
+      analyze→publish job run from the org root with `SG_TRANSCRIPT_ROOT` in scope, default cadence
+      twice daily (e.g. `0 6,18 * * * cd <org-root> && bun run <plugin>/workspace/renderer/analyzer/analyze.ts && bun run <plugin>/workspace/renderer/publish-projection.ts`).
+      Print it for the operator to run as the privileged step (the established provisioning-runbook
+      pattern — `harness-init` scaffolds; the operator runs the cron step). **You write no crontab.**
+   2. **OR**, where the runtime exposes a scheduling surface, register the job via
+      `mcp__scheduled-tasks__*` (the harness's own scheduler) — pick this only if that is how the
+      harness schedules. This is a **build-time choice** (runbook-emit vs MCP-register).
+   The job is idempotent (the analyzer full-rewrites the derived log each run), so a missed or
+   duplicated run is harmless.
 6. **Run `validate`** (below) and report, then hand off with the **load canary**: tell the operator
    what a correctly-loaded harness looks like next session — launch at the org root, and the first
    message should show the harness was picked up (the handbook index is reachable by name and a
@@ -159,29 +175,28 @@ bindings live at `<org-root>/.claude/bindings.yaml`). If you cannot locate it un
 4. **The surface exists**: `surface-root`, `items-root` + a parseable `manifest.json`,
    `objectives-doc`, `strategy-doc`, `sprints-root`, `improvements-root` + a parseable
    `improvements-manifest`, `learnings-archive` (the committed archive
-   file). The `event-log` location is reachable (the `.stack-graph/` parent exists or can be
+   file). The `event-log` location is reachable (the `.stack-graph/derived/` parent exists or can be
    created).
-5. **Token instrumentation is wired (D69 — plugin-active + live-hook probe).** This is the
+5. **Analytics is wired (scheduled task registered + analyzer dry-run probe).** This is the
    capture gate the analytics evidentiary layer depends on; verify it end-to-end, not by assertion:
-   - **Plugin active.** The vendored plugin is installed and enabled (its `hooks/hooks.json` is on
-     disk and the plugin is listed/enabled). A harness whose plugin is not enabled captures **no**
-     token usage — report it as a gap, not a pass.
-   - **Activation env present.** `SG_EVENT_LOG` (absolute, resolving to the org-root
-     `.stack-graph/events.jsonl`) and `SG_TOKEN_EVENT_KIND` are exported (scaffold step 5b);
-     `SG_PRICING` resolves when `pricing` is bound.
-   - **Live-hook probe.** Confirm capture actually works: run the guard once against a tiny synthetic
-     payload (e.g. `printf '{"transcript_path":"<a tiny fixture transcript>"}' | hooks/sg-token-hook.sh stop`
-     with the scope env set), then assert a fresh event **landed in the org-root `SG_EVENT_LOG`** — a
-     `session-usage` (probe succeeded) **or** an `instrumentation-error` (the hook fired but failed
-     loud — node missing / transcript unreadable). **Either is a PASS for "the hook is wired"**; a log
-     with **no** new line is the failure (the hook never fired — plugin not enabled or env not
-     exported). Report which, with the remedy. Clean up the probe line after (or note it is a probe).
-   The probe proves the whole path — plugin → guard → node handler → org-root log — before the loop
-   ever relies on it. A loud `instrumentation-error` is healthy wiring (fail-loud working); silence is not.
+   - **Analytics env present.** `SG_TRANSCRIPT_ROOT` (the analyzer's input root) and `SG_EVENT_LOG`
+     (absolute, resolving to the org-root `.stack-graph/derived/analyzer-events.jsonl`) are exported
+     (scaffold step 5b); `SG_PRICING` resolves when `pricing` is bound.
+   - **Scheduled task registered (read-only).** Confirm the `analyze → publish` job is registered —
+     **read-only**: inspect the crontab / scheduler (or list `mcp__scheduled-tasks__*` where the
+     harness schedules that way). You do **not** write the schedule; an unregistered task is a gap,
+     not a pass — point the operator at the runbook scaffold step 5c emitted.
+   - **Analyzer dry-run probe.** Confirm derivation actually works: run the analyzer **once over a
+     tiny fixture transcript** and assert a **derived row lands** in the org-root `SG_EVENT_LOG`
+     (e.g. a `session-usage` row). A log with **no** derived row is the failure (the analyzer never
+     produced output — a bad `SG_TRANSCRIPT_ROOT`, an unreadable fixture, or a broken analyzer).
+     Report which, with the remedy. Clean up the probe output after (or note it is a probe).
+   The probe proves the whole path — transcript → analyzer → org-root derived log — before the loop
+   ever relies on it.
 6. **Report pass/fail with the specific gaps.** A fail means the loop must not run yet — surface
    exactly what to fix (a missing binding, a dangling path, an absent surface dir, an unwired
-   `CLAUDE.md`, an inactive plugin, or a token-hook probe that never landed). This is the gate the
-   first traversal depends on.
+   `CLAUDE.md`, an unregistered analyzer task, or an analyzer dry-run probe that never derived a row).
+   This is the gate the first traversal depends on.
 
 ## Hard constraints
 
@@ -190,8 +205,9 @@ bindings live at `<org-root>/.claude/bindings.yaml`). If you cannot locate it un
   leave valid empty templates.
 - **Harness-local writes only.** You write `bindings.yaml`, the org-root `CLAUDE.md`, the
   surface skeleton under `surface-root`, and the org-root `.claude/settings.json` **env block** (the
-  token-instrumentation activation, D69) — nothing else, and **never** the vendored graph.
-  Instantiation is an additive overlay.
+  analytics env) — nothing else, and **never** the vendored graph, and **never** a crontab / system
+  scheduler (you *emit* the analyzer-task runbook for the operator to install). Instantiation is an
+  additive overlay.
 - **Idempotent.** Re-running `scaffold` fills only what is missing and warns on what exists; it
   never clobbers authored content, an existing `bindings.yaml`, or an existing `CLAUDE.md` (re-pointing
   bindings is `bind`'s job, with confirmation). A partial harness is *repaired*, never overwritten.

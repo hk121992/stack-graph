@@ -1,12 +1,37 @@
 ---
 kind: reference
 id: instrumentation-preamble
-title: Instrumentation preamble — node enter/exit emit contract
-description: "The deterministic enter/exit emit contract every backbone node depends on. On entry, record a node-enter event; on exit, a node-exit event carrying the outcome, any gates touched, and optional ax / trend-metrics aggregates. Carrier-tagged when a carrier is in context. Events append as JSONL to the .stack-graph/ event log in the workspace. Single-sourced into every consumer at build via @-import (load: import). Token aggregates are HOOK-appended (D69), never body-emitted — the body owns structural facts, the hooks own cost; an explicit do-NOT-emit list bars tokens_per_iu / tokens_per_session / token_usage. note and review-fix are recognised structural kinds."
-status: v0.4.0 — 2026-06-10
+title: Instrumentation preamble — RETIRED (analyzer-derived; tombstone)
+description: "RETIRED — no longer a runtime emit contract. Node bodies no longer emit node-enter / node-exit / metrics events; analytics are transcript-derived in batch by the scheduled analyzer (workspace/renderer/analyzer/). The surviving model-authored vocabulary — outcome labels, the experience-contract:<pass|fail> gate token, the TREND_SERIES names, and the <sg-signal> result-block format — now lives in analytics-vocabulary. See 06-analytics for the current model. Kept as a tombstone for provenance; no node imports it."
+status: v1.0.0 — 2026-06-12 — RETIRED (cluster A, #28, supersedes #21)
 ---
 
-# Instrumentation preamble
+# Instrumentation preamble — RETIRED
+
+> **⚠️ RETIRED — this is no longer a runtime emit contract.** Under the unified transcript-analytics
+> model (cluster A, #28, supersedes #21), **node bodies emit nothing to the event log**: a scheduled
+> batch analyzer (`workspace/renderer/analyzer/`) derives the entire analytics substrate — tokens,
+> friction, stalls, node-activity, attribution — deterministically from the raw session transcripts,
+> and fully rewrites the derived event log each run. No node imports this reference any more (the
+> `load: import` edge was swept from every backbone node).
+>
+> **Where the surviving vocabulary went.** The few signals that are genuinely model judgments — the
+> **outcome labels**, the **`experience-contract:<pass|fail>` gate token**, the **`TREND_SERIES`
+> names** (`benchmark.perf`, `health.quality`), and the **`<sg-signal>` result-block format** a
+> verdict-bearing node writes its verdict/number in — now live in **`analytics-vocabulary`**
+> (`graph/_refs/analytics-vocabulary.md`), carried `load: on-demand` by the four verdict-bearing nodes
+> (`simulate-users`, `benchmark`, `health`, `review`). Those nodes emit the canonical strings in their
+> **own output** (a fenced `<sg-signal>` block), never appended to any event log.
+>
+> **The token prohibition survives.** A node still must **never author token numbers** in any form —
+> the analyzer derives all token cost from the transcript, and the publisher's fabrication guard
+> rejects any model-authored `tokens_per_*` / `token_usage` key. See **`06-analytics`** for the
+> current two-layer model.
+>
+> The contract text below is preserved **only for provenance** — it describes the now-removed
+> emit behaviour and is not to be followed.
+
+---
 
 This is the shared emit contract every node imports. It governs how a node records its
 lifecycle to the event log. The contract is deterministic — it is not a judgment call.

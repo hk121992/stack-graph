@@ -10,37 +10,77 @@ related: [graph-spec, devops, concepts, decomposition, plugin-spec, harness-spec
 stack-graph does not just model the graph — it improves it on evidence. Analytics is
 first-class: every node declares measurable outcomes, runs are instrumented
 deterministically, and a node that never moves its outcome becomes visible and cuttable.
-Instrumentation is deterministic — a timeline scanned from real events; model judgment is
-reserved for interpreting that timeline, never for producing it.
 
-## Two event sources
+Instrumentation is **transcript-derived and runs in two explicitly-separated layers**:
 
-| Source | Scope | Graph-aware | Gives |
-|---|---|---|---|
-| **Transcript baseline** | host-level, any session | no | cost, tokens, tool calls, model usage, per-session timeline |
-| **Graph layer** | stack-graph nodes/edges | yes | node-enter / node-exit / gate / traversal events bound to ids |
+1. a **deterministic transcript-mechanical layer** — tokens, friction, stalls, node-activity, and
+   attribution, each a **pure function of the transcript bytes** a scheduled batch analyzer scans
+   (idempotent, re-runnable, local); **no datum here originates from a hook or from model judgment**;
+2. a **small, explicitly-separated, allowlist-gated model-authored verdict layer** — the
+   **experience-contract pass/fail verdict** and the **trend numbers** (`benchmark.perf`,
+   `health.quality`). These are **irreducibly model judgments**: a node writes them **in its own
+   output** (a fenced `<sg-signal>` block in its final result message), **not** appended to any event
+   log and **not** from a side-channel. The analyzer **reads** that block and **honestly
+   under-captures** it — absent ⇒ **not recorded**, never invented. The allowlist gates the
+   **key/shape** of the datum, **not the truth of the value**: a model-authored number is exactly as
+   trustworthy as the model that wrote it.
 
-The baseline runs on any session unchanged; its **reader is real** (D69) — the deterministic
-transcript summer (`workspace/renderer/lib/transcript-usage.ts`), exposed as the `sg-token-usage`
-CLI and reused by the token-instrumentation hooks. The graph layer is the net-new instrumentation
-this spec defines: purpose-built events bound to the graph.
+Model judgment is reserved for *interpreting* the timeline (the improvement loop) and for the
+bounded layer-2 verdicts above — never for fabricating a layer-1 mechanical datum.
 
-## How a node emits events
+## One deterministic source — the transcript analyzer
 
-A node knows its own `id` (frontmatter, per [`graph-spec`](../02-graph-spec/README.md)).
-Two emitters cover the cases:
+stack-graph derives its entire analytics substrate from **one source**: the raw Claude Code session
+transcripts (`~/.claude/projects/**/*.jsonl`, `SG_TRANSCRIPT_ROOT`). A **scheduled batch analyzer**
+(`workspace/renderer/analyzer/`, cron ~1–2×/day on the harness machine) reads those transcripts and
+writes a deterministic derived event log into `.stack-graph/`. **No event originates from a hook.**
+The substrate is **two honest layers** (the opening invariant): a deterministic transcript-mechanical
+layer (tokens, friction, stalls, node-activity, attribution — pure functions of the bytes) **plus** a
+small, explicitly-separated, allowlist-gated **model-authored verdict layer** (the experience-contract
+verdict + trend numbers, written in a node's `<sg-signal>` output, read and under-captured — never
+invented). The analyzer fully **rewrites** the log each run (one writer; no append-only semantics).
 
-- **Instrumentation preamble** — a shared **reference** (`graph/_refs/`) every node
-  depends on with `load: import`, so the build single-sources it into each node via a native
-  `@-import` — guaranteed-present, not skippable (see
-  [`plugin-spec`](../03-plugin-spec/README.md)). On entry it records a `node-enter`; on exit a
-  `node-exit` carrying the outcome and which gates were hit. This is the in-node, deterministic
-  emitter; behaviour that must be **enforced** rather than merely present is a hook (below).
-- **Hooks** — a hook is a `triggers` edge from a native event to a node; the handler
-  records the event. Hooks capture what the preamble cannot observe from inside a node
-  (subagent completion, session stop).
+| Derived series | Transcript source | Gives |
+|---|---|---|
+| **tokens / cache / cost** | `message.usage` on assistant entries (the `transcript-usage` core) | per-IU / per-session / per-dispatch `token_usage` (6-component, cache split) |
+| **friction** | `tool_result` denials/errors/rejections + `permissionDecision`/`Reason`/`Mode` | per-session denial / rejection / error / permission-decision counts |
+| **stalls** | cross-session `timestamp` gaps | between-sessions stall spans (incl. overnight gate stalls) |
+| **node activity** | `Skill`/slash/`Task` invocations + coalesced `attributionSkill` | node enter/exit/duration spans, carrier-attributed |
+| **attribution** | the dispatched-session's first user message (the dispatch-prompt envelope) | the `(carrier, carrier_kind, arc)` each derived row is keyed to |
 
-Events append to a **local event log** (JSONL) in the workspace. They never leave it (see
+The analyzer is **idempotent** (a per-transcript cursor; re-running over the same transcripts is
+byte-stable) and **local** (runs only where the transcripts exist; nothing is shipped — the Locality
+invariant holds by construction). The deterministic transcript summer
+(`workspace/renderer/lib/transcript-usage.ts`, exposed as the `sg-token-usage` CLI) is the reused
+token core.
+
+## How events are derived
+
+Nodes emit **nothing** to the event log. The analyzer derives node activity (enter / exit /
+duration) from the transcript's `Skill` / slash / `Task` spans, mapping each skill/command name to a
+graph node id (per [`graph-spec`](../02-graph-spec/README.md)) where it matches a known node. **No
+node appends to the event log; the event log has exactly one writer, the analyzer**, which fully
+rewrites it each run.
+
+The **only** model-authored input is a node's **structured result block** — a fenced `<sg-signal>`
+JSON in the node's final result message — carrying its experience-contract verdict or trend number,
+read deterministically, allowlist-gated, never invented:
+
+> The analyzer reads the `<sg-signal>` block from the **final result message of the verdict-emitting
+> node's own transcript** — and for a **dispatched** node, the **subagent transcript's** final message
+> (`<session>/subagents/agent-*.jsonl`), not the parent's. The fence wraps a single JSON object with
+> optional `gates: string[]` and `metrics: { <series>: number }`; `gates[]` is validated against the
+> experience-contract allowlist and `metrics` keys against the publisher's `TREND_SERIES` (values must
+> be finite numbers). **Absent or malformed ⇒ the gate/metric is simply not recorded** (honest
+> under-capture). There is **no conformance guarantee** a verdict-bearing node emitted a block; a
+> future conformance probe could check that verdict-bearing nodes emit one (noted, not built).
+
+The canonical vocabulary a node emits in its `<sg-signal>` output (outcome labels, the
+`experience-contract:<pass|fail>` gate token, the `TREND_SERIES` names, the fence format) lives in the
+thin `analytics-vocabulary` reference the verdict-bearing nodes carry; the retired
+`instrumentation-preamble` is a tombstone pointing at it.
+
+The derived event log (JSONL) is **local** to the workspace that produced it. It never leaves (see
 Locality).
 
 ## Event shape
@@ -65,28 +105,27 @@ A `node-exit` event may carry two **optional** numeric aggregates alongside the 
   metric-trends-vs-earns-keep channel: a measure-vs-baseline node records the number it
   produced so the projection can plot its slope over time.
 
-Both are read by a **closed numeric allowlist** at projection time, never spread verbatim —
-a non-allowlisted or non-numeric key is dropped (the sanitisation boundary, below). The
-instrumentation preamble (v0.4.0) documents both slots.
+The `ax` and `metrics` slots are the **layer-2 model-authored** channel: they arrive only from a
+node's `<sg-signal>` result block (above), are read by a **closed numeric allowlist** at projection
+time, never spread verbatim — a non-allowlisted or non-numeric key is dropped (the sanitisation
+boundary, below). The `analytics-vocabulary` reference documents both slots.
 
-### Hook-captured token-usage events (D69)
+The analyzer also derives two **process** rows the publisher reads — `friction-record` (per-session
+denial / rejection / tool-error / permission-decision counts; categorised counts only, no free-text)
+and `stall-record` (a cross-session timestamp gap over threshold, gate-tagged where the pre-gap node
+holds a gate). Both feed the **Process cost** axis (below).
 
-Token cost rides **three hook-appended event kinds**, distinct from the body's structural events
-(the body emits no token numbers — see *Per-IU cost*):
+### Token-usage rows (analyzer-derived)
 
-| kind | hook | scope | carries |
-|---|---|---|---|
-| `unit-usage` | `PostToolUse` (sync subagent, primary) / `SubagentStop` (background) | an IU | `token_usage` (6 components), `scope_id`, `model`, `cumulative:false` |
-| `session-usage` | `Stop` | a session | `token_usage`, `scope_id` (anonymised session), `cumulative:true` |
-| `dispatch-usage` | `Stop` (when the session is an arc-dispatch) | a carrier | `token_usage`, carrier triple, `cumulative:true` |
-
-Each carries a per-event `v` (a version gate; an out-of-band event is dropped + flagged for the
-renderer banner) and a `model` (for pricing). `token_usage` is read by a **closed 6-component
-allowlist** — `input`, `output`, `cache_creation_5m`, `cache_creation_1h`, `cache_read`, `total` —
-the cache split preserved so cost is priced at real cache multipliers; `by_model` is excluded from
-the line to keep it < 4KB. A failed hook appends a visible **`instrumentation-error`** event (loud,
-never a silent drop). The publisher **rejects** any model-authored `tokens_per_*` / `token_usage`
-key on a structural event (the fabrication guard). The transcript baseline these read from is also
+Token cost is derived by the analyzer from `message.usage` and emitted as three rows —
+`unit-usage` (an IU), `session-usage` (a session), `dispatch-usage` (a carrier) — each carrying the
+closed 6-component `token_usage` block (`input`, `output`, `cache_creation_5m`, `cache_creation_1h`,
+`cache_read`, `total`) and a dominant `model`. The cache split is load-bearing (priced at real
+multipliers). `cumulative` is always `false` — the batch reads settled transcripts, so there is one
+row per scope. Each carries the analyzer's own `v` (a version gate; an out-of-band row is dropped +
+flagged for the renderer banner). The publisher's closed `USAGE_COMPONENT_KEYS` allowlist and the
+**fabrication guard** (rejecting any model-authored `tokens_per_*` / `token_usage` key on a structural
+row) remain the enforced boundary. The transcript these rows are derived from is also
 exposed as the **`sg-token-usage`** CLI (the deterministic summer over a transcript path).
 
 ## Binding events to the graph
@@ -141,8 +180,8 @@ Both are emitted as gate tokens and tallied; neither is model judgment.
 
 ## The rendered analytics surface
 
-The projection publisher reads the event log and emits a sanitised snapshot the analytics
-surface renders along **three axes**:
+The projection publisher reads the analyzer's derived event log and emits a sanitised snapshot the
+analytics surface renders along **four axes**:
 
 - **Node-activity / AX** — per-node usage (last-used, traversals) and the allowlisted `ax`
   agent-experience aggregate.
@@ -156,23 +195,27 @@ surface renders along **three axes**:
   *Experience-thread measurement*) — a **count only**, never the gate strings or any contract
   body. This is the experience-contract UX-conformance sense above, surfaced as a running
   tally; graph-path conformance is the separate traversal check.
-- **Cost** (D69) — the `session_costs` points from the hook usage events: per-scope 6-component
+- **Cost** — the `session_costs` points from the analyzer's `*-usage` rows: per-scope 6-component
   `token_usage`, **cache-efficiency** (`cache_read / total`), and an **estimated `$`** priced from
   the operator-maintained `pricing.json` (cache multipliers load-bearing; an unknown model renders
   `unknown`, never `$0`). A **reconciliation** block surfaces instrumentation health — the
-  Σ(child) ≤ session/dispatch **inequality**, coverage gaps, and the instrumentation-error /
-  version-incompatible / fabrication-rejection counts — the tripwire that catches a cache-blind
-  cost. Degraded states each name a one-step remedy and a prescriptive version banner.
+  Σ(child) ≤ session/dispatch **inequality**, coverage gaps, and the version-incompatible /
+  fabrication-rejection counts — the tripwire that catches a cache-blind cost. Degraded states each
+  name a one-step remedy and a prescriptive version banner.
+- **Process cost** — the `process_costs` points from the analyzer's `friction-record` / `stall-record`
+  rows: per-session **denial / rejection / tool-error** counts, the **permission-decision** breakdown,
+  **total + longest stall**, and **gate-tagged** stalls. All analyzer-derived (no model-emitted datum);
+  the degraded state reads "No process data — analyzer not yet run."
 
-The sanitisation boundary holds across all three: the publisher reads numbers and gate-token
+The sanitisation boundary holds across all four: the publisher reads numbers and gate-token
 counts against closed allowlists, never narrative, contract text, or arbitrary keys (the
 same locality and projection discipline as the carrier-state projection below).
 
 **The publish step.** In a harness the publisher reads the harness's **bound** event log
-(`event-log`, the `.stack-graph/events.jsonl` stream — [`harness-spec`](../04-harness-spec/README.md))
+(`event-log`, the `.stack-graph/derived/analyzer-events.jsonl` stream — [`harness-spec`](../04-harness-spec/README.md))
 and emits a single sanitised snapshot, `portal-projection.json`, which the vendored workspace render
 publishes **first** in the build so the dashboard + analytics surfaces join it. The snapshot is
-**input-gated**: until the loop emits events it is empty, and absent-or-stale it renders **degraded**
+**input-gated**: until the analyzer derives rows it is empty, and absent-or-stale it renders **degraded**
 (a visible provenance banner, snapshot-sourced fields shown as `unknown`) per the harness's
 `stale-projection-policy` — the authored layer always renders in full. An empty analytics surface on
 a harness that has not yet run the loop is the honest state, not a failure.
@@ -207,9 +250,10 @@ visible as a node that never moves its metric.
 
 ## Carrier-state projection
 
-The instrumentation preamble emits a `node-enter` / `node-exit` event **tagged with the
-carrier** on every stage traversal, appending to the same local event log. This makes
-the carrier's stage-position a **derived projection**, never a hand-written field:
+The analyzer derives a `node-enter` / `node-exit` event **tagged with the carrier** for every stage
+traversal — from the transcript's node-activity spans joined to the dispatch-prompt attribution —
+into the same local event log. This makes the carrier's stage-position a **derived projection**, never
+a hand-written field:
 
 - **Current stage** — the latest stage event for that carrier in the log. If an operator
   `stage_override` is set in the carrier file, that wins; the projection is still derived
@@ -229,7 +273,7 @@ nodes.
 A workspace's lighter unit of work projects through this **same** machinery: its `current_stage`
 is derived from the **same carrier-tagged event log** as a tracked work-item's, by the same
 triple key. The lighter loop adds **no new instrumentation** — it conforms to this model
-exactly, emitting the same node-enter / node-exit events and projecting stage the same way.
+exactly, its node-activity derived from the same transcripts and projecting stage the same way.
 
 These two values are **computed on read from the event log**; they are never written into
 the carrier instance file — precisely as the graph record is derived from node frontmatter,
@@ -250,32 +294,29 @@ history regardless of which path reached the terminal state.
 
 ### Stream namespacing
 
-The event log carries three distinguishable streams sharing the same append-log machinery:
+The event log carries three distinguishable streams the analyzer writes into one rewritten file:
 
 | Stream | Subject | Consumers |
 |---|---|---|
-| **Product outcomes** | Carrier-tagged stage events; outcome metrics per node; hook-captured per-IU / per-session cost (`unit-usage` / `session-usage` / `dispatch-usage`) | Dashboard render; improvement loop |
+| **Product outcomes** | Carrier-tagged stage events; outcome metrics per node; analyzer-derived per-IU / per-session cost (`unit-usage` / `session-usage` / `dispatch-usage`) | Dashboard render; improvement loop |
 | **Factory / graph conformance** | Traversal conformance against arc-declared edges; gate events | Factory loop; devops review |
 | **Carrier projection** | Stage position + traversal sequence per carrier id | Surface render; recorder; degraded-mode fallback |
 
 They share machinery but are different subjects with different consumers; keep them
 namespaced so a consumer of one stream does not need to filter noise from another.
 
-### Per-IU cost — hook-captured `unit-usage` (D69)
+### Per-IU cost — analyzer-derived `unit-usage`
 
 Under the one-IU-one-fresh-context build model ([decomposition](../07-decomposition/README.md);
 D57), each implementation unit is built in its own fresh agent context. The cost of building an IU
-is captured **deterministically by the plugin's hooks**, never emitted by the model: the `build`
-body emits the **structural** `unit-complete` (the IU id + the acceptance evidence only the body
-knows, **no token fields**), and the hook appends a **separate** `unit-usage` event carrying a
-**6-component `token_usage`** block (`input`, `output`, `cache_creation_5m`, `cache_creation_1h`,
-**`cache_read`**, `total`), joined to the IU by scope id. The primary capture is `PostToolUse`
-native usage on a synchronous subagent dispatch; a background dispatch falls back to
-`SubagentStop` + the agent transcript summed by the deterministic summer. **This is a D57/D59
-amendment: structural facts stay body-owned; cost is hook-owned** — a node body cannot observe its
-own cache reads (the dominant cost), so a body-emitted figure is fabrication. The historic ~25×
-cost error came from exactly that; the preamble's do-NOT-emit list and the publisher's token-key
-rejection close the channel.
+is derived **deterministically by the analyzer** from the IU's subagent transcript, never emitted by
+the model: the analyzer sums `message.usage` over the dispatched-session transcript and emits a
+`unit-usage` row carrying a **6-component `token_usage`** block (`input`, `output`,
+`cache_creation_5m`, `cache_creation_1h`, **`cache_read`**, `total`), scoped to the IU id parsed from
+the dispatch prompt. **Structural facts stay body-owned; cost is analyzer-owned** — a node body cannot
+observe its own cache reads (the dominant cost), so a body-emitted figure is fabrication. The historic
+~25× cost error came from exactly that; the analyzer derives the cost from the transcript and the
+publisher's token-key rejection closes the body channel.
 
 `measure-outcomes` derives the per-sprint **cost distribution** and the **over-budget share** —
 computed on **context-pressure** (the max per-turn `input + cache_read + cache_creation`, the
@@ -286,27 +327,25 @@ whole-population. The share does two jobs: it calibrates the dial per model, and
 **decomposition-quality** signal back to `plan` — a persistently high share means IUs are drawn too
 coarse (the same shape as "weak acceptance is a *plan* gap, not a *build* gap").
 
-### Per-session cost — `dispatch-complete` (structural) + hook `dispatch-usage` (D69)
+### Per-session cost — analyzer-derived `dispatch-usage`
 
 When an **arc-level dispatcher** ([decomposition](../07-decomposition/README.md)) runs a span of an
-arc's stages as one fresh session per carrier, it emits a per-IU **structural `dispatch-complete`**
-event — **carrier-keyed** (`carrier_id`, `carrier_kind`, `arc`), carrying the dispatch outcome and
-**no token numbers**. The session's whole cost is captured by the **`Stop` hook** as a separate
-carrier-keyed **`dispatch-usage`** event (a 6-component `token_usage`), joined by scope id. Both are
-**measure events the projection never reads for `current_stage`** — the carrier's stage projection
-comes only from the stage nodes' enter/exit events inside the dispatched session.
+arc's stages as one fresh session per carrier, the analyzer derives a **carrier-keyed**
+(`carrier_id`, `carrier_kind`, `arc`) **`dispatch-usage`** row by summing `message.usage` over the
+whole dispatched-session transcript. It is a **measure row the projection never reads for
+`current_stage`** — the carrier's stage projection comes only from the stage nodes' enter/exit
+activity inside the dispatched session.
 
 The `dispatch-usage` cost is the dispatched session's **whole cost** — the specify, build, and review
 spans + session overhead — a **superset of** the per-IU `unit-usage`. `unit-usage` is canonical for
 the IU-sizing dial above; `dispatch-usage` is the **dispatch-efficiency** measure (the
-dispatched-vs-sequential comparison). The `Stop` hook fires **per turn**, so a `session-usage` /
-`dispatch-usage` event is **cumulative-marked** and the publisher keeps the **latest per scope**
-(never double-counting a growing per-turn total).
+dispatched-vs-sequential comparison). The analyzer reads **settled** transcripts, so each row is
+`cumulative:false` — one settled row per scope, never a growing per-turn total.
 
-**Append contract for concurrent sessions.** Every usage event — body- or hook-appended — is **one
-whole line written in a single `O_APPEND` write** (never a buffered multi-write), and token events
-are kept **< 4KB** so the append stays atomic under POSIX even with concurrent sessions; raw evidence
-and `by_model` are excluded from the line for this reason.
+**One writer, full rewrite.** The analyzer **fully rewrites** the derived event log each run, in
+canonical sorted order — so there is exactly one writer and no concurrent-append problem; the old
+atomic-append / `< 4KB` line discipline is moot and dropped. Raw evidence and `by_model` are excluded
+from the derived line (locality + the closed allowlist boundary).
 
 An arc-level dispatcher's **own** node-enter/-exit events are **non-carrier events**: they are routed to
 the **factory-conformance stream**, not product-outcomes, so they never touch the carrier projection.
@@ -384,7 +423,11 @@ are authored truth.
 
 ## Locality
 
-All graph-layer events stay **in the workspace that produced them** — local event log plus
-local gbrain recall. There is no central telemetry collection. Cross-workspace learning
-flows only as human-curated factory-loop PRs ([`devops`](../08-devops/README.md)), never as
-raw event data. This keeps the factory blind to any consumer's usage by construction.
+All derived events stay **in the workspace that produced them**. The analyzer reads local transcripts
+and writes the derived event log (`.stack-graph/derived/analyzer-events.jsonl`) plus its cursor —
+**both local-only, gitignored, and never synced**. **Only `portal-projection.json` ever leaves the
+machine** (the sanitised, allowlist-gated snapshot behind CF-Access); the raw transcripts, the derived
+log, and the whole `.stack-graph/derived/` tree never do. There is no central telemetry collection;
+cross-workspace learning flows only as human-curated factory-loop PRs
+([`devops`](../08-devops/README.md)), never as raw event data. This keeps the factory blind to any
+consumer's usage by construction.
