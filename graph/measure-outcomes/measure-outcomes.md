@@ -77,6 +77,13 @@ For each `node-id` in `touched_nodes`:
 
 ### 2. Read the instrumentation timeline
 
+The analytics substrate is **transcript-derived in batch**: a scheduled analyzer reads the raw
+session transcripts ~1–2×/day and rewrites the derived event log the timeline is read from. Because
+that batch may not have run since the sprint finished, the just-completed sprint's rows may not yet
+exist. So `debrief` **triggers an on-demand analyzer run over the current sprint's transcripts before
+spawning you** (analyze → rewrite the derived log), so the rows for the work you are measuring are
+present by the time you read them. You read the settled log; you never run the analyzer yourself.
+
 Open `timeline_source`. The timeline is an ordered sequence of `node-enter` / `node-exit` /
 gate events tagged with `node` id and timestamps. For each touched node:
 
@@ -92,12 +99,12 @@ the earns-keep metric can be derived from the work record alone (e.g. decision c
 `decisions-store`).
 
 If the timeline is present but **partial** — a `node-enter` with no matching `node-exit`,
-which happens when `debrief` fires before all hook events have flushed — raise a
-`timeline_incomplete` warning. Do **not** skip the affected node: still compute its metrics
-from the events present; the warning flags reduced confidence in any duration/closure metric
-over the incomplete span. This is distinct from the degraded-mode case where the carrier
-projection is *absent* (a fresh clone) — here the projection exists but is incomplete at the
-moment of measurement.
+which happens when a span genuinely did not close (a node still in flight, or a transcript
+that has not yet settled) — raise a `timeline_incomplete` warning. Do **not** skip the
+affected node: still compute its metrics from the events present; the warning flags reduced
+confidence in any duration/closure metric over the incomplete span. This is distinct from the
+degraded-mode case where the carrier projection is *absent* (a fresh clone) — here the
+projection exists but is incomplete at the moment of measurement.
 
 ### 3. Compute metrics
 
@@ -139,10 +146,11 @@ metric can read `ok` and `degrading` at once. Do not collapse them into one fiel
 
 ### 5. Derive the per-IU cost block
 
-If the sprint built IUs, derive a per-IU cost block from the **hook-captured** product-outcomes
+If the sprint built IUs, derive a per-IU cost block from the **analyzer-derived** product-outcomes
 event stream — the `unit-usage` events (one per IU built this sprint, each carrying a 6-component
 `token_usage` block: `input`, `output`, `cache_creation_5m`, `cache_creation_1h`, `cache_read`,
-`total` — D69). The model never authors token numbers; you read them off the hook events.
+`total`). The model never authors token numbers; the analyzer derives them deterministically from
+the transcript and you read them off the derived rows.
 
 Three derived values, each **read-and-arithmetic** — read the stream, compute, return; write nothing:
 
@@ -166,7 +174,7 @@ Three derived values, each **read-and-arithmetic** — read the stream, compute,
 - **coverage denominator (mandatory).** `over_budget_share` is a share **over the IUs that have a
   usage measure**, not the whole population — report it as `measured` of `total` IUs with `unmeasured`
   named, so the dial is never read as whole-population. An IU built this sprint with **no** `unit-usage`
-  event (a background dispatch whose hook failed, a missing transcript) is `unmeasured`, counted in the
+  event (a background dispatch whose transcript is missing or not yet settled) is `unmeasured`, counted in the
   denominator note, never dropped silently. This kills the survivorship-bias hole: a share computed
   only over the IUs that happened to be captured would understate pressure.
 

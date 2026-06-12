@@ -34,7 +34,6 @@ edges:
     - { id: experience-contract,        load: on-demand, external: true }
     - { id: experience-contract-schema, load: on-demand }
     - { id: personas,                   load: on-demand, external: true }
-    - { id: instrumentation-preamble,   load: import }
     - { id: analytics-vocabulary,       load: import }
 # analytics — the loop
 goals:

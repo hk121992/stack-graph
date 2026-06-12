@@ -40,7 +40,6 @@ edges:
     - { id: incremental, stage: build }
   references:
     - { id: IU-schema,                load: import }
-    - { id: instrumentation-preamble, load: import }
     - { id: carrier-interface,        load: on-demand }
     - { id: test-discipline,          load: on-demand }
   can-follow:

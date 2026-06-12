@@ -26,7 +26,6 @@ edges:
     - { id: findings-schema,    load: import }
     - { id: severity-scale,     load: import }
     - { id: confidence-anchors,       load: import }
-    - { id: instrumentation-preamble, load: import }
     - { id: analytics-vocabulary,     load: import }
     - { id: carrier-interface,        load: on-demand }
   precedes:

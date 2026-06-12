@@ -19,7 +19,6 @@ determinism: generative
 # result for the transcript analyzer to read (the layer-2 measurement channel).
 edges:
   references:
-    - { id: instrumentation-preamble, load: import }
     - { id: analytics-vocabulary,     load: import }
     - { id: benchmark-manifest,       load: on-demand, external: true }
 # analytics — the loop

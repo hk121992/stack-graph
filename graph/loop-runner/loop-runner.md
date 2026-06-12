@@ -47,7 +47,6 @@ edges:
   references:
     - { id: IU-schema,                load: import }
     - { id: carrier-interface,        load: on-demand }
-    - { id: instrumentation-preamble, load: import }
     - { id: handoff-prompt-convention, load: import }
     - { id: bindings-contract,        load: on-demand }
     - { id: deploy-config,            load: on-demand }

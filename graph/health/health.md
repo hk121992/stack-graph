@@ -18,7 +18,6 @@ determinism: generative
 # this node states in its final result for the transcript analyzer to read (the layer-2 channel).
 edges:
   references:
-    - { id: instrumentation-preamble, load: import }
     - { id: analytics-vocabulary,     load: import }
     - { id: health-manifest,          load: on-demand, external: true }
 # analytics — the loop
