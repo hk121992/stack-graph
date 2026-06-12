@@ -14,6 +14,7 @@ edges:
     - { id: bindings-contract, load: import }
     - { id: okr-schema, load: on-demand }
     - { id: work-item-schema, load: on-demand }
+    - { id: handoff-prompt-convention, load: on-demand }
 # analytics — the loop
 goals:
   - outcome: A consuming workspace can stand up a working harness from the vendored plugin alone — bindings written and the dashboard surface scaffolded — with no hand-assembly and no copying another workspace's files.
@@ -100,11 +101,17 @@ bindings live at `<org-root>/.claude/bindings.yaml`). If you cannot locate it un
    harness adopts a plugin that introduced a new required binding (the plugin-update migration path).
 4. **Write the org-root `CLAUDE.md`** from the `bindings-contract` template — the harness's
    **ambient surface**: the `handbook-index` pointer (made ambient so it cascades to every child),
-   the pointer to the bindings reference, and the how-to-use-the-graph navigation. Structure only;
-   **idempotent** — never clobber an existing authored `CLAUDE.md`; if one exists, confirm it carries
-   the ambient pointers and warn on anything missing rather than overwriting. (The per-session
-   runtime self-check is a harness hook / ambient rule, **not** your job — you scaffold the file; you
-   do not embed a session-start procedure.)
+   the pointer to the bindings reference, and the how-to-use-the-graph navigation. Also emit **one
+   line** pointing at the handoff-prompt convention, so every agent that writes a chip or handoff
+   prompt from this harness has the field form named ambiently — e.g. *"Writing a chip / handoff
+   prompt: follow the handoff-prompt convention (the stack-graph plugin's `handoff-prompt-convention`
+   reference, shipped with harness-init) — delta only, policy by pointer not by copy."* Name the
+   convention and where it ships rather than a brittle filesystem path (the reference travels inside
+   the vendored plugin, not at a bound surface). Keep the always-on cost to that single line.
+   Structure only; **idempotent** — never clobber an existing authored `CLAUDE.md`; if one exists,
+   confirm it carries the ambient pointers and warn on anything missing rather than overwriting. (The
+   per-session runtime self-check is a harness hook / ambient rule, **not** your job — you scaffold
+   the file; you do not embed a session-start procedure.)
 5. **Scaffold the surface skeleton** under `surface-root` per the template: `strategy.md` (vision ·
    guiding policy · JTBD · open questions — empty headings), `objectives.md` (per `okr-schema` —
    empty objective/north-star headings), `items/` with an **empty** `manifest.json` (`[]`),
