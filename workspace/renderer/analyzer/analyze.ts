@@ -38,12 +38,13 @@ import {
   serializeRows,
   normalizeTs,
 } from "./schema.ts";
-import type { TranscriptEntry, TranscriptMeta, DerivedRow } from "./schema.ts";
+import type { TranscriptEntry, TranscriptMeta, DerivedRow, ActivityRow } from "./schema.ts";
 import { loadCursor, saveCursor, fileSignature, isUnchanged } from "./cursor.ts";
 import type { CursorFile } from "./cursor.ts";
 import { deriveTokenRows } from "./derive-tokens.ts";
 import { deriveFrictionRow } from "./derive-friction.ts";
 import { deriveActivityRows } from "./derive-activity.ts";
+import { deriveStallRows, instantsFromActivity } from "./derive-stalls.ts";
 import { resolveAttribution } from "./attribute.ts";
 
 // ── CLI / config ──────────────────────────────────────────────────────────────────────────────
@@ -256,10 +257,15 @@ export interface DeriveOptions {
   stallThresholdMs: number;
   /** The known graph-node id set — an activity span maps to a node only when its skill is in here. */
   nodeIds: ReadonlySet<string>;
+  /** Nodes whose pre-gap presence tags a stall (§3.3). Defaults to the full node-id set — every
+   *  backbone node can be the loop-pause point a stall straddles; a stall whose pre-gap activity is
+   *  NOT a graph node carries a null before_node. Narrow this set to restrict the tag further. */
+  gateHoldingNodes?: ReadonlySet<string>;
 }
 
 export function deriveAll(parsed: ParsedTranscript[], opts: DeriveOptions): DerivedRow[] {
   const rows: DerivedRow[] = [];
+  const activityRows: ActivityRow[] = [];
   for (const p of parsed) {
     // Resolve attribution once per transcript (META line for dispatched sessions, gitBranch fallback,
     // then null — never a wrong carrier, §3.5). Token + activity rows carry the resolved triple.
@@ -267,8 +273,11 @@ export function deriveAll(parsed: ParsedTranscript[], opts: DeriveOptions): Deri
 
     rows.push(...deriveTokenRows(p.meta, attribution));
 
-    // Activity spans → enter/exit rows for skills that match a graph node id.
-    rows.push(...deriveActivityRows(p.entries, p.meta, attribution, opts.nodeIds));
+    // Activity spans → enter/exit rows for skills that match a graph node id. Kept aside too so the
+    // cross-session stall derivation can order activity across ALL sessions.
+    const acts = deriveActivityRows(p.entries, p.meta, attribution, opts.nodeIds);
+    rows.push(...acts);
+    activityRows.push(...acts);
 
     // Friction is per top-level session. Subagent transcripts are folded into their parent session's
     // friction view by the publisher; the analyzer emits friction only for top-level transcripts to
@@ -278,6 +287,17 @@ export function deriveAll(parsed: ParsedTranscript[], opts: DeriveOptions): Deri
       if (friction) rows.push(friction);
     }
   }
+
+  // Stalls are CROSS-SESSION: order all activity instants and find gaps over the threshold. The
+  // pre-gap node tag is restricted to gate-holding nodes (§3.3); a non-gate pre-gap node carries a
+  // null before_node, the gap is still recorded.
+  const stalls = deriveStallRows(
+    instantsFromActivity(activityRows),
+    opts.stallThresholdMs,
+    opts.gateHoldingNodes ?? opts.nodeIds,
+  );
+  rows.push(...stalls);
+
   return rows;
 }
 

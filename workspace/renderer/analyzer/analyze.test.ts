@@ -19,6 +19,9 @@ import type { UsageRow, FrictionRow, ActivityRow, DerivedRow } from "./schema.ts
 import { deriveFrictionRow } from "./derive-friction.ts";
 import { resolveAttribution, parseMeta } from "./attribute.ts";
 import { deriveActivitySpans, deriveActivityRows } from "./derive-activity.ts";
+import { deriveStallRows } from "./derive-stalls.ts";
+import type { StallRow } from "./schema.ts";
+import type { ActivityInstant } from "./derive-stalls.ts";
 
 const NODE_IDS = loadNodeIds();
 
@@ -213,6 +216,65 @@ describe("A3: node-activity span coalescing", () => {
     expect(NODE_IDS.has("triage")).toBe(true);
     expect(NODE_IDS.has("build")).toBe(true);
     expect(NODE_IDS.has("browse")).toBe(false);
+  });
+});
+
+// ── A4 — cross-session stall derivation ─────────────────────────────────────────────────────────
+
+describe("A4: stall derivation", () => {
+  const HALF_HOUR = 30 * 60_000;
+
+  function inst(ts: string, node: string | null, session: string): ActivityInstant {
+    return { tsMs: Date.parse(ts), ts, node, session };
+  }
+
+  it("a 14h cross-session gap on a gate-holding pre-gap node yields one stall-record with the tag", () => {
+    const instants = [
+      inst("2026-06-12T18:00:30.000Z", "review", "sess-a"), // last activity before the overnight gap
+      inst("2026-06-13T08:00:00.000Z", "land", "sess-b"), // first activity after
+    ];
+    const gate = new Set(["review", "land"]);
+    const stalls = deriveStallRows(instants, HALF_HOUR, gate);
+    expect(stalls.length).toBe(1);
+    const s = stalls[0];
+    expect(s.kind).toBe("stall-record");
+    expect(s.before_node).toBe("review"); // tagged with the pre-gap gate-holding node
+    expect(s.after_node).toBe("land");
+    expect(s.session_before).toBe("sess-a");
+    expect(s.session_after).toBe("sess-b");
+    expect(s.gap_ms).toBe(Date.parse("2026-06-13T08:00:00.000Z") - Date.parse("2026-06-12T18:00:30.000Z"));
+    expect(s.ts).toBe("2026-06-12T18:00:30.000Z"); // gap start = last activity before
+  });
+
+  it("a sub-threshold gap yields no stall", () => {
+    const instants = [
+      inst("2026-06-12T18:00:00.000Z", "review", "s"),
+      inst("2026-06-12T18:10:00.000Z", "review", "s"), // 10min < 30min threshold
+    ];
+    expect(deriveStallRows(instants, HALF_HOUR).length).toBe(0);
+  });
+
+  it("a stall whose pre-gap node is NOT gate-holding carries a null before_node (gap still recorded)", () => {
+    const instants = [
+      inst("2026-06-12T18:00:00.000Z", "explore", "s"),
+      inst("2026-06-13T08:00:00.000Z", "land", "t"),
+    ];
+    const gate = new Set(["review", "land"]); // explore is not gate-holding
+    const stalls = deriveStallRows(instants, HALF_HOUR, gate);
+    expect(stalls.length).toBe(1);
+    expect(stalls[0].before_node).toBeNull();
+    expect(stalls[0].after_node).toBe("land");
+  });
+
+  it("the integrated analyzer emits the review→land overnight stall over the fixture tree", () => {
+    const parsed = parseAll(FIXTURE_ROOT);
+    const rows = deriveAll(parsed, { stallThresholdMs: HALF_HOUR, nodeIds: NODE_IDS });
+    const stalls = rowsOfKind<StallRow>(rows, "stall-record");
+    const overnight = stalls.find((s) => s.before_node === "review" && s.after_node === "land");
+    expect(overnight).toBeTruthy();
+    // ~14h gap.
+    expect(overnight!.gap_ms).toBeGreaterThan(13 * 3600_000);
+    expect(overnight!.gap_ms).toBeLessThan(15 * 3600_000);
   });
 });
 

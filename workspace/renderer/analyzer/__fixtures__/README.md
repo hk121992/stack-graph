@@ -25,10 +25,14 @@ projects/
   sess-alpha/subagents/agent-build1.jsonl  dispatched build IU with a META: line → attribution
                                            (carrier=wave-A kind=standalone-iu arc=incremental iu=A1)
                                            + dispatch/unit usage.
+  sess-browse.jsonl                        ~30 attributionSkill browse↔null toggles → must coalesce
+                                           to ONE span (browse is non-graph → no node row, §3.4).
+  sess-prose/subagents/agent-prose1.jsonl  dispatched session with a PROSE first message (no META:)
+                                           → attribution falls back to null (never a wrong carrier).
+  sess-gate-before.jsonl                   Skill(review) span at 2026-06-12T18:00:30Z (gate-holding).
+  sess-gate-after.jsonl                    Skill(land) span at 2026-06-13T08:00:00Z → a ~14h
+                                           cross-session gap → one stall-record tagged before_node=review.
 ```
-
-Additional fixtures (browse-toggle coalescing, cross-session stall, META-absent fallback) are added
-by their respective IUs (A3/A4).
 
 ## Pinned token sums (computed via `lib/transcript-usage.ts`)
 
