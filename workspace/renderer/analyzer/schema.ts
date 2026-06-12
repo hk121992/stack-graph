@@ -29,6 +29,15 @@ export const ISO_UTC_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/
 export const CARRIER_KINDS = new Set(["work-item", "standalone-iu"]);
 export const ARCS = new Set(["dev-sprint", "incremental"]);
 
+/** Layer-2 model-authored verdict allowlists (§7) — mirror the publisher's TREND_SERIES /
+ *  EXPERIENCE_CONTRACT_GATE. These gate the SHAPE of a `<sg-signal>` block, never the truth of the
+ *  value: a model-authored number/verdict is exactly as trustworthy as the model that wrote it. Keep
+ *  in lockstep with publish-projection.ts (TREND_SERIES, EXPERIENCE_CONTRACT_GATE). */
+export const TREND_SERIES = new Set(["benchmark.perf", "health.quality"]);
+export const EXPERIENCE_CONTRACT_GATE = "experience-contract";
+/** A well-formed experience-contract gate token: `experience-contract:<pass|fail>`. */
+export const EXPERIENCE_CONTRACT_GATE_RE = /^experience-contract:(pass|fail)$/;
+
 // ── Parsed transcript ───────────────────────────────────────────────────────────────────────────
 
 /** One parsed JSONL entry (only the fields the analyzer reads; the rest are ignored). */
@@ -134,6 +143,10 @@ export interface ActivityRow {
   arc: string | null;
   outcome: string | null;
   gates: string[];
+  /** Layer-2 model-authored trend measurements (§7), read off the node's `<sg-signal>` block and
+   *  validated against TREND_SERIES. Omitted when the node emitted no valid metric (the publisher's
+   *  exit-event `metrics` path is allowlist-gated regardless). */
+  metrics?: Record<string, number>;
   v: string;
 }
 

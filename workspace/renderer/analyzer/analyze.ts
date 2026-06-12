@@ -46,6 +46,7 @@ import { deriveFrictionRow } from "./derive-friction.ts";
 import { deriveActivityRows } from "./derive-activity.ts";
 import { deriveStallRows, instantsFromActivity } from "./derive-stalls.ts";
 import { resolveAttribution } from "./attribute.ts";
+import { signalFromTranscript, applyVerdictToRows } from "./parse-signal.ts";
 
 // ── CLI / config ──────────────────────────────────────────────────────────────────────────────
 
@@ -253,6 +254,12 @@ export interface ParsedTranscript {
  * A1 wires token derivation; A2 adds per-session friction; A3 adds activity spans + attribution;
  * A4 adds stalls.
  */
+/** The verdict-bearing nodes (§7) — the only nodes that author a layer-2 `<sg-signal>` block in their
+ *  final result. The analyzer reads the block from a transcript and attaches its (allowlist-gated)
+ *  gates/metrics to that node's enter/exit rows; every other node carries the honestly-under-captured
+ *  empty gates. Mirrors the four nodes that import analytics-vocabulary. */
+export const VERDICT_NODES: ReadonlySet<string> = new Set(["simulate-users", "benchmark", "health", "review"]);
+
 export interface DeriveOptions {
   stallThresholdMs: number;
   /** The known graph-node id set — an activity span maps to a node only when its skill is in here. */
@@ -276,6 +283,17 @@ export function deriveAll(parsed: ParsedTranscript[], opts: DeriveOptions): Deri
     // Activity spans → enter/exit rows for skills that match a graph node id. Kept aside too so the
     // cross-session stall derivation can order activity across ALL sessions.
     const acts = deriveActivityRows(p.entries, p.meta, attribution, opts.nodeIds);
+
+    // Layer-2 (§7): a verdict-bearing node states its experience-contract verdict / trend number as a
+    // fenced <sg-signal> block in this transcript's FINAL result message (the subagent transcript's
+    // final message when the node ran dispatched — which is exactly THIS transcript). Read it once,
+    // gate it by shape, and attach the surviving gates/metrics to that node's enter/exit rows. Absent
+    // or malformed ⇒ nothing recorded (honest under-capture). Other nodes keep their empty gates.
+    const verdictActs = acts.filter((r) => VERDICT_NODES.has(r.node));
+    if (verdictActs.length > 0) {
+      applyVerdictToRows(verdictActs, signalFromTranscript(p.entries));
+    }
+
     rows.push(...acts);
     activityRows.push(...acts);
 

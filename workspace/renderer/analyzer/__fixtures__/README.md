@@ -31,6 +31,10 @@ projects/
                                            arc=incremental iu=B7 even though it is not the first line.
   sess-browse.jsonl                        ~30 attributionSkill browse↔null toggles → must coalesce
                                            to ONE span (browse is non-graph → no node row, §3.4).
+  sess-verdict.jsonl                       a /review span whose FINAL assistant message carries a
+                                           <sg-signal>{"gates":["experience-contract:pass"]}</sg-signal>
+                                           block → the §7 parser attaches the gate to review's
+                                           enter/exit rows (layer-2 model-authored verdict channel).
   sess-prose/subagents/agent-prose1.jsonl  dispatched session with a PROSE first message (no META:)
                                            → attribution falls back to null (never a wrong carrier).
   sess-gate-before.jsonl                   Skill(review) span at 2026-06-12T18:00:30Z (gate-holding).

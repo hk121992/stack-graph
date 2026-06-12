@@ -22,6 +22,8 @@ import { deriveActivitySpans, deriveActivityRows } from "./derive-activity.ts";
 import { deriveStallRows } from "./derive-stalls.ts";
 import type { StallRow } from "./schema.ts";
 import type { ActivityInstant } from "./derive-stalls.ts";
+import { parseSignal, finalAssistantText, signalFromTranscript } from "./parse-signal.ts";
+import type { TranscriptEntry } from "./schema.ts";
 
 const NODE_IDS = loadNodeIds();
 
@@ -283,6 +285,67 @@ describe("A4: stall derivation", () => {
     // ~14h gap.
     expect(overnight!.gap_ms).toBeGreaterThan(13 * 3600_000);
     expect(overnight!.gap_ms).toBeLessThan(15 * 3600_000);
+  });
+});
+
+// ── A-nodes — the layer-2 <sg-signal> verdict parser (§7) ────────────────────────────────────────
+
+describe("A-nodes: <sg-signal> verdict parser", () => {
+  it("extracts a valid block: gates + metrics survive the allowlist gate", () => {
+    const v = parseSignal('result\n<sg-signal>{"gates":["experience-contract:pass"],"metrics":{"benchmark.perf":2100}}</sg-signal>');
+    expect(v).toEqual({ gates: ["experience-contract:pass"], metrics: { "benchmark.perf": 2100 } });
+  });
+
+  it("drops an out-of-allowlist metric series and a free-text gate (shape-gated, never echoed)", () => {
+    const v = parseSignal('<sg-signal>{"gates":["design-approved:pass","experience-contract:fail"],"metrics":{"benchmark.perf":9,"secret.leak":1}}</sg-signal>');
+    expect(v).toEqual({ gates: ["experience-contract:fail"], metrics: { "benchmark.perf": 9 } });
+  });
+
+  it("drops a non-finite / non-numeric metric value", () => {
+    const v = parseSignal('<sg-signal>{"metrics":{"health.quality":"8.6","benchmark.perf":1.5}}</sg-signal>');
+    expect(v).toEqual({ gates: [], metrics: { "benchmark.perf": 1.5 } });
+  });
+
+  it("discards a malformed (non-JSON) block → null (not recorded, never invented)", () => {
+    expect(parseSignal("<sg-signal>{not json}</sg-signal>")).toBeNull();
+  });
+
+  it("discards a multiply-fenced block → null (exactly one fence required)", () => {
+    const two = '<sg-signal>{"gates":["experience-contract:pass"]}</sg-signal> and <sg-signal>{"gates":["experience-contract:fail"]}</sg-signal>';
+    expect(parseSignal(two)).toBeNull();
+  });
+
+  it("records nothing when the block is absent (honest under-capture)", () => {
+    expect(parseSignal("a final message with no signal at all")).toBeNull();
+    expect(parseSignal(null)).toBeNull();
+    expect(parseSignal("")).toBeNull();
+  });
+
+  it("a hostile free-text gate masquerading as experience-contract is rejected unless it is :pass|:fail", () => {
+    const v = parseSignal('<sg-signal>{"gates":["experience-contract:DROP TABLE"]}</sg-signal>');
+    expect(v).toEqual({ gates: [], metrics: {} });
+  });
+
+  it("finalAssistantText reads the LAST assistant message (the result), skipping user/earlier turns", () => {
+    const entries: TranscriptEntry[] = [
+      { type: "user", message: { content: "go" } },
+      { type: "assistant", message: { content: [{ type: "text", text: "first" }] } },
+      { type: "assistant", message: { content: [{ type: "text", text: "FINAL <sg-signal>{\"gates\":[\"experience-contract:pass\"]}</sg-signal>" }] } },
+    ];
+    expect(finalAssistantText(entries)).toContain("FINAL");
+    expect(signalFromTranscript(entries)).toEqual({ gates: ["experience-contract:pass"], metrics: {} });
+  });
+
+  it("the integrated analyzer attaches a verdict node's <sg-signal> gates to its enter/exit rows", () => {
+    const parsed = parseAll(FIXTURE_ROOT);
+    const rows = deriveAll(parsed, { stallThresholdMs: 30 * 60_000, nodeIds: NODE_IDS });
+    const reviewRows = rowsOfKind<ActivityRow>(rows, "exit")
+      .concat(rowsOfKind<ActivityRow>(rows, "enter"))
+      .filter((r) => r.node === "review" && r.session === "sess-verdict");
+    expect(reviewRows.length).toBe(2); // one enter + one exit
+    for (const r of reviewRows) {
+      expect(r.gates).toEqual(["experience-contract:pass"]);
+    }
   });
 });
 
