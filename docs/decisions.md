@@ -1265,4 +1265,60 @@ volume / estimated-$ (labeled, `verified_on`) / context-pressure. Renderer suite
 files); the hooks fail-loud path is fixture-verified. **D68 was taken (curator integrate).**
 *Status:* Decided; built on `graph/token-instrumentation` (per-IU commits); the plugin submodule
 re-vendor (0.10.0) + gitlink bump is the **post-merge `chore(vendor)`**; companion bc-workspace#136
-is a re-vendor handoff after merge.
+is a re-vendor handoff after merge. **[SUPERSEDED by D70 — the hook capture is retired (PR #25 will
+not merge); the verified transcript-usage core + cost method are preserved and reused by D70's batch
+analyzer.]**
+
+**D70 — The issue-sweep wave (#23/#26/#27/#28/#29); analytics unify on a deterministic
+transcript-derived batch analyzer that retires the #21 hooks.** Five open issues built in one wave on
+`issue-sweep-wave`; #24 stays **ON HOLD** (the out-of-band-merge fix is agent-driven and waits on the
+Be Civic setup). Spec-first per cluster (design doc + spec-amendment + adversarial eng-review, folded);
+H/F/C built in parallel isolated worktrees then cherry-picked, A built sequentially on the wave (it
+reuses #21's core + retires #21's hooks — neither exists on `main`).
+**H — handbook tooling (#26/#27).** One general, canon-root-parameterized index generator (generalised
+`refresh-index.ts`, vendored into the plugin via a new `writeScripts` stage). Crux fix: the factory
+`index.json` is **literal UTF-8** (not ASCII-escaped — the old TS serializer was drifted on two axes,
+compact + ascii); the generator now emits `JSON.stringify(...,2)+"\n"` byte-for-byte, with `--ascii` a
+flag for harnesses (e.g. be-civic) whose committed index is escaped; it **normalises `related[]` on
+write** (final-segment `NN-` strip, `X/README`→`X`, archive-section exclusion NN-agnostic). The
+link-validator canonicalises `related[]` identically before `related_slug`/`related_asymmetric`, and
+annotates asymmetry with inbound-degree + `net_new_in_batch` (advisory, never auto-reciprocate);
+`integrate` escalates **standing** `related_slug`/`unindexable` breaks directly into a gated `raise`
+(after the post-batch index commit + worktree teardown, off clean `main`). Also fixed two pages' stale
+`read-when` (the generator drift #26 named).
+**F — harness lifecycle (#23).** New `harness-update` skill (sibling to `harness-init`): detect
+installed-vs-published (refresh the marketplace cache **before** reading, else stale), the scope-aware
+`marketplace update → uninstall → install` dance (native `plugin update` is broken), re-bind only on
+`bindings-contract` version drift, surface restart + the version/commit landed.
+**C — handoff convention (#29).** New `handoff-prompt-convention` reference (the delta-only
+`GOAL/WHERE/DO/DONE-WHEN/POL/EPH` field form, policy-by-pointer, `POL:` resolves cold on-disk only);
+`harness-init scaffold` emits a one-line prose pointer. Amended to v0.2.0 with a machine-readable
+`META: carrier=… kind=… arc=… iu=…` line — the **A↔C convergence**: the dispatch envelope is the
+deterministic attribution source the analyzer reads (allowlist-valued → a malformed token degrades to
+null, never a wrong carrier).
+**A — friction & stall telemetry (#28), SUPERSEDES #21.** Operator pivot: replace **all** inline/hook
+analytics emission with **one deterministic, scheduled (~1–2×/day) batch analyzer** that reads the
+session transcripts and derives the whole substrate — tokens/cost (reusing #21's preserved
+`transcript-usage.ts` core), friction (denials/rejections/errors + `permissionDecision`), stalls
+(cross-session timestamp gaps — the 14h stall falls out), node-activity (skill/Task spans). **The #21
+hooks are retired; PR #25 will not merge.** Honest **two-layer invariant** (the eng-review caught the
+overclaim): a deterministic transcript-mechanical bulk *plus* a small, explicitly-separated,
+allowlist-gated **model-authored verdict layer** (experience-contract pass/fail + trend numbers) the
+node writes in its *output* as a fenced `<sg-signal>` block and the analyzer reads — honestly
+under-captured, never invented. Attribution from the C `META:` line (session-level/null fallback,
+never wrong); idempotent full-rewrite (cursor is a perf skip-cache only); locality preserved (only
+`portal-projection.json` leaves the machine; the analyzer emits allowlist-shaped values only, the
+publisher re-validates). `SG_TRANSCRIPT_ROOT` is an **env** (no node resolves it); `harness-init`
+**emits a scheduled-task runbook** (it cannot write a crontab — harness-local-writes-only);
+`instrumentation-preamble` retired as a runtime emit contract (surviving vocabulary → new
+`analytics-vocabulary` ref carried by the 4 verdict nodes); `measure-outcomes`/`debrief` drop the
+hook-flush assumption and trigger an on-demand analyze before reading. Built A1–A6c (10 IUs): analyzer
+core/friction/activity+attribution/stalls, the loop-runner `META` producer, the `<sg-signal>`
+emit+parser, the publisher/renderer **Process-cost** block + hostile-fixture sanitisation, then hook
+retirement / preamble sweep (26 nodes) / config+spec.
+**Z1.** Re-vendored the plugin **0.11.0** (no hooks, + the analyzer + `harness-update` + the
+index-generator script + the new ref copies; − the hooks tree + 26 `instrumentation-preamble` ref
+copies); `graph-record.json` regenerated to **47 nodes / 28 refs / 205 edges** (every non-reference
+edge type identical to the prior record); G1 `--check` clean, Stage-4 parity + G2 load-verify pass.
+*Companion (out of write-boundary):* re-vendor 0.11.0 into bc-workspace; PR #25 to be closed as
+superseded. **D68 = curator integrate, D69 = token instrumentation (superseded here).**
