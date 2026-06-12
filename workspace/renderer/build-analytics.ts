@@ -238,14 +238,14 @@ function costSection(v: View | null): string {
   if (costs.length === 0) {
     let remedy: string;
     if (errs > 0) {
-      remedy = `A hook fired but <strong>failed loud</strong> — ${esc(errs)} <code>instrumentation-error</code> event(s) are in the log. Check that <code>node</code> resolves in the session environment and the transcript path is readable, then relaunch.`;
+      remedy = `The analyzer <strong>failed loud</strong> — ${esc(errs)} <code>instrumentation-error</code> event(s) are in the log. Check that the transcripts under <code>SG_TRANSCRIPT_ROOT</code> are readable, then rerun the analyzer.`;
     } else if (versionBad) {
-      remedy = `Usage events were dropped for version incompatibility. Re-vendor the plugin and rerun <code>harness-init validate</code>.`;
+      remedy = `Usage events were dropped for version incompatibility. Re-vendor the plugin and rerun the analyzer (<code>harness-init validate</code> confirms it).`;
     } else if (hasData) {
-      // node activity exists but no usage events → the hooks aren't installed/active.
-      remedy = `Node activity is present but <strong>no token-usage events</strong> were captured — the plugin hooks are not installed or not active. Re-vendor the plugin, confirm it is enabled, and run <code>harness-init validate</code> (its live-hook probe confirms capture).`;
+      // node activity exists but no usage events → the analyzer hasn't processed these sessions yet.
+      remedy = `Node activity is present but <strong>no token-usage events</strong> were derived — the transcript analyzer has not run over these sessions yet. Confirm the scheduled analyzer task is registered and run it (<code>harness-init validate</code> runs the analyzer dry-run probe).`;
     } else {
-      remedy = `No loop run has emitted usage events yet. Cost appears once the dev-sprint / incremental loop runs with the plugin hooks active.`;
+      remedy = `No loop run has been analyzed yet. Cost appears once the dev-sprint / incremental loop runs and the scheduled analyzer processes its transcripts.`;
     }
     return `<h2>Cost</h2>\n<div class="callout callout-info"><p><strong>No cost data.</strong> ${remedy}</p></div>${versionBanner(v as View)}`;
   }

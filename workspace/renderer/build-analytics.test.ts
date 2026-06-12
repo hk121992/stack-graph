@@ -97,7 +97,7 @@ const costProj = {
 // Degraded: node activity but NO usage events → hooks-not-installed remedy.
 {
   const html = render({ provenance: { commit: "x", generator_version: "0.3.0" }, nodes: { plan: { last_used: "2026-06-01T10:00:00Z", traversals_30d: 3 } }, session_costs: [], reconciliation: { unit_usage: 0, session_usage: 0, dispatch_usage: 0, measured_iu_total: 0, session_total: 0, inequality_ok: null, instrumentation_errors: 0, rejected_model_token_keys: 0, version_incompatible_events: 0, notes: [] } });
-  checks.push(["render: node activity + no usage → 'hooks are not installed' remedy", html.includes("No cost data") && html.includes("hooks are not installed")]);
+  checks.push(["render: node activity + no usage → 'analyzer has not run' remedy", html.includes("No cost data") && html.includes("analyzer has not run over these sessions")]);
 }
 
 // Degraded: instrumentation errors present → loud-failure remedy.
