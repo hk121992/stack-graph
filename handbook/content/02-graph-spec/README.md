@@ -190,6 +190,17 @@ stage emits node-enter/-exit events tagged with the carrier id; `current_stage` 
 for that carrier; the traversal sequence is the ordered history. No stage holds a write-edge into the
 instance — the stages are what make the projection real.
 
+**Measure events vs stage events (D69).** Alongside the stage `node-enter`/`node-exit` events, the event
+log carries a separate **hook-emitted measure class** that records token cost: `unit-usage` (per IU),
+`session-usage` (per session, cumulative-marked), and `dispatch-usage` (per arc-dispatch carrier), each
+carrying a **6-component `token_usage`** block (`input`, `output`, `cache_creation_5m`,
+`cache_creation_1h`, `cache_read`, `total`) and a per-event `v`. These are **never read for
+`current_stage`** — cost is hook-owned, structural facts are body-owned, and the model body emits **no**
+token numbers (a body cannot see cache reads; the publisher rejects a `tokens_per_*` key on a structural
+event). Two further structural kinds are **recognised but not projected** — `review-fix` (a review-gate
+re-entry marker) and `note` (an operator-discretion breadcrumb): a consumer may emit them and they persist
+in the log, but the projection ignores unknown kinds, so they invent no surface.
+
 Projection keys by **carrier id + carrier kind + arc id**, not carrier id and latest stage alone. When a
 node is **shared across two arcs** (a stage reused by more than one traversal), keying by carrier id alone
 would let one carrier's `current_stage` bleed into another's at the shared node; the arc id in the key

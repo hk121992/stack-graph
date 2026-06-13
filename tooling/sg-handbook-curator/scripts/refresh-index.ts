@@ -6,15 +6,23 @@
  * resolution adapted for the stack-graph repo layout (no bc-workspace/ wrapper —
  * the handbook root IS the repo's own handbook/).
  *
+ * This is a GENERAL generator: it is parameterized by the canon root, vendored into
+ * the plugin (build/vendor.ts), and invoked the same way by any harness's curator
+ * overlay. Default output is literal UTF-8 (the factory canon); `--ascii` reproduces
+ * an ASCII-escaped canon (e.g. be-civic's `json.dumps(ensure_ascii=True)` shape).
+ *
  * CONTRACT
  * --------
- * Input:  $HANDBOOK_ROOT — path to the stack-graph `handbook/` directory.
- *         If unset, walk up from this script's location looking for a `handbook/content/`
- *         directory. Abort with exit code 2 if not found.
+ * Canon root: the directory CONTAINING `content/`. Resolution order:
+ *   1. `--root <path>` CLI arg (flag or first positional);
+ *   2. `$HANDBOOK_ROOT` env var;
+ *   3. walk up from this script's location looking for a `handbook/content/` directory.
+ *   Abort with exit code 2 if none resolves.
  *
- * Walk:   `$HANDBOOK_ROOT/content/NN-<section>/` directories only.
+ * Walk:   `<root>/content/NN-<section>/` directories only.
  *         Included files: `README.md` (section index) and `NN-<page>.md` leaves.
- *         Excluded: files without `NN-` prefix (except README.md); `11-archive/` skipped wholesale.
+ *         Excluded: files without `NN-` prefix (except README.md); any top-level
+ *         section whose post-`NN-`-strip slug is `archive` (NN-agnostic) skipped wholesale.
  *
  * Slug rule:
  *   `content/NN-section/README.md`      → `section`
@@ -23,10 +31,19 @@
  * Frontmatter: parse title, type, read-when, related (inline array form only).
  *   Pages with incomplete lean frontmatter (missing title, type, or read-when) are
  *   SKIPPED with a stderr warning — do not fail the run.
+ *   Each `related[]` entry is NORMALIZED on write (the same canonicalization the
+ *   link-validator applies before its checks): split on `/`, strip a leading `NN-`
+ *   on the FINAL segment only, `X/README`→`X`, bare `README`→root (`""`), `.md` stripped.
  *
- * Output: `$HANDBOOK_ROOT/content/index.json` — JSON array sorted by slug, one entry per page:
+ * Output: `<root>/content/index.json` — JSON array sorted by slug, one entry per page:
  *   { slug, title, type, "read-when", related }
- *   Encode non-ASCII as \uXXXX to keep the file diff-stable across runs.
+ *   Serialized as `JSON.stringify(entries, null, 2) + "\n"` (literal UTF-8). With
+ *   `--ascii`, non-ASCII is escaped as lowercase `\uXXXX` (per UTF-16 code unit) to
+ *   match a `json.dumps(ensure_ascii=True)` canon.
+ *
+ * Flags:
+ *   --root <path>   canon root (dir containing content/); overrides $HANDBOOK_ROOT + walk-up.
+ *   --ascii         ASCII-escape non-ASCII output (default off = literal UTF-8).
  *
  * Exit codes:
  *   0  success (idempotent — same output as last run if no changes)
@@ -47,7 +64,40 @@ interface PageEntry {
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 
-function resolveHandbookRoot(): string {
+interface CliArgs {
+  /** Canon root from `--root <path>` or the first bare positional, if any. */
+  root?: string;
+  /** ASCII-escape the output (default off = literal UTF-8). */
+  ascii: boolean;
+}
+
+function parseArgs(argv: string[]): CliArgs {
+  const out: CliArgs = { ascii: false };
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "--ascii") {
+      out.ascii = true;
+    } else if (arg === "--root") {
+      out.root = argv[++i];
+    } else if (arg.startsWith("--root=")) {
+      out.root = arg.slice("--root=".length);
+    } else if (!arg.startsWith("-") && out.root === undefined) {
+      // First bare positional is the canon root.
+      out.root = arg;
+    }
+  }
+  return out;
+}
+
+function resolveHandbookRoot(cliRoot?: string): string {
+  // Resolution order: --root, then $HANDBOOK_ROOT, then walk-up discovery.
+  if (cliRoot) {
+    if (existsSync(join(cliRoot, "content"))) return cliRoot;
+    console.error(
+      `refresh-index: --root ${cliRoot} has no content/ subdirectory.`,
+    );
+    process.exit(2);
+  }
   const envRoot = process.env.HANDBOOK_ROOT;
   if (envRoot && existsSync(join(envRoot, "content"))) {
     return envRoot;
@@ -108,6 +158,27 @@ function parseFrontmatter(filePath: string): Record<string, unknown> | null {
   return out;
 }
 
+/**
+ * Canonicalize a `related[]` entry to its slug form. This is the SAME rule the
+ * link-validator applies before its membership + asymmetry checks (see
+ * agents/link-validator.md). Steps:
+ *   - strip a trailing `.md` suffix if present;
+ *   - split on `/`; strip a leading `NN-` (`/^\d{2}-/`) on the FINAL segment only;
+ *   - `X/README` → `X`; bare `README` → root (`""`).
+ */
+function normalizeRelated(entry: string): string {
+  let v = entry.trim();
+  if (v.endsWith(".md")) v = v.slice(0, -3);
+  const parts = v.split("/");
+  const last = parts.length - 1;
+  parts[last] = parts[last].replace(/^\d{2}-/, "");
+  if (parts[last] === "README") {
+    // `X/README` → `X`; bare `README` → root (`""`).
+    parts.pop();
+  }
+  return parts.join("/");
+}
+
 function computeSlug(relPath: string): string | null {
   // relPath: e.g. "08-devops/01-sprint-cycle.md", "08-devops/README.md"
   const parts = relPath.split("/");
@@ -135,7 +206,9 @@ function walk(contentRoot: string): PageEntry[] {
     if (!statSync(full).isDirectory()) return false;
     if (!/^\d{2}-/.test(name)) return false;
     // Archive section is historical record, not navigation target. Skip wholesale.
-    if (name === "11-archive") return false;
+    // NN-agnostic: match any top-level section whose post-`NN-`-strip slug is `archive`
+    // (11-archive, 12-archive, …).
+    if (name.replace(/^\d{2}-/, "") === "archive") return false;
     return true;
   });
 
@@ -162,7 +235,9 @@ function walk(contentRoot: string): PageEntry[] {
       const type = typeof fm.type === "string" ? fm.type : "";
       const readWhen = typeof fm["read-when"] === "string" ? fm["read-when"] : "";
       const related = Array.isArray(fm.related)
-        ? (fm.related as unknown[]).filter((x): x is string => typeof x === "string")
+        ? (fm.related as unknown[])
+            .filter((x): x is string => typeof x === "string")
+            .map(normalizeRelated)
         : [];
 
       if (!title || !type || !readWhen) {
@@ -183,47 +258,39 @@ function walk(contentRoot: string): PageEntry[] {
   return entries;
 }
 
-// Serialise one entry per line in the hand-maintained compact form:
-//   { "slug": "...", "title": "...", "type": "...", "read-when": "...", "related": [...] }
-// JSON.stringify on each scalar gives correct quoting/escaping; the inline
-// related array uses `, ` separators to match the committed file.
-function serializeEntry(e: PageEntry): string {
-  const related = "[" + e.related.map((r) => JSON.stringify(r)).join(", ") + "]";
-  return (
-    "  { " +
-    `"slug": ${JSON.stringify(e.slug)}, ` +
-    `"title": ${JSON.stringify(e.title)}, ` +
-    `"type": ${JSON.stringify(e.type)}, ` +
-    `"read-when": ${JSON.stringify(e["read-when"])}, ` +
-    `"related": ${related}` +
-    " }"
-  );
-}
-
+// Canonical serialiser: standard pretty-print, matching the committed factory
+// index byte-for-byte (`JSON.stringify(entries, null, 2) + "\n"`, literal UTF-8).
+// JSON.stringify preserves key insertion order (slug, title, type, read-when,
+// related) and emits each `related[]` element on its own line. The trailing
+// newline is load-bearing.
 function serialize(entries: PageEntry[]): string {
-  return "[\n" + entries.map(serializeEntry).join(",\n") + "\n]\n";
+  return JSON.stringify(entries, null, 2) + "\n";
 }
 
-// Escape non-ASCII characters as \uXXXX so the emitted JSON matches the
-// committed encoding regardless of whether the source string used literal
-// em-dashes etc. Without this, every run produces a cosmetic-only diff that
-// the integrate walk can't land (handbook is PR-only, no direct push).
+// Escape non-ASCII characters as lowercase \uXXXX so the emitted JSON matches a
+// `json.dumps(ensure_ascii=True)` canon (e.g. be-civic). Enabled by `--ascii`;
+// default off (literal UTF-8, the factory canon). Iterate per UTF-16 code unit
+// via charCodeAt so surrogate pairs emit two `\uXXXX` escapes, matching Python's
+// ensure_ascii. Without this on an ASCII canon, every run produces a cosmetic-only
+// diff that the integrate walk can't land (handbook is PR-only, no direct push).
 function asciiEncode(json: string): string {
   let out = "";
-  for (const ch of json) {
-    const code = ch.codePointAt(0)!;
-    out += code > 0x7f ? "\\u" + code.toString(16).padStart(4, "0") : ch;
+  for (let i = 0; i < json.length; i++) {
+    const code = json.charCodeAt(i);
+    out += code > 0x7f ? "\\u" + code.toString(16).padStart(4, "0") : json[i];
   }
   return out;
 }
 
 function main(): void {
-  const handbookRoot = resolveHandbookRoot();
+  const args = parseArgs(process.argv.slice(2));
+  const handbookRoot = resolveHandbookRoot(args.root);
   const contentRoot = join(handbookRoot, "content");
   const outputPath = join(contentRoot, "index.json");
 
   const entries = walk(contentRoot);
-  const json = asciiEncode(serialize(entries));
+  const body = serialize(entries);
+  const json = args.ascii ? asciiEncode(body) : body;
 
   let prior = "";
   if (existsSync(outputPath)) prior = readFileSync(outputPath, "utf-8");
@@ -234,15 +301,26 @@ function main(): void {
   }
 
   // Announce the slugs of changed entries so `raise` mode can surface them.
+  // Compare whole-entry JSON rather than the (now multi-line pretty-printed)
+  // serialised text: parse the prior file, key by slug, and diff against the
+  // new entries the same way.
   const priorBySlug = new Map<string, string>();
   if (prior) {
-    for (const line of prior.split("\n")) {
-      const m = line.match(/"slug":\s*"([^"]*)"/);
-      if (m) priorBySlug.set(m[1], line.trim().replace(/,$/, ""));
+    try {
+      const priorEntries = JSON.parse(prior) as PageEntry[];
+      if (Array.isArray(priorEntries)) {
+        for (const e of priorEntries) {
+          if (e && typeof e.slug === "string") {
+            priorBySlug.set(e.slug, JSON.stringify(e));
+          }
+        }
+      }
+    } catch {
+      // Unparseable prior (hand-edit, partial write) — treat as all-new.
     }
   }
   const nextBySlug = new Map<string, string>();
-  for (const e of entries) nextBySlug.set(e.slug, asciiEncode(serializeEntry(e)).trim());
+  for (const e of entries) nextBySlug.set(e.slug, JSON.stringify(e));
 
   const changed: string[] = [];
   for (const e of entries) {

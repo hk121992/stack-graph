@@ -43,7 +43,7 @@
     "slug": "decomposition",
     "title": "Decomposition principles",
     "type": "reference",
-    "read-when": "Deciding how to break an arc into nodes, edges, inline, and references — and choosing the primitive (skill vs reference vs agent vs rule vs hook), 1:1 with what renders.",
+    "read-when": "Deciding how to break an arc into nodes, edges, and inline elements.",
     "related": [
       "graph-spec",
       "maintenance-skill",
@@ -166,7 +166,7 @@
     "slug": "plugin-spec",
     "title": "Plugin specification",
     "type": "spec",
-    "read-when": "Packaging the plugin or building the handbook→plugin pipeline.",
+    "read-when": "Packaging the plugin, building the handbook→plugin pipeline, or understanding how the handbook is rendered.",
     "related": [
       "graph-spec",
       "harness-spec",

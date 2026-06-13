@@ -35,6 +35,22 @@ files only (never the vendored graph) and scaffolds empty structure; content —
 strategy — is filled by the curator family (`product-dashboard-curator`, `strategy-curator`),
 not by `harness-init`.
 
+### Wiring token instrumentation (D69)
+
+The plugin's token-instrumentation hooks (`hooks/hooks.json`) are **scope-gated by environment** —
+dormant until the harness activates them, so the factory's own dev environment never fires them.
+`harness-init scaffold` writes the activation env into the org-root `.claude/settings.json`
+(`bindings-contract` §6): **`SG_EVENT_LOG`** — the **absolute** path to
+`<org-root>/.stack-graph/events.jsonl` (absolute because hooks run in arbitrary cwd / isolated
+worktrees, so a relative path would miss the one org-root log), **`SG_TOKEN_EVENT_KIND`** (the
+activation flag), and **`SG_PRICING`** — the optional host **`pricing`** binding the analytics Cost
+block prices with (absent ⇒ components-without-`$`, never `$0`). The dispatcher additionally sets the
+per-scope env (`SG_IU_ID` / the carrier triple) on a child session so usage binds deterministically.
+`harness-init validate` runs a **live-hook probe** — it fires the guard once and asserts a fresh
+event lands in the org-root `SG_EVENT_LOG` (a `session-usage`, or a loud `instrumentation-error` —
+either proves the wiring; silence is the failure) plus a **plugin-active** check. The probe proves
+plugin → guard → handler → org-root log end-to-end before the loop relies on capture.
+
 ## The additive overlay model
 
 A harness customises by **adding**, in the same node-file format as the factory:

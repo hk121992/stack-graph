@@ -16,14 +16,14 @@
  * into the submodule (the PLUGIN root = <factoryRoot>/stack-graph-plugin/).
  *
  * Inputs  (factory root resolved by walking up to the `graph/` + `handbook/` marker):
- *   graph/<id>/<id>.md          — 29 node files (16 skill + 13 agent)
- *   graph/_refs/<id>.md         — 17 shared references
+ *   graph/<id>/<id>.md          — 47 node files (28 skill + 19 agent)
+ *   graph/_refs/<id>.md         — 28 shared references
  *   graph/graph-record.json     — the maintainer-owned record (read-only parity check)
  *   stack-graph-plugin/.claude-plugin/plugin.json — manifest (version bumped)
  *
  * Outputs (emitted into the plugin submodule at <factoryRoot>/stack-graph-plugin/):
- *   skills/<id>/SKILL.md        — built skill nodes (16)
- *   agents/<id>.md              — built agent nodes (13)
+ *   skills/<id>/SKILL.md        — built skill nodes (28)
+ *   agents/<id>.md              — built agent nodes (19)
  *   skills/<id>/references/<refid>.md      — per-skill reference copies
  *   references/<agent-id>/<refid>.md       — per-agent reference copies
  *   workspace/renderer/…        — the workspace portal renderer (Stage 5, 0.5.0+)
@@ -31,7 +31,7 @@
  *   workspace/graph/…           — the dev-loop graph data the graph surface renders
  *   .claude-plugin/plugin.json  — version + description updated
  *
- * THE 5 STAGES (scope: 28 nodes + 16 refs + the vendored workspace renderer)
+ * THE STAGES (scope: 47 nodes + 28 refs + the vendored workspace renderer + the index-generator script)
  *   1. Place references. Per node `references` edge: resolve graph/_refs/<id>.md;
  *      SKIP external:true (handbook/personas/experience-contract/strategy-canvas —
  *      ship the pointer only). Copy (not symlink) the ref into the consumer's bundle
@@ -114,7 +114,7 @@ const NATIVE_KEY_ORDER = [
   "argument-hint",
 ];
 
-const PLUGIN_VERSION = "0.9.0";
+const PLUGIN_VERSION = "0.11.0";
 
 // The plugin lives in its own repo, vendored into the factory as a git submodule
 // at this path. Inputs (graph/) are read from the factory root; outputs are written
@@ -870,6 +870,69 @@ function checkWorkspace(factoryRoot: string, pluginRoot: string): string[] {
 }
 
 // ----------------------------------------------------------------------------
+// Scripts stage — vendor the tooling scripts (handbook index generator).
+//
+// The index generator is a tooling script, not a `.claude` primitive (the build
+// aborts on `primitive: script`), so it is byte-copied into the plugin like the
+// workspace render: self-cleaning dest tree, recursive byte-copy, its own --check
+// drift list. The consuming harness's curator overlay invokes the SAME vendored
+// generator (parameterized by canon root) so every harness regenerates its index
+// with one validated tool.
+// ----------------------------------------------------------------------------
+
+/** The plugin-relative subtree this stage owns; cleaned + drift-checked on its own. */
+const SCRIPTS_TREE = "scripts";
+
+/** Enumerate (absolute source, plugin-relative dest) pairs for the vendored scripts. */
+function scriptsFiles(factoryRoot: string): { src: string; rel: string }[] {
+  return [
+    {
+      src: join(
+        factoryRoot,
+        "tooling",
+        "sg-handbook-curator",
+        "scripts",
+        "refresh-index.ts",
+      ),
+      rel: join("scripts", "refresh-index.ts"),
+    },
+  ];
+}
+
+/** Write the vendored scripts into the plugin (clean its tree first). */
+function writeScripts(factoryRoot: string, pluginRoot: string): number {
+  const dest = join(pluginRoot, SCRIPTS_TREE);
+  if (existsSync(dest)) rmSync(dest, { recursive: true, force: true });
+  const pairs = scriptsFiles(factoryRoot);
+  for (const { src, rel } of pairs) {
+    const abs = join(pluginRoot, rel);
+    mkdirSync(dirname(abs), { recursive: true });
+    copyFileSync(src, abs);
+  }
+  return pairs.length;
+}
+
+/** --check the vendored scripts: byte-compare expected files + flag stale ones. */
+function checkScripts(factoryRoot: string, pluginRoot: string): string[] {
+  const drift: string[] = [];
+  const pairs = scriptsFiles(factoryRoot);
+  const expected = new Set(pairs.map((p) => p.rel));
+  for (const { src, rel } of pairs) {
+    const abs = join(pluginRoot, rel);
+    if (!existsSync(abs)) { drift.push(`missing: ${rel}`); continue; }
+    if (!readFileSync(src).equals(readFileSync(abs))) drift.push(`differs: ${rel}`);
+  }
+  const destRoot = join(pluginRoot, SCRIPTS_TREE);
+  if (existsSync(destRoot)) {
+    walkFiles(destRoot, pluginRoot, (rel) => {
+      if (rel.endsWith(".gitkeep")) return;
+      if (!expected.has(rel)) drift.push(`stale: ${rel}`);
+    });
+  }
+  return drift;
+}
+
+// ----------------------------------------------------------------------------
 // Helpers + main
 // ----------------------------------------------------------------------------
 
@@ -908,10 +971,11 @@ function main(): void {
   }
 
   if (check) {
-    // G1 freshness gate — primitives (text pipeline) + the vendored workspace render.
+    // G1 freshness gate — primitives (text pipeline) + the vendored workspace render + scripts.
     const drift = [
       ...checkBuild(pluginRoot, build),
       ...checkWorkspace(factoryRoot, pluginRoot),
+      ...checkScripts(factoryRoot, pluginRoot),
     ];
     if (drift.length > 0) {
       console.error("vendor --check: committed output is STALE vs a fresh build (G1):");
@@ -929,9 +993,11 @@ function main(): void {
 
   writeBuild(pluginRoot, build);
   const wsCount = writeWorkspace(factoryRoot, pluginRoot);
+  const scriptsCount = writeScripts(factoryRoot, pluginRoot);
   console.log(
     `vendor: emitted ${build.counts.skills} skills + ${build.counts.agents} agents + ` +
-      `${build.counts.refCopies} reference copies + ${wsCount} workspace-render files; ` +
+      `${build.counts.refCopies} reference copies + ${wsCount} workspace-render files + ` +
+      `${scriptsCount} vendored script(s); ` +
       `plugin.json -> ${PLUGIN_VERSION}. Stage 4 parity: pass. G2 load-verify: pass.`,
   );
 }

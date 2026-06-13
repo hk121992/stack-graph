@@ -1,12 +1,37 @@
 ---
 kind: reference
 id: instrumentation-preamble
-title: Instrumentation preamble — node enter/exit emit contract
-description: "The deterministic enter/exit emit contract every backbone node depends on. On entry, record a node-enter event; on exit, a node-exit event carrying the outcome, any gates touched, and optional ax / trend-metrics aggregates. Carrier-tagged when a carrier is in context. Events append as JSONL to the .stack-graph/ event log in the workspace. Single-sourced into every consumer at build via @-import (load: import)."
-status: v0.3.0 — 2026-06-05
+title: Instrumentation preamble — RETIRED (analyzer-derived; tombstone)
+description: "RETIRED — no longer a runtime emit contract. Node bodies no longer emit node-enter / node-exit / metrics events; analytics are transcript-derived in batch by the scheduled analyzer (workspace/renderer/analyzer/). The surviving model-authored vocabulary — outcome labels, the experience-contract:<pass|fail> gate token, the TREND_SERIES names, and the <sg-signal> result-block format — now lives in analytics-vocabulary. See 06-analytics for the current model. Kept as a tombstone for provenance; no node imports it."
+status: v1.0.0 — 2026-06-12 — RETIRED (cluster A, #28, supersedes #21)
 ---
 
-# Instrumentation preamble
+# Instrumentation preamble — RETIRED
+
+> **⚠️ RETIRED — this is no longer a runtime emit contract.** Under the unified transcript-analytics
+> model (cluster A, #28, supersedes #21), **node bodies emit nothing to the event log**: a scheduled
+> batch analyzer (`workspace/renderer/analyzer/`) derives the entire analytics substrate — tokens,
+> friction, stalls, node-activity, attribution — deterministically from the raw session transcripts,
+> and fully rewrites the derived event log each run. No node imports this reference any more (the
+> `load: import` edge was swept from every backbone node).
+>
+> **Where the surviving vocabulary went.** The few signals that are genuinely model judgments — the
+> **outcome labels**, the **`experience-contract:<pass|fail>` gate token**, the **`TREND_SERIES`
+> names** (`benchmark.perf`, `health.quality`), and the **`<sg-signal>` result-block format** a
+> verdict-bearing node writes its verdict/number in — now live in **`analytics-vocabulary`**
+> (`graph/_refs/analytics-vocabulary.md`), carried `load: on-demand` by the four verdict-bearing nodes
+> (`simulate-users`, `benchmark`, `health`, `review`). Those nodes emit the canonical strings in their
+> **own output** (a fenced `<sg-signal>` block), never appended to any event log.
+>
+> **The token prohibition survives.** A node still must **never author token numbers** in any form —
+> the analyzer derives all token cost from the transcript, and the publisher's fabrication guard
+> rejects any model-authored `tokens_per_*` / `token_usage` key. See **`06-analytics`** for the
+> current two-layer model.
+>
+> The contract text below is preserved **only for provenance** — it describes the now-removed
+> emit behaviour and is not to be followed.
+
+---
 
 This is the shared emit contract every node imports. It governs how a node records its
 lifecycle to the event log. The contract is deterministic — it is not a judgment call.
@@ -78,6 +103,42 @@ Note on `ax`: an experience-verification node (`simulate-users`) also attaches a
 allowlist, never spread verbatim. `metrics` carries **trend measurements**; `ax` carries the
 **per-run agent-experience profile**. Both are optional and only the nodes whose goals name
 them emit them.
+
+## Token usage is HOOK-appended — never emit token numbers from a node body (D69)
+
+Token cost is captured **deterministically by the plugin's hooks** (`PostToolUse` native usage /
+`SubagentStop` + `Stop` transcript sums — see `06-analytics`), which append their **own** usage
+events (`unit-usage` / `session-usage` / `dispatch-usage`, each carrying a 6-component
+`token_usage` block). A node body **cannot** observe its own token cost accurately — it cannot see
+cache reads, which dominate spend — so a body-emitted figure is fabrication. **The historic ~25×
+cost error came from exactly this.**
+
+**Do NOT emit, from any node body, any of:**
+
+- `tokens_per_iu`
+- `tokens_per_session`
+- `token_usage` (or any `tokens_*` aggregate) on a `metrics` object
+
+The projection publisher **rejects** these keys if they appear on a model-authored event (a
+fabrication guard), so emitting them is wasted and flagged. **Structural facts stay body-owned;
+cost is hook-owned.** Your body emits the structural `unit-complete` / `dispatch-complete` (the IU
+id, the carrier, the **acceptance evidence** — which only the body knows) **without token fields**;
+the hook joins its usage event by scope id.
+
+## Recognised event kinds — `note` and `review-fix`
+
+Two further structural kinds are **recognised** (a consumer may emit them; the projection ignores
+unknown kinds, so they are recorded but **not projected** into a surface today — no fictitious
+routing):
+
+- **`review-fix`** — emit on a **review-gate-fail re-entry**: when a `review` finding sends work
+  back to `build`/`reconcile`, emit a `review-fix` event tagged with the source node and the IU it
+  re-enters, so the loop re-entry is on the record. Shape: a structural event (`kind: "review-fix"`,
+  the node, carrier triple, the IU) — no token fields.
+- **`note`** — **operator-discretion**: a free structural marker a node may append to record a
+  decision point or context worth keeping in the timeline. Emit it only when it earns its place;
+  it is recognised-but-not-projected (the publisher ignores it), so it never invents a surface — it
+  is a durable breadcrumb in the log, nothing more.
 
 Emit this event after all phase work is done and any final operator output has been
 delivered. Never emit a node-exit before the work is complete.
